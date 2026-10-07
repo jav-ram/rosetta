@@ -3,6 +3,7 @@ package contracts
 import (
 	"encoding/json"
 	"os"
+	"reflect"
 	"testing"
 )
 
@@ -73,5 +74,22 @@ func TestComponentDefinitions(t *testing.T) {
 func TestWarningCodeMustBeDotted(t *testing.T) {
 	if err := Validate(SchemaWarning, []byte(`{"code":"Unknown","severity":"warning","message":"x"}`)); err == nil {
 		t.Fatal("expected bad code to be rejected")
+	}
+}
+
+func TestM1Components(t *testing.T) {
+	defs, err := M1Components()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, d := range defs {
+		names = append(names, d.Name)
+	}
+	if !reflect.DeepEqual(names, []string{"statblock", "readaloud", "sidebar", "pagebreak"}) {
+		t.Fatalf("names = %v", names)
+	}
+	if defs[0].Breakable == nil || *defs[0].Breakable || defs[1].Breakable == nil || !*defs[1].Breakable || defs[3].Breakable != nil {
+		t.Fatal("unexpected breakable flags")
 	}
 }

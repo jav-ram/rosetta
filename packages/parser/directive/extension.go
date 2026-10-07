@@ -14,8 +14,9 @@ import (
 // Option configures the extension.
 type Option func(*extension)
 
-// WithComponents adds component definitions (for example from a system plugin), replacing
-// built-ins of the same name. Directives with names that are not defined are unknown.
+// WithComponents adds component definitions, such as contracts.M1Components() or those of a
+// system plugin. Definitions are data: nothing is built in, and a directive whose name is not
+// defined is unknown.
 func WithComponents(defs ...contracts.ComponentDefinition) Option {
 	return func(e *extension) {
 		for _, d := range defs {
@@ -24,22 +25,13 @@ func WithComponents(defs ...contracts.ComponentDefinition) Option {
 	}
 }
 
-// WithoutBuiltins removes the M1 built-in components, so only WithComponents definitions are known.
-func WithoutBuiltins() Option {
-	return func(e *extension) { e.components = map[string]contracts.ComponentDefinition{} }
-}
-
 type extension struct {
 	components map[string]contracts.ComponentDefinition
 }
 
 // New returns the directive extension for goldmark.New(goldmark.WithExtensions(...)).
-// Options apply in order, so put WithoutBuiltins first.
 func New(opts ...Option) goldmark.Extender {
 	e := &extension{components: map[string]contracts.ComponentDefinition{}}
-	for _, d := range Builtins() {
-		e.components[d.Name] = d
-	}
 	for _, o := range opts {
 		o(e)
 	}
