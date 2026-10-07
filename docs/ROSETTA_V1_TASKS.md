@@ -20,7 +20,7 @@ Tasks marked **🔶 Decision** need an answer from you before the tasks after th
   - Do: pnpm workspace and Go workspace (`go.work`). Empty skeleton for every package in the plan's package table, each with its own README, CHANGELOG, build and tests. dependency-cruiser rule: packages may only import `contracts` and outside libraries (except `app`). CI running Go tests, TypeScript type checks, package tests and the boundary check.
   - Done when: a fresh clone builds, all (empty) test suites run in CI, and an import from one package into another's internals fails CI.
 
-- [ ] **T0.1a — Versioning and releases**
+- [x] **T0.1a — Versioning and releases**
   - Depends on: T0.1
   - Do: Changesets set up for independent versioning. `package.json` for the Go `parser` so it is versioned too, and a release script that creates the Go module tag (`parser/vX.Y.Z`). Changesets GitHub Action for the "Version packages" pull request and publishing. CI check that pull requests touching a package include a changeset. CONTRIBUTING.md explaining the flow.
   - Done when: a test release (dry run) bumps two packages independently, writes their changelogs, and produces the correct Go tag.
@@ -312,3 +312,4 @@ Tasks marked **🔶 Decision** need an answer from you before the tasks after th
 |---|---|---|
 | 2026-10-07 | T1.0 | React for `app`. Chosen for existing React experience, Tiptap's official React support, and the larger open-source contributor pool. `editor` and all other packages stay framework-agnostic. |
 | 2026-10-07 | T0.1 | Packages live in `packages/<name>` (npm scope `@rosetta/*`). Go modules (`contracts`, `parser`) are listed in `go.work`; module path `github.com/jav-ram/rosetta/packages/<name>`. `contracts` is importable only via its public entry `src/index.ts` (enforced by dependency-cruiser). `system-example` is a placeholder skeleton for the `system-<name>` family. Pinned `packageManager` pnpm@10.17.1. |
+| 2026-10-07 | T0.1a | Go module tags use the directory path (`packages/parser/vX.Y.Z`, not `parser/vX.Y.Z`) because Go requires that for submodules; `contracts` is tagged too. `.changeset/config.json` sets `privatePackages.version: true` so the private `parser` is still versioned (otherwise Changesets silently ignores its changesets). npm publishing is deliberately disabled for now: the release workflow only creates Go tags (no `changeset publish`, no `NPM_TOKEN`). |
