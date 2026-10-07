@@ -15,7 +15,7 @@ Every package is versioned independently with semantic versioning, using [Change
 
 1. **Change a package?** Run `pnpm changeset`, pick the packages you touched and the bump (patch, minor, major), and describe the change. Commit the generated file in `.changeset/` with your PR. CI fails PRs that change a package without a changeset. For a change that needs no release (docs, CI), run `pnpm changeset --empty`.
 2. **Merge to `main`.** The Release workflow opens or updates a **"Version packages"** PR that bumps versions and writes each package's `CHANGELOG.md`.
-3. **Merge the "Version packages" PR.** The workflow publishes the npm packages (`changeset publish`), then `scripts/release.mjs` tags every Go module from its `package.json` version and pushes the tags.
+3. **Merge the "Version packages" PR.** The workflow runs `scripts/release.mjs`, which tags every Go module from its `package.json` version and pushes the tags. npm publishing is not enabled yet.
 
 ### Go modules
 
@@ -26,7 +26,3 @@ Preview the tags without creating them:
 ```bash
 node scripts/release.mjs --dry-run
 ```
-
-### Secrets
-
-The Release workflow needs an `NPM_TOKEN` repository secret with publish rights to the `@rosetta` scope.

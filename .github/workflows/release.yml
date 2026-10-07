@@ -21,10 +21,9 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
-          registry-url: https://registry.npmjs.org
       - run: pnpm install --frozen-lockfile
-      # Opens/updates the "Version packages" PR; when that PR is merged, publishes to npm
-      # and then creates and pushes the Go module tags (packages/<name>/vX.Y.Z).
+      # Opens/updates the "Version packages" PR; when that PR is merged, creates and pushes
+      # the Go module tags (packages/<name>/vX.Y.Z). npm publishing is not enabled yet.
       - uses: changesets/action@v1
         with:
           version: pnpm version-packages
@@ -33,5 +32,3 @@ jobs:
           commit: "Version packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
