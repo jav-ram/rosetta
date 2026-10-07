@@ -2,16 +2,23 @@
   "name": "rosetta",
   "private": true,
   "packageManager": "pnpm@10.17.1",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "pnpm -r run build",
     "typecheck": "pnpm -r run typecheck",
     "test": "pnpm -r run test",
     "test:go": "go test ./packages/contracts/... ./packages/parser/...",
     "check:boundaries": "depcruise packages --config .dependency-cruiser.cjs",
-    "check": "pnpm typecheck && pnpm test && pnpm test:go && pnpm check:boundaries"
+    "check": "pnpm typecheck && pnpm test && pnpm test:go && pnpm check:boundaries",
+    "changeset": "changeset",
+    "version-packages": "changeset version && pnpm install --lockfile-only",
+    "release": "changeset publish && node scripts/release.mjs --push",
+    "release:go-tags": "node scripts/release.mjs"
   },
   "devDependencies": {
+    "@changesets/cli": "^3.0.3",
     "dependency-cruiser": "^16.10.4",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
