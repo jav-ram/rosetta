@@ -1,0 +1,16 @@
+{
+  "name": "@rosetta/contracts",
+  "version": "0.0.0",
+  "description": "Language-neutral contracts: JSON Schemas, generated TS types and Go structs, conformance suites.",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests=false"
+  }
+}

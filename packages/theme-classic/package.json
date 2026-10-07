@@ -1,0 +1,13 @@
+{
+  "name": "@rosetta/theme-classic",
+  "version": "0.0.0",
+  "description": "The built-in v1 theme (tokens, CSS, assets).",
+  "type": "module",
+  "files": [
+    "rosetta-package.json"
+  ],
+  "scripts": {
+    "build": "node --check test/manifest.test.mjs",
+    "test": "node --test test/*.test.mjs"
+  }
+}

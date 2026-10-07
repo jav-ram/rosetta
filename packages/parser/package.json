@@ -1,0 +1,10 @@
+{
+  "name": "@rosetta/parser",
+  "version": "0.0.0",
+  "description": "Rosetta parser (Go module).",
+  "private": true,
+  "scripts": {
+    "build": "go build ./...",
+    "test": "go test ./..."
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@rosetta/system-example",
+  "version": "0.0.0",
+  "description": "Skeleton game-system plugin (schemas and templates as data).",
+  "type": "module",
+  "files": [
+    "rosetta-package.json"
+  ],
+  "scripts": {
+    "build": "node --check test/manifest.test.mjs",
+    "test": "node --test test/*.test.mjs"
+  }
+}

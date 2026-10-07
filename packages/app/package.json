@@ -1,0 +1,20 @@
+{
+  "name": "@rosetta/app",
+  "version": "0.0.0",
+  "description": "The Rosetta web app. The only package that composes the others.",
+  "type": "module",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests=false"
+  },
+  "dependencies": {
+    "@rosetta/contracts": "workspace:^"
+  }
+}
