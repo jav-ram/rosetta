@@ -320,7 +320,7 @@ hp: 52 (8d8+16)
 #### `sidebar`
 
 - Form: block, container component.
-- Attributes: `title` (string, optional): shown as the callout heading.
+- Attributes: `title` (string, optional): shown as the callout heading. It is read like a Markdown heading: one to six leading `#` followed by a space set the heading level (`title="## Variant"` is level 2). With no leading `#`, or with seven or more, the title is plain text at the default level 3. A title with no text shows no heading.
 - Body: Markdown.
 - Example:
 

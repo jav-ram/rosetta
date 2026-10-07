@@ -48,9 +48,16 @@ func codes(ws []contracts.Warning) []string {
 	return out
 }
 
+func ptr[T any](v T) *T { return &v }
+
+// parse uses the temporary M1 definitions, passed in as data like any other definitions.
 func parse(t *testing.T, src string, opts ...Option) (ast.Node, []contracts.Warning) {
 	t.Helper()
-	return Parse([]byte(src), opts...)
+	defs, err := contracts.M1Components()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return Parse([]byte(src), append([]Option{WithComponents(defs...)}, opts...)...)
 }
 
 func TestContainerBlock(t *testing.T) {
@@ -300,9 +307,10 @@ func TestPluginComponents(t *testing.T) {
 	if d.ComponentKind != contracts.NodeKindData || len(ws) != 0 {
 		t.Fatalf("directive = %+v warnings = %v", d, codes(ws))
 	}
-	_, ws = parse(t, ":::readaloud\nx\n:::\n", WithoutBuiltins())
+	// Nothing is built in: with no definitions every directive is unknown.
+	_, ws = Parse([]byte(":::readaloud\nx\n:::\n"))
 	if !reflect.DeepEqual(codes(ws), []string{"component.unknown"}) {
-		t.Fatalf("WithoutBuiltins: warnings = %v", codes(ws))
+		t.Fatalf("no definitions: warnings = %v", codes(ws))
 	}
 }
 
@@ -388,19 +396,5 @@ func TestCRLF(t *testing.T) {
 	ds := directives(doc)
 	if len(ds) != 2 || len(ws) != 0 || !ds[0].Closed {
 		t.Fatalf("directives=%d warnings=%v", len(ds), codes(ws))
-	}
-}
-
-func TestBuiltinsHaveBreakable(t *testing.T) {
-	for _, def := range Builtins() {
-		if def.Kind == contracts.ComponentDefinitionKindLeaf {
-			if def.Breakable != nil {
-				t.Errorf("%s: leaf components have no breakable flag", def.Name)
-			}
-			continue
-		}
-		if def.Breakable == nil {
-			t.Errorf("%s: missing breakable", def.Name)
-		}
 	}
 }

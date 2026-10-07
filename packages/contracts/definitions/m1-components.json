@@ -1,0 +1,51 @@
+[
+  {
+    "name": "statblock",
+    "description": "Creature stat block. Temporary M1 definition: fields move into a system plugin in M6.",
+    "form": "block",
+    "kind": "data",
+    "breakable": false,
+    "attributes": [{ "name": "system", "type": "string", "description": "Id of the system plugin that defines the fields." }],
+    "fields": [
+      { "name": "name", "type": "string", "required": true, "plain": true },
+      { "name": "size", "type": "string", "plain": true },
+      { "name": "ac", "type": "number" },
+      { "name": "hp", "type": "string", "plain": true },
+      { "name": "speed", "type": "string", "plain": true },
+      {
+        "name": "traits",
+        "type": "list",
+        "items": {
+          "name": "trait",
+          "type": "object",
+          "fields": [
+            { "name": "name", "type": "string", "required": true, "plain": true },
+            { "name": "text", "type": "string" }
+          ]
+        }
+      },
+      { "name": "actions", "type": "string" }
+    ]
+  },
+  {
+    "name": "readaloud",
+    "description": "Boxed narration text.",
+    "form": "block",
+    "kind": "container",
+    "breakable": true
+  },
+  {
+    "name": "sidebar",
+    "description": "Callout with an optional title.",
+    "form": "block",
+    "kind": "container",
+    "breakable": true,
+    "attributes": [{ "name": "title", "type": "string", "description": "Shown as the callout heading." }]
+  },
+  {
+    "name": "pagebreak",
+    "description": "Starts a new page.",
+    "form": "leaf",
+    "kind": "leaf"
+  }
+]

@@ -96,3 +96,22 @@ func ValidateDocument(data []byte) (*Document, error) {
 	}
 	return &d, nil
 }
+
+//go:embed definitions/m1-components.json
+var m1Components []byte
+
+// M1Components returns the temporary definitions of the M1 components (statblock, readaloud,
+// sidebar, pagebreak). They are data, not parser code; system plugins replace them in M6.
+func M1Components() ([]ComponentDefinition, error) {
+	var defs []ComponentDefinition
+	if err := json.Unmarshal(m1Components, &defs); err != nil {
+		return nil, err
+	}
+	for _, d := range defs {
+		b, _ := json.Marshal(d)
+		if err := Validate(SchemaComponentDefinition, b); err != nil {
+			return nil, fmt.Errorf("component %q: %w", d.Name, err)
+		}
+	}
+	return defs, nil
+}

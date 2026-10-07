@@ -310,3 +310,10 @@ func countByte(b []byte, c byte) int {
 	}
 	return n
 }
+
+// AddWarnings records warnings found after parsing, for example while validating a
+// directive's fields, so they are returned by Warnings together with the parse warnings.
+func AddWarnings(pc parser.Context, ws ...contracts.Warning) {
+	st := getState(pc)
+	st.warnings = append(st.warnings, ws...)
+}

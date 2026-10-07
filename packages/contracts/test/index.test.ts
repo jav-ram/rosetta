@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
+import { m1Components } from "../src/definitions";
 import { isDocument, validateComponentDefinition, validateDocument, type Document } from "../src/index";
 
 const example = (name: string) => JSON.parse(readFileSync(new URL(`../examples/${name}`, import.meta.url), "utf8"));
@@ -48,5 +49,16 @@ describe("component definition", () => {
     const c = { name: "readaloud", form: "block", kind: "container", breakable: true };
     expect(validateComponentDefinition(c).valid).toBe(true);
     expect(validateComponentDefinition({ ...c, fields: [{ name: "x", type: "string" }] }).valid).toBe(false);
+  });
+});
+
+describe("M1 component definitions", () => {
+  test("every definition validates", () => {
+    for (const def of m1Components) expect(validateComponentDefinition(def), def.name).toEqual({ valid: true, errors: [] });
+  });
+
+  test("covers statblock, readaloud, sidebar and pagebreak, with breakable on block components", () => {
+    expect(m1Components.map((d) => d.name)).toEqual(["statblock", "readaloud", "sidebar", "pagebreak"]);
+    expect(m1Components.map((d) => d.breakable)).toEqual([false, true, true, undefined]);
   });
 });
