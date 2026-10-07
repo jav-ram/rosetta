@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Warning",
+  "description": "A problem found while parsing or rendering. Never fatal: the affected part shows a visible warning and the rest of the document is unaffected (spec section 8).",
+  "type": "object",
+  "required": ["code", "severity", "message"],
+  "additionalProperties": false,
+  "properties": {
+    "code": {
+      "type": "string",
+      "description": "Stable identifier, such as component.unknown or field.type.",
+      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$"
+    },
+    "severity": { "type": "string", "enum": ["warning", "error"], "description": "error when the affected part cannot render." },
+    "message": { "type": "string", "description": "Human-readable explanation." },
+    "component": { "type": "string", "description": "Component name, if applicable." },
+    "field": { "type": "string", "description": "Field or attribute name or path, such as traits[0].name." },
+    "range": { "$ref": "position.schema.json" }
+  }
+}

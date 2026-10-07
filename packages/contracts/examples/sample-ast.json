@@ -1,0 +1,56 @@
+{
+  "rosettaVersion": "0.1",
+  "children": [
+    {
+      "type": "heading",
+      "depth": 1,
+      "children": [{ "type": "text", "value": "The Crypt of Ash" }]
+    },
+    {
+      "type": "directive",
+      "name": "readaloud",
+      "form": "block",
+      "kind": "container",
+      "breakable": true,
+      "position": { "start": { "line": 5, "column": 1 }, "end": { "line": 7, "column": 4 } },
+      "children": [
+        { "type": "paragraph", "children": [{ "type": "text", "value": "The torches gutter as the door groans open." }] }
+      ]
+    },
+    {
+      "type": "directive",
+      "name": "statblock",
+      "form": "block",
+      "kind": "data",
+      "breakable": false,
+      "attributes": { "system": "5e" },
+      "fields": { "name": "Bone Warden", "size": "Medium undead", "ac": 15, "hp": "52 (8d8+16)" }
+    },
+    { "type": "directive", "name": "pagebreak", "form": "leaf", "kind": "leaf" },
+    {
+      "type": "directive",
+      "name": "mystery",
+      "form": "block",
+      "kind": "unknown",
+      "attributes": { "x": "1" },
+      "raw": "Not a known component.",
+      "warnings": [
+        {
+          "code": "component.unknown",
+          "severity": "warning",
+          "message": "Unknown component \"mystery\".",
+          "component": "mystery"
+        }
+      ]
+    }
+  ],
+  "warnings": [
+    {
+      "code": "component.unknown",
+      "severity": "warning",
+      "message": "Unknown component \"mystery\".",
+      "component": "mystery",
+      "range": { "start": { "line": 20, "column": 1 }, "end": { "line": 22, "column": 4 } }
+    }
+  ]
+}

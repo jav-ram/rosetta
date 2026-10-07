@@ -28,6 +28,22 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
 
+  generated:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Regenerates TS types and Go structs from the schemas and fails if the committed output differs.
+      - run: pnpm check:generated
+
   boundaries:
     runs-on: ubuntu-latest
     steps:
