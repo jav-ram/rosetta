@@ -1,6 +1,6 @@
 {
   "name": "@rosetta/theme-engine",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Compiles theme tokens to CSS custom properties.",
   "type": "module",
   "main": "src/index.ts",

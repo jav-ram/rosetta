@@ -1,6 +1,6 @@
 {
   "name": "@rosetta/store-local",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "LocalStore (IndexedDB) and .rosetta import/export.",
   "type": "module",
   "main": "src/index.ts",

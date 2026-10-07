@@ -1,6 +1,6 @@
 {
   "name": "@rosetta/editor",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Framework-agnostic Tiptap editor, node view framework and Markdown serializer.",
   "type": "module",
   "main": "src/index.ts",
