@@ -1,6 +1,6 @@
 {
   "name": "@rosetta/spec",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "The Rosetta Markdown specification.",
   "type": "module",
   "files": [
