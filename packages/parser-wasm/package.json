@@ -1,6 +1,6 @@
 {
   "name": "@rosetta/parser-wasm",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "WebAssembly build of the Rosetta parser plus the Web Worker client.",
   "type": "module",
   "main": "src/index.ts",

@@ -1,6 +1,6 @@
 {
   "name": "@rosetta/app",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "The Rosetta web app. The only package that composes the others.",
   "type": "module",
   "private": true,
