@@ -55,13 +55,15 @@ Steel rings out in the dark.
 
 A closing line closes the nearest open block directive whose opening fence has the same or fewer colons. Because an inner fence is always shorter than its parent, an inner `:::` can never close the outer `::::`.
 
-**Fenced code.** Directive lines inside a fenced code block (``` or ~~~) or an indented code block are literal text, not directives.
+**Fenced code.** Directive lines inside a fenced code block (``` or ~~~) or an indented code block are literal text, not directives. This includes a closing line: a `:::` inside a fenced code block in a directive body does not close the directive.
+
+**Which block a closing line closes.** A closing line with n colons closes the innermost open block directive whose fence has n or fewer colons. A longer closing line therefore closes an inner block first, and the outer block is then reported as unclosed.
 
 ### 2.3 Leaf directives
 
 A leaf directive is exactly **two** colons, the name, and optional attributes, alone on its line: `::name{attrs}`. It has no body and no closing line. It MAY appear wherever a block directive may.
 
-A leaf directive written with three or more colons (`:::pagebreak`) is parsed as a block directive. If the component is defined as a leaf, the parser emits `directive.wrong-form`, treats the opening line as the leaf, and reads the lines up to the closing line as ordinary Markdown.
+A leaf directive written with three or more colons (`:::pagebreak`) is parsed as a block directive. If the component is defined as a leaf, the parser emits `directive.wrong-form`, treats the directive as a leaf, and keeps the lines up to the closing line as uninterpreted raw text so no content is lost.
 
 ### 2.4 Reserved forms
 
