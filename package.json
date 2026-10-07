@@ -24,5 +24,6 @@
     "dependency-cruiser": "^16.10.4",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
-  }
+  },
+  "license": "MIT"
 }

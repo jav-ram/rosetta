@@ -74,6 +74,10 @@ Useful commands:
 | `pnpm --filter @rosetta/contracts generate` | Regenerates the TypeScript and Go types from the schemas |
 | `pnpm changeset` | Describes a change for the next release |
 
+## License
+
+[MIT](LICENSE). You can use, modify and distribute Rosetta however you like, as long as you keep the copyright notice and license text, which is how this project gets credit.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the change and release flow. Each package is versioned independently.
