@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RosettaContracts",
+  "description": "Index of every top-level contract. Used as the single entry point for code generation.",
+  "$defs": {
+    "Document": { "$ref": "ast.schema.json" },
+    "ComponentDefinition": { "$ref": "component-definition.schema.json" },
+    "Warning": { "$ref": "warning.schema.json" },
+    "Position": { "$ref": "position.schema.json" }
+  }
+}

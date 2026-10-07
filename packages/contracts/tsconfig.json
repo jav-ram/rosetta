@@ -1,4 +1,5 @@
 {
   "extends": "../../tsconfig.base.json",
-  "include": ["src", "test"]
+  "compilerOptions": { "resolveJsonModule": true, "module": "ESNext" },
+  "include": ["src", "test", "scripts"]
 }

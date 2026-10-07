@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ComponentDefinition",
+  "description": "Defines a component: its form, kind, attributes, fields and breakable flag (spec sections 4 and 9).",
+  "type": "object",
+  "required": ["name", "form", "kind"],
+  "additionalProperties": false,
+  "properties": {
+    "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "description": { "type": "string" },
+    "form": { "type": "string", "enum": ["block", "leaf"] },
+    "kind": {
+      "type": "string",
+      "enum": ["data", "container", "leaf"],
+      "description": "data: YAML-style fields. container: Markdown body. leaf: no body."
+    },
+    "breakable": {
+      "type": "boolean",
+      "description": "Required for data and container components. true: splits across columns and pages. false: moves whole. Omitted for leaf components."
+    },
+    "attributes": { "type": "array", "items": { "$ref": "#/$defs/attribute" } },
+    "fields": {
+      "type": "array",
+      "description": "Fields of a data component.",
+      "items": { "$ref": "#/$defs/field" }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "kind": { "const": "leaf" } }, "required": ["kind"] },
+      "then": {
+        "properties": { "form": { "const": "leaf" } },
+        "not": { "anyOf": [{ "required": ["breakable"] }, { "required": ["fields"] }] }
+      },
+      "else": {
+        "properties": { "form": { "const": "block" } },
+        "required": ["breakable"]
+      }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "container" } }, "required": ["kind"] },
+      "then": { "not": { "required": ["fields"] } }
+    }
+  ],
+  "$defs": {
+    "attribute": {
+      "type": "object",
+      "required": ["name", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_-]*$" },
+        "type": { "type": "string", "enum": ["string", "number", "boolean", "enum"] },
+        "required": { "type": "boolean" },
+        "default": { "type": "string", "description": "Default as the attribute's string form." },
+        "values": { "type": "array", "items": { "type": "string" }, "description": "Allowed values when type is enum." },
+        "description": { "type": "string" }
+      }
+    },
+    "field": {
+      "type": "object",
+      "required": ["name", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_-]*$" },
+        "type": { "type": "string", "enum": ["string", "number", "boolean", "enum", "list", "object"] },
+        "required": { "type": "boolean" },
+        "default": { "description": "Default value; any JSON value." },
+        "plain": { "type": "boolean", "description": "String fields only. When true the value is not read as Markdown." },
+        "values": { "type": "array", "items": { "type": "string" }, "description": "Allowed values when type is enum." },
+        "items": { "$ref": "#/$defs/field", "description": "Item type when type is list. The name is ignored." },
+        "fields": { "type": "array", "items": { "$ref": "#/$defs/field" }, "description": "Member fields when type is object." },
+        "description": { "type": "string" }
+      }
+    }
+  }
+}

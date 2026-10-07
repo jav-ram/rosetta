@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Document",
+  "description": "The Rosetta AST produced by the parser. Node is deliberately one flat shape discriminated by `type`, so that it maps cleanly to both TypeScript and Go.",
+  "type": "object",
+  "required": ["rosettaVersion", "children", "warnings"],
+  "additionalProperties": false,
+  "properties": {
+    "rosettaVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "Spec version the document was parsed as, for example 0.1."
+    },
+    "frontMatter": { "type": "object", "description": "Preserved YAML front matter, if any." },
+    "children": { "type": "array", "items": { "$ref": "#/$defs/node" } },
+    "warnings": { "type": "array", "items": { "$ref": "warning.schema.json" } }
+  },
+  "$defs": {
+    "node": {
+      "title": "Node",
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "heading", "paragraph", "blockquote", "list", "listItem", "code", "thematicBreak", "table", "tableRow", "tableCell",
+            "text", "emphasis", "strong", "inlineCode", "link", "image", "break", "directive"
+          ]
+        },
+        "position": { "$ref": "position.schema.json" },
+        "children": { "type": "array", "items": { "$ref": "#/$defs/node" } },
+        "value": { "type": "string", "description": "text, inlineCode, code." },
+        "depth": { "type": "integer", "minimum": 1, "maximum": 6, "description": "heading." },
+        "ordered": { "type": "boolean", "description": "list." },
+        "start": { "type": "integer", "description": "list, first number when ordered." },
+        "lang": { "type": "string", "description": "code." },
+        "url": { "type": "string", "description": "link, image." },
+        "title": { "type": "string", "description": "link, image." },
+        "alt": { "type": "string", "description": "image." },
+        "align": { "type": "array", "items": { "type": "string", "enum": ["left", "right", "center", "none"] }, "description": "table." },
+        "header": { "type": "boolean", "description": "tableRow, true for the header row." },
+        "name": { "type": "string", "description": "directive: component name." },
+        "form": { "type": "string", "enum": ["block", "leaf"], "description": "directive." },
+        "kind": {
+          "type": "string",
+          "enum": ["data", "container", "leaf", "unknown"],
+          "description": "directive: unknown when no component definition was found."
+        },
+        "attributes": { "type": "object", "additionalProperties": { "type": "string" }, "description": "directive: attribute values, always strings." },
+        "fields": { "type": "object", "description": "directive, data components: parsed YAML-style fields." },
+        "raw": { "type": "string", "description": "directive: raw body text, kept for unknown components." },
+        "breakable": { "type": "boolean", "description": "directive: resolved breakable flag." },
+        "warnings": { "type": "array", "items": { "$ref": "warning.schema.json" }, "description": "Warnings attached to this node." }
+      }
+    }
+  }
+}

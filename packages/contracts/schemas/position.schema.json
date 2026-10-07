@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Position",
+  "description": "A source range. Lines and columns are 1-based; offset is a 0-based byte offset.",
+  "type": "object",
+  "required": ["start", "end"],
+  "additionalProperties": false,
+  "properties": {
+    "start": { "$ref": "#/$defs/point" },
+    "end": { "$ref": "#/$defs/point" }
+  },
+  "$defs": {
+    "point": {
+      "type": "object",
+      "required": ["line", "column"],
+      "additionalProperties": false,
+      "properties": {
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 },
+        "offset": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}
