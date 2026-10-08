@@ -27,7 +27,7 @@ const { html, ast, warnings } = await parser.parse("# Hi\n\n:::readaloud\nA door
 
 The JSON from the module is parsed inside the worker, so the main thread only receives the finished object.
 
-**With Vite** (not tried yet; the app is T1.1):
+**With Vite** (used by `packages/app`, in both `vite dev` and the production build):
 
 ```ts
 import ParserWorker from "@rosetta/parser-wasm/worker?worker";

@@ -366,6 +366,17 @@ Each chapter **always starts on a new page**, optionally on a right-hand page (`
 
 **Done when:** a second, different system can be added without changes to the editor code.
 
+### After M6 — Component gallery (Storybook)
+
+A Storybook that shows every component under any theme, so components and themes can be reviewed and tested without opening a book.
+
+- **Where:** a private tool at `tools/gallery`, outside `packages/`, so it may import the parser client, the theme packages and the system plugins without breaking the package boundary rule (the same place as the benchmark book generator).
+- **What a story is:** one component with example content, rendered the way the app does it: the parser produces the HTML and `theme-engine` supplies the CSS. There is no second renderer.
+- **Content:** stories are generated from the component definitions and the system plugins' examples, plus the golden suite for edge cases (long text, empty fields, unknown fields). A test fails when a component has no story, as the benchmark book does.
+- **Themes:** a toolbar switcher applies any theme (`theme-classic` and any added later); a story can also be shown in a fixed column width, in one column and in two.
+- **Checks:** accessibility checks on every story, and optional visual snapshots to catch unintended changes when a theme or template changes.
+- **Not in v1's critical path:** it is built after M6, when components and themes are stable enough to be worth snapshotting.
+
 ## Performance budgets and the large-book benchmark
 
 A **300-page test book** with about 150 illustrations, using every page template, is created during M0 and kept in the repo. It is used throughout development.
