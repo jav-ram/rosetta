@@ -1,5 +1,11 @@
 # @rosetta/app
 
+## 0.1.0
+
+### Minor Changes
+
+- 929f2d6: App shell: Vite + React app with a chapter sidebar, placeholder editor and preview, and the parser worker wired in.
+
 ## 0.0.4
 
 ### Patch Changes
