@@ -1,5 +1,11 @@
 # @rosetta/parser-wasm
 
+## 0.2.0
+
+### Minor Changes
+
+- 6b2c695: Add the Web Worker and a promise-based TypeScript client (`createParser`) with lazy loading: nothing is fetched until the first call. Calls are answered in order, a failed start-up rejects and retries on the next call, and `terminate()` stops the worker. Includes bundled ES modules for browsers (`dist/index.js`, `dist/worker.js`) and a demo page.
+
 ## 0.1.0
 
 ### Minor Changes
