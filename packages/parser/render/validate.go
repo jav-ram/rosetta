@@ -37,10 +37,11 @@ func describe(v Value) string {
 
 // validateFields checks parsed fields against a component's field definitions (spec 8.2).
 // Fields come back in definition order. Invalid fields are dropped (or replaced by their
-// default); missing required ones become placeholders. Fields with no definition are
+// default); missing required ones become placeholders, reported on ownerLine (the line of the
+// mapping that lacks them, 0 for the top level). Fields with no definition are
 // reported as field.unknown. A component that declares no fields at all keeps every field,
 // rendered as a plain key/value list.
-func validateFields(given []Field, defs []contracts.Field, path string) ([]Field, []problem) {
+func validateFields(given []Field, defs []contracts.Field, path string, ownerLine int) ([]Field, []problem) {
 	var problems []problem
 	join := func(name string) string {
 		if path == "" {
@@ -86,7 +87,7 @@ func validateFields(given []Field, defs []contracts.Field, path string) ([]Field
 		}
 		if d.Required != nil && *d.Required {
 			if !present {
-				problems = append(problems, problem{"field.missing", fmt.Sprintf("Required field %q is missing.", d.Name), fieldPath, 0})
+				problems = append(problems, problem{"field.missing", fmt.Sprintf("Required field %q is missing.", d.Name), fieldPath, ownerLine})
 			}
 			out = append(out, Field{Name: d.Name, Missing: true})
 		}
@@ -162,7 +163,7 @@ func validateValue(v Value, d contracts.Field, path string) (*Value, []problem) 
 		if v.Kind != Map {
 			return bad("field.type", "Field %q must be a mapping, but is %s.", d.Name, describe(v))
 		}
-		fields, ps := validateFields(v.Fields, d.Fields, path)
+		fields, ps := validateFields(v.Fields, d.Fields, path, v.Line)
 		return &Value{Kind: Map, Fields: fields, Line: v.Line}, ps
 	}
 	return &v, nil

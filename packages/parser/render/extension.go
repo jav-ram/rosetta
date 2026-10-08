@@ -59,17 +59,27 @@ func (c *config) definitions() []contracts.ComponentDefinition {
 type Result struct {
 	HTML     string
 	Warnings []contracts.Warning
+	// FrontMatter is the parsed YAML front matter (spec section 7), nil if there is none.
+	// FrontMatterRaw is its text, so tools can preserve it exactly. It is never rendered.
+	FrontMatter    map[string]any
+	FrontMatterRaw string
 }
 
-// Convert parses Rosetta Markdown and renders it to HTML.
+// Convert parses Rosetta Markdown and renders it to HTML. Front matter is split off first, so
+// Extension on its own (without Convert) does not recognise it.
 func Convert(source []byte, opts ...Option) (Result, error) {
+	source, fm := splitFrontMatter(source)
 	md := goldmark.New(goldmark.WithExtensions(extension.Table, Extension(opts...)))
 	pc := parser.NewContext()
 	var buf bytes.Buffer
 	if err := md.Convert(source, &buf, parser.WithContext(pc)); err != nil {
 		return Result{}, err
 	}
-	return Result{HTML: buf.String(), Warnings: directive.Warnings(pc)}, nil
+	res := Result{HTML: buf.String(), Warnings: directive.Warnings(pc), FrontMatter: fm.values, FrontMatterRaw: fm.raw}
+	if fm.warning != nil {
+		res.Warnings = append([]contracts.Warning{*fm.warning}, res.Warnings...)
+	}
+	return res, nil
 }
 
 // Extension returns the goldmark extension: directive parsing, field validation and HTML rendering.
@@ -128,7 +138,7 @@ func (t *transformer) Transform(doc *ast.Document, reader text.Reader, pc parser
 				problems = append(problems, problem{fatal.code, fatal.message, "", bodyStart + fatal.line - 1})
 			} else {
 				var vp []problem
-				res.Fields, vp = validateFields(fields, def.Fields, "")
+				res.Fields, vp = validateFields(fields, def.Fields, "", 0)
 				for _, p := range vp {
 					if p.line > 0 {
 						p.line += bodyStart - 1

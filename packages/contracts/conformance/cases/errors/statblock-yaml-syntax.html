@@ -1,0 +1,31 @@
+<div class="rosetta-warning-block" data-component="statblock" role="note">
+<p><strong>The body of “statblock” could not be read</strong></p>
+<ul class="rosetta-warnings">
+<li class="rosetta-warning" data-code="yaml.syntax" data-severity="error">The body is not valid YAML (near line 1).</li>
+</ul>
+<pre><code>:::statblock
+name: [unclosed
+:::</code></pre>
+</div>
+<div class="rosetta-warning-block" data-component="statblock" role="note">
+<p><strong>The body of “statblock” could not be read</strong></p>
+<ul class="rosetta-warnings">
+<li class="rosetta-warning" data-code="yaml.syntax" data-severity="error">The body must be a mapping of fields (key: value).</li>
+</ul>
+<pre><code>:::statblock
+- not
+- a mapping
+:::</code></pre>
+</div>
+<div class="rosetta-warning-block" data-component="statblock" role="note">
+<p><strong>The body of “statblock” could not be read</strong></p>
+<ul class="rosetta-warnings">
+<li class="rosetta-warning" data-code="yaml.syntax" data-severity="error">Tabs are not allowed for indentation; use spaces.</li>
+</ul>
+<pre><code>:::statblock
+name: Rat
+traits:
+	- name: tab indent
+:::</code></pre>
+</div>
+<p>The rest of the document still renders.</p>

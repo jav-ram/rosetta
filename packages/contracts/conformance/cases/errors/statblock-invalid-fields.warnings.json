@@ -1,0 +1,26 @@
+[
+  {
+    "code": "field.type",
+    "line": 3,
+    "component": "statblock",
+    "field": "ac"
+  },
+  {
+    "code": "field.unknown",
+    "line": 4,
+    "component": "statblock",
+    "field": "bogus"
+  },
+  {
+    "code": "field.type",
+    "line": 5,
+    "component": "statblock",
+    "field": "traits"
+  },
+  {
+    "code": "field.type",
+    "line": 7,
+    "component": "statblock",
+    "field": "actions"
+  }
+]

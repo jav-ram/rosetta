@@ -1,0 +1,17 @@
+[
+  {
+    "code": "component.unknown",
+    "line": 1,
+    "component": "mystery"
+  },
+  {
+    "code": "component.unknown",
+    "line": 3,
+    "component": "layout"
+  },
+  {
+    "code": "component.unknown",
+    "line": 5,
+    "component": "roll"
+  }
+]

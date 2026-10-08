@@ -438,3 +438,63 @@ func TestPlainWords(t *testing.T) {
 		t.Fatalf("warnings = %v", codes(r.Warnings))
 	}
 }
+
+// --- front matter ---
+
+func TestFrontMatterIsPreservedAndNotRendered(t *testing.T) {
+	r := convert(t, "---\nrosetta: \"0.1\"\ntitle: Crypt\n---\n\n# Heading\n\n:::statblock\nbogus: 1\n:::\n")
+	if strings.Contains(r.HTML, "rosetta:") || strings.Contains(r.HTML, "<hr") || !strings.HasPrefix(r.HTML, "<h1>Heading</h1>") {
+		t.Fatalf("front matter must not be rendered:\n%s", r.HTML)
+	}
+	if r.FrontMatter["rosetta"] != "0.1" || r.FrontMatter["title"] != "Crypt" {
+		t.Fatalf("front matter = %v", r.FrontMatter)
+	}
+	if r.FrontMatterRaw != "rosetta: \"0.1\"\ntitle: Crypt" {
+		t.Fatalf("raw = %q", r.FrontMatterRaw)
+	}
+	// Source lines are unchanged, so warnings point at the right line of the original file.
+	lines := map[string]int{}
+	for _, w := range r.Warnings {
+		lines[w.Code] = w.Range.Start.Line
+	}
+	if lines["field.unknown"] != 9 || lines["field.missing"] != 8 {
+		t.Fatalf("warning lines = %v, want field.unknown on 9 and field.missing on 8", lines)
+	}
+}
+
+func TestOpeningRuleWithoutClosingIsNotFrontMatter(t *testing.T) {
+	r := convert(t, "---\nnot front matter\n")
+	wantContains(t, r.HTML, "<hr>")
+	if r.FrontMatter != nil || r.FrontMatterRaw != "" {
+		t.Fatalf("front matter = %v %q", r.FrontMatter, r.FrontMatterRaw)
+	}
+}
+
+func TestFrontMatterMustBeFirst(t *testing.T) {
+	r := convert(t, "Text\n\n---\nkey: value\n---\n")
+	if r.FrontMatter != nil {
+		t.Fatal("front matter only counts at the start of the document")
+	}
+}
+
+func TestInvalidFrontMatter(t *testing.T) {
+	r := convert(t, "---\nkey: [unclosed\n---\n\nBody\n")
+	if !reflect.DeepEqual(codes(r.Warnings), []string{"frontmatter.syntax"}) || r.Warnings[0].Range.Start.Line != 1 {
+		t.Fatalf("warnings = %+v", r.Warnings)
+	}
+	wantHTML(t, r.HTML, "<p>Body</p>\n")
+	if r.FrontMatterRaw != "key: [unclosed" || r.FrontMatter != nil {
+		t.Fatalf("raw = %q values = %v", r.FrontMatterRaw, r.FrontMatter)
+	}
+}
+
+func TestFrontMatterWithCRLFAndEmpty(t *testing.T) {
+	r := convert(t, "---\r\nkey: v\r\n---\r\nBody\r\n")
+	if r.FrontMatter["key"] != "v" || !strings.Contains(r.HTML, "<p>Body</p>") {
+		t.Fatalf("html = %q fm = %v", r.HTML, r.FrontMatter)
+	}
+	r = convert(t, "---\n---\nBody\n")
+	if r.FrontMatter == nil || len(r.FrontMatter) != 0 || !strings.Contains(r.HTML, "<p>Body</p>") {
+		t.Fatalf("empty front matter: %v %q", r.FrontMatter, r.HTML)
+	}
+}

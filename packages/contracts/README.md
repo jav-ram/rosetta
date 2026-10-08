@@ -44,6 +44,10 @@ pnpm --filter @rosetta/contracts generate
 
 CI runs `pnpm check:generated`, which regenerates and fails if the committed files differ. Change a schema, regenerate, and commit both.
 
+## Conformance suite
+
+`conformance/` is the golden test suite any parser can run: Markdown inputs, expected HTML and expected warnings, plus a Go runner. See [conformance/README.md](conformance/README.md).
+
 ## Examples
 
 `examples/` holds a sample AST and component definition (valid) and invalid ones. Both languages' tests use the same files.

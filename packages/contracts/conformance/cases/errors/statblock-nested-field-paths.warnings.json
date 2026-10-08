@@ -1,0 +1,14 @@
+[
+  {
+    "code": "field.missing",
+    "line": 5,
+    "component": "statblock",
+    "field": "traits[1].name"
+  },
+  {
+    "code": "field.type",
+    "line": 7,
+    "component": "statblock",
+    "field": "traits[2].text"
+  }
+]

@@ -204,6 +204,7 @@ The document is unaffected otherwise. Saving the document MUST preserve the unkn
 - Files are UTF-8, with `\n` or `\r\n` line endings.
 - A document MAY begin with a YAML front matter block delimited by `---` lines. Its fields are not defined in v0.1, but the parser MUST preserve it. The document's `rosetta` version, if present, declares the spec version (for example `rosetta: "0.1"`).
 - Source positions (line and column) are recorded for every directive, so warnings can point at the source.
+- Front matter is never rendered. A parser MUST keep line numbers and offsets unchanged, so warnings point at the original file. An opening `---` with no closing `---` line is a horizontal rule, not front matter. Front matter is only recognised at the very start of the document.
 
 ## 8. Errors and warnings
 
@@ -256,6 +257,7 @@ When a whole component cannot render (`yaml.syntax`, `component.unknown`), the w
 | Attribute syntax error | See section 3.1 | `attr.syntax` |
 | Duplicate attribute | Last wins | `attr.duplicate` |
 | Unsupported YAML feature | The feature is ignored | `yaml.unsupported` |
+| Invalid YAML in front matter | The front matter is kept but ignored | `frontmatter.syntax` |
 | Invalid YAML | The component renders as a warning | `yaml.syntax` |
 | Unbreakable element taller than a column | Rendering warning (see section 9.3) | `layout.too-tall` |
 
