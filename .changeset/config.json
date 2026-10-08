@@ -7,6 +7,6 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": [],
+  "ignore": ["@rosetta/benchmark-book"],
   "privatePackages": { "version": true, "tag": false }
 }
