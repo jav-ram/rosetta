@@ -1,0 +1,16 @@
+{
+  "name": "@rosetta/benchmark-book",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Generates the large test books (100 and 300 pages) used to measure Rosetta's performance.",
+  "type": "module",
+  "scripts": {
+    "generate": "node src/cli.mjs",
+    "pretest": "pnpm --filter @rosetta/parser-wasm run build:wasm",
+    "test": "vitest run --passWithNoTests=false"
+  },
+  "devDependencies": {
+    "@rosetta/contracts": "workspace:^",
+    "@rosetta/parser-wasm": "workspace:^"
+  }
+}
