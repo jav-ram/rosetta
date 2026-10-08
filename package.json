@@ -9,7 +9,7 @@
     "build": "pnpm -r run build",
     "typecheck": "pnpm -r run typecheck",
     "test": "pnpm -r run test",
-    "test:go": "go test ./packages/contracts/... ./packages/parser/...",
+    "test:go": "go test ./packages/contracts/... ./packages/parser/... ./packages/parser-wasm/...",
     "check:boundaries": "depcruise packages --config .dependency-cruiser.cjs",
     "check": "pnpm typecheck && pnpm test && pnpm test:go && pnpm check:boundaries",
     "changeset": "changeset",

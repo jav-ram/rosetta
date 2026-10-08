@@ -9,8 +9,10 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json --noEmit",
+    "build:wasm": "node scripts/build.mjs",
+    "build": "node scripts/build.mjs && tsc -p tsconfig.json --noEmit",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "pretest": "node scripts/build.mjs",
     "test": "vitest run --passWithNoTests=false"
   },
   "dependencies": {

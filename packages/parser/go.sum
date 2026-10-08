@@ -4,6 +4,8 @@ github.com/jav-ram/rosetta/packages/contracts v0.1.0 h1:5PJmFf26aSCnDjxTXppA+6wu
 github.com/jav-ram/rosetta/packages/contracts v0.1.0/go.mod h1:+Mr5eop+BKYG2u64Qag7NQ2UfME4At3ARVGtowHSu/c=
 github.com/jav-ram/rosetta/packages/contracts v0.2.0 h1:6YjnU6dppIOfGg+6pCbyimUkzVu1obRWLdchzNaT16Q=
 github.com/jav-ram/rosetta/packages/contracts v0.2.0/go.mod h1:+Mr5eop+BKYG2u64Qag7NQ2UfME4At3ARVGtowHSu/c=
+github.com/jav-ram/rosetta/packages/contracts v0.3.0 h1:aYermTMznMSqTKXbal4OhPLzHBqX1NCUQRSUaTv4/1U=
+github.com/jav-ram/rosetta/packages/contracts v0.3.0/go.mod h1:+Mr5eop+BKYG2u64Qag7NQ2UfME4At3ARVGtowHSu/c=
 github.com/santhosh-tekuri/jsonschema/v6 v6.0.3 h1:1EYB5IzjZawrrnELUi78f9fPu57HuXjmddZPjrls/28=
 github.com/santhosh-tekuri/jsonschema/v6 v6.0.3/go.mod h1:JXeL+ps8p7/KNMjDQk3TCwPpBy0wYklyWTfbkIzdIFU=
 github.com/yuin/goldmark v1.7.13 h1:GPddIs617DnBLFFVJFgpo1aBfe/4xcvMc3SB5t/D0pA=

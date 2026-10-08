@@ -63,6 +63,8 @@ type Result struct {
 	// FrontMatterRaw is its text, so tools can preserve it exactly. It is never rendered.
 	FrontMatter    map[string]any
 	FrontMatterRaw string
+	// Document is the AST in the shape of the contracts Document schema, for the editor.
+	Document contracts.Document
 }
 
 // Convert parses Rosetta Markdown and renders it to HTML. Front matter is split off first, so
@@ -71,14 +73,16 @@ func Convert(source []byte, opts ...Option) (Result, error) {
 	source, fm := splitFrontMatter(source)
 	md := goldmark.New(goldmark.WithExtensions(extension.Table, Extension(opts...)))
 	pc := parser.NewContext()
+	root := md.Parser().Parse(text.NewReader(source), parser.WithContext(pc))
 	var buf bytes.Buffer
-	if err := md.Convert(source, &buf, parser.WithContext(pc)); err != nil {
+	if err := md.Renderer().Render(&buf, source, root); err != nil {
 		return Result{}, err
 	}
 	res := Result{HTML: buf.String(), Warnings: directive.Warnings(pc), FrontMatter: fm.values, FrontMatterRaw: fm.raw}
 	if fm.warning != nil {
 		res.Warnings = append([]contracts.Warning{*fm.warning}, res.Warnings...)
 	}
+	res.Document = buildDocument(source, root, res.Warnings, fm.values)
 	return res, nil
 }
 

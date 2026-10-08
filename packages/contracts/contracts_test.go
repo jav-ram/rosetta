@@ -85,6 +85,10 @@ func TestM1Components(t *testing.T) {
 	var names []string
 	for _, d := range defs {
 		names = append(names, d.Name)
+		b, _ := json.Marshal(d)
+		if err := Validate(SchemaComponentDefinition, b); err != nil {
+			t.Errorf("component %q does not satisfy the schema: %v", d.Name, err)
+		}
 	}
 	if !reflect.DeepEqual(names, []string{"statblock", "readaloud", "sidebar", "pagebreak"}) {
 		t.Fatalf("names = %v", names)

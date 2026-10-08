@@ -3,4 +3,5 @@ go 1.24
 use (
 	./packages/contracts
 	./packages/parser
+	./packages/parser-wasm
 )
