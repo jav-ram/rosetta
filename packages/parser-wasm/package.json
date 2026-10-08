@@ -6,16 +6,24 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./worker": "./src/worker.ts",
+    "./wasm": "./dist/rosetta.wasm",
+    "./wasm_exec": "./dist/wasm_exec.js"
   },
   "scripts": {
     "build:wasm": "node scripts/build.mjs",
-    "build": "node scripts/build.mjs && tsc -p tsconfig.json --noEmit",
+    "build:js": "node scripts/bundle.mjs",
+    "build": "node scripts/build.mjs && node scripts/bundle.mjs && tsc -p tsconfig.json --noEmit",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "pretest": "node scripts/build.mjs",
-    "test": "vitest run --passWithNoTests=false"
+    "pretest": "node scripts/build.mjs && node scripts/bundle.mjs",
+    "test": "vitest run --passWithNoTests=false",
+    "demo": "node scripts/serve-demo.mjs"
   },
   "dependencies": {
     "@rosetta/contracts": "workspace:^"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
   }
 }

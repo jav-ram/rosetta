@@ -59,6 +59,10 @@ importers:
       '@rosetta/contracts':
         specifier: workspace:^
         version: link:../contracts
+    devDependencies:
+      esbuild:
+        specifier: 0.28.2
+        version: 0.28.2
 
   packages/preview:
     dependencies:

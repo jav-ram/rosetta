@@ -37,3 +37,18 @@ Node 22.12 on an Apple M1 Pro (macOS 26.4), calling `rosetta.parse` directly. Tw
 | Parse a 39,700-byte document of 100 such sections (mean of 10 runs after a warm-up) | 63 to 64 ms | 51 to 52 ms |
 
 TinyGo starts faster and is a little faster on the large document, but about 30 times slower on the small one; I did not investigate why (garbage collection is the likely cause). Time includes HTML rendering, the AST and JSON encoding, but not `JSON.parse` on the JavaScript side. Browser numbers will differ.
+
+## Main thread stays free (T0.7)
+
+Parsing a large document in the Web Worker versus on the main thread. "Longest gap" is the longest time between two ticks of a 4 ms timer on the main thread while the parse ran: a timer cannot fire while the thread is busy, so a long gap is a frozen page.
+
+**In a real browser** (the in-app Chromium of the Claude desktop app, `demo/index.html`, a document of 500 repeated M1 sections, 2,000 top-level nodes):
+
+| Where it runs | Parse time | Longest gap on the main thread |
+|---|---|---|
+| Web Worker | 2.0 to 2.9 s | 34 ms |
+| Main thread | 2.0 s | 2,151 ms |
+
+**In Node** (a worker thread, an Apple M1 Pro, 500 sections), the test in `test/client.test.ts` measured about 1,080 ms blocked on the main thread against a 6 to 7 ms longest gap with the worker, on three runs.
+
+The browser parse is slower than the Node figures; that pane is probably not running at full speed, so compare the two rows, not the absolute times. The worker parse also includes structured-cloning the result back to the main thread. The first call in a page also loads the module: a small document took 120 ms in one page load and 1,162 ms in another, so treat start-up time in that browser as unreliable.
