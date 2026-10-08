@@ -63,3 +63,6 @@ export async function instantiate(wasm: BufferSource | WebAssembly.Module): Prom
     },
   };
 }
+
+export { createParser } from "./client";
+export type { AsyncParser, ParserOptions, WorkerLike } from "./client";

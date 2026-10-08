@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rosetta parser demo</title>
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; margin: 0; padding: 16px; max-width: 900px; margin-inline: auto; }
+  textarea { width: 100%; height: 11rem; font: 13px/1.4 ui-monospace, monospace; box-sizing: border-box; }
+  button { font: inherit; padding: 6px 12px; margin: 4px 4px 4px 0; cursor: pointer; }
+  #bar { height: 10px; background: #4a7; width: 20px; margin: 8px 0; will-change: transform; }
+  #stats { font: 13px ui-monospace, monospace; background: #f3f3f3; padding: 8px; white-space: pre-wrap; }
+  #out { border: 1px solid #ccc; padding: 8px; margin-top: 8px; min-height: 3rem; }
+  .rosetta-readaloud, .rosetta-sidebar, .rosetta-statblock { border: 1px solid #aaa; padding: 4px 8px; margin: 8px 0; }
+  .rosetta-warning-block, .rosetta-warnings { color: #a30; }
+  @media (prefers-color-scheme: dark) { body { background: #1b1b1b; color: #ddd; } #stats { background: #2a2a2a; } #out { border-color: #555; } }
+</style>
+</head>
+<body>
+<h1>Rosetta parser demo</h1>
+<p>The parser runs in a Web Worker. The green bar is animated by the main thread: if the main thread is blocked, it freezes. The stats show the longest time the main thread went without running a timer (a 4 ms timer).</p>
+<div id="bar"></div>
+<textarea id="md">:::readaloud
+The torches gutter as the door groans open.
+:::
+
+:::statblock{system="5e"}
+name: Bone Warden
+ac: 15
+hp: 52 (8d8+16)
+:::
+
+::pagebreak
+
+:::mystery
+Not a known component.
+:::
+</textarea>
+<div>
+  <button id="parse">Parse in worker</button>
+  <button id="big-worker">Parse large document in worker</button>
+  <button id="big-main">Parse large document on main thread</button>
+</div>
+<div id="stats">Not loaded yet: nothing is fetched until the first parse.</div>
+<div id="out"></div>
+<script type="module">
+import { createParser, instantiate } from "../dist/index.js";
+
+const $ = (id) => document.getElementById(id);
+const parser = createParser({
+  workerUrl: "../dist/worker.js",
+  wasmUrl: "../dist/rosetta.wasm",
+  wasmExecUrl: "../dist/wasm_exec.js",
+});
+
+// Main-thread heartbeat: a timer that records the longest time between two ticks. A timer cannot
+// fire while the main thread is busy, so a long gap means the page was frozen.
+let last = performance.now();
+let maxGap = 0;
+setInterval(() => {
+  const now = performance.now();
+  maxGap = Math.max(maxGap, now - last);
+  last = now;
+}, 4);
+// The bar is animated by the main thread too, so a freeze is visible.
+requestAnimationFrame(function frame(now) {
+  $("bar").style.transform = `translateX(${(now / 5) % 400}px)`;
+  requestAnimationFrame(frame);
+});
+
+const big = () => Array.from({ length: 500 }, () => $("md").value).join("\n\n");
+const show = (r) => { $("out").innerHTML = r.html; };
+const stat = (msg) => { $("stats").textContent = msg; };
+
+async function measured(label, run) {
+  maxGap = 0;
+  const t0 = performance.now();
+  const r = await run();
+  const total = performance.now() - t0;
+  await new Promise((res) => setTimeout(res, 50));
+  stat(`${label}\ntotal ${total.toFixed(0)} ms\nlongest gap between main-thread timer ticks while parsing: ${maxGap.toFixed(0)} ms\nwarnings: ${r.warnings.length}, top-level nodes: ${r.ast.children.length}`);
+  window.lastResult = { label, total, maxGap, warnings: r.warnings.length, nodes: r.ast.children.length };
+  return r;
+}
+
+$("parse").onclick = async () => show(await measured("small document, worker", () => parser.parse($("md").value)));
+$("big-worker").onclick = () => measured("large document, worker", () => parser.parse(big()));
+$("big-main").onclick = async () => {
+  if (!globalThis.Go) await import("../dist/wasm_exec.js");
+  const local = await instantiate(await (await fetch("../dist/rosetta.wasm")).arrayBuffer());
+  await measured("large document, MAIN thread", async () => local.parse(big()));
+};
+window.ready = true;
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "parser-demo",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["packages/parser-wasm/scripts/serve-demo.mjs"],
+      "port": 5173
+    }
+  ]
+}
