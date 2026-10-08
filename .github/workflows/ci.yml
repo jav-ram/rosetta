@@ -12,8 +12,8 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.work
-      - run: go vet ./packages/contracts/... ./packages/parser/...
-      - run: go test ./packages/contracts/... ./packages/parser/...
+      - run: go vet ./packages/contracts/... ./packages/parser/... ./packages/parser-wasm/...
+      - run: go test ./packages/contracts/... ./packages/parser/... ./packages/parser-wasm/...
       # The golden suite (packages/contracts/conformance) run against the reference parser; it is also part of the line above.
       - run: go test ./packages/parser/render -run TestConformance -v
 
@@ -21,6 +21,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The parser-wasm tests build the WebAssembly parser and run the golden suite through it.
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:

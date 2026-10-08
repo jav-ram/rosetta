@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"strings"
+	"sync"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 )
@@ -24,7 +25,17 @@ const (
 	SchemaPosition            = "position.schema.json"
 )
 
-var compiled = mustCompile()
+var (
+	compiled     map[string]*jsonschema.Schema
+	compiledOnce sync.Once
+)
+
+// schemas compiles the embedded schemas on first use, so importing this package costs nothing
+// until something is validated.
+func schemas() map[string]*jsonschema.Schema {
+	compiledOnce.Do(func() { compiled = mustCompile() })
+	return compiled
+}
 
 func mustCompile() map[string]*jsonschema.Schema {
 	c := jsonschema.NewCompiler()
@@ -59,7 +70,7 @@ func mustCompile() map[string]*jsonschema.Schema {
 // Validate checks JSON data against one of the schemas (use the Schema* constants).
 // It returns nil when valid, or an error listing every problem.
 func Validate(schema string, data []byte) error {
-	s, ok := compiled[schema]
+	s, ok := schemas()[schema]
 	if !ok {
 		return fmt.Errorf("unknown schema %q", schema)
 	}
@@ -102,16 +113,12 @@ var m1Components []byte
 
 // M1Components returns the temporary definitions of the M1 components (statblock, readaloud,
 // sidebar, pagebreak). They are data, not parser code; system plugins replace them in M6.
+// The definitions are checked against the schema by this package's tests, not on every call,
+// so loading them does not pull in the schema validator.
 func M1Components() ([]ComponentDefinition, error) {
 	var defs []ComponentDefinition
 	if err := json.Unmarshal(m1Components, &defs); err != nil {
 		return nil, err
-	}
-	for _, d := range defs {
-		b, _ := json.Marshal(d)
-		if err := Validate(SchemaComponentDefinition, b); err != nil {
-			return nil, fmt.Errorf("component %q: %w", d.Name, err)
-		}
 	}
 	return defs, nil
 }

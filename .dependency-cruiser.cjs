@@ -12,10 +12,10 @@ module.exports = {
     },
     {
       name: "no-contracts-internals",
-      comment: "Import `contracts` through its public entry (src/index.ts), never its internals.",
+      comment: "Import `contracts` through its public entries (src/index.ts, or src/conformance.ts for the Node-only test helpers), never its internals.",
       severity: "error",
       from: { path: "^packages/", pathNot: "^packages/contracts/" },
-      to: { path: "^packages/contracts/", pathNot: "^packages/contracts/src/index\\.ts$" },
+      to: { path: "^packages/contracts/", pathNot: "^packages/contracts/src/(index|conformance)\\.ts$" },
     },
   ],
   options: {
