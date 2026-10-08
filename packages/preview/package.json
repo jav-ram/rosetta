@@ -1,6 +1,6 @@
 {
   "name": "@rosetta/preview",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Paged.js preview renderer.",
   "type": "module",
   "main": "src/index.ts",
