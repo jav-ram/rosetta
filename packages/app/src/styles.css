@@ -1,0 +1,58 @@
+:root {
+  --bg: #f6f4ef;
+  --panel: #ffffff;
+  --line: #d9d4c7;
+  --text: #25221c;
+  --muted: #7a7466;
+  --accent: #7b3f1d;
+  color-scheme: light;
+  font-family: system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1b1915;
+    --panel: #25221c;
+    --line: #3a362d;
+    --text: #ece8dc;
+    --muted: #9b9484;
+    --accent: #e0a070;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--text); }
+
+/* Desktop layout: chapters | editor | preview. */
+.shell {
+  display: grid;
+  grid-template-columns: 220px minmax(320px, 1fr) minmax(320px, 1fr);
+  grid-template-rows: auto 1fr;
+  grid-template-areas: "top top top" "side editor preview";
+  height: 100%;
+  min-width: 960px;
+}
+.topbar { grid-area: top; display: flex; gap: 12px; align-items: baseline; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.hint { color: var(--muted); font-size: 0.8rem; }
+
+.sidebar { grid-area: side; border-right: 1px solid var(--line); background: var(--panel); overflow: auto; padding: 12px 8px; }
+.sidebar h2, .pane h2 { margin: 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.sidebar h2 { padding: 0 8px 8px; }
+.sidebar ol { list-style: none; margin: 0; padding: 0; }
+.sidebar button { width: 100%; text-align: left; padding: 8px; border: 0; border-radius: 6px; background: none; color: inherit; font: inherit; cursor: pointer; }
+.sidebar button:hover { background: var(--bg); }
+.sidebar button[aria-current="true"] { background: var(--bg); color: var(--accent); font-weight: 600; }
+
+.pane { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--line); }
+.pane > header { display: flex; gap: 12px; align-items: baseline; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+.editor { grid-area: editor; }
+.preview { grid-area: preview; border-right: 0; overflow: auto; }
+.editor textarea { flex: 1; resize: none; border: 0; padding: 16px; background: var(--panel); color: inherit; font: 0.9rem/1.5 ui-monospace, monospace; outline: none; }
+
+.page { margin: 16px; padding: 24px; background: var(--panel); border: 1px solid var(--line); line-height: 1.5; }
+.error { margin: 16px; color: #b3261e; }
+
+/* Unstyled until the themes exist (M2); just enough to tell the components apart. */
+.rosetta-readaloud { border-left: 4px solid var(--accent); padding: 4px 16px; background: var(--bg); }
+.rosetta-sidebar, .rosetta-statblock { border: 1px solid var(--line); padding: 8px 16px; }
+.rosetta-warning-block, .rosetta-warnings { color: #b3261e; }
