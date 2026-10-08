@@ -1,5 +1,11 @@
 # @rosetta/spec
 
+## 0.1.3
+
+### Patch Changes
+
+- e8a3e4e: Add the golden conformance suite to contracts (39 Markdown/HTML pairs with expected warnings, and a Go runner with -update). The parser now handles YAML front matter (preserved, never rendered, line numbers unchanged), reports nested missing fields on the right line, and uses a library-independent message for invalid YAML. Spec: front matter rules and the frontmatter.syntax warning.
+
 ## 0.1.2
 
 ### Patch Changes

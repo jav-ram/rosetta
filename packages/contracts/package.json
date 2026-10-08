@@ -1,6 +1,6 @@
 {
   "name": "@rosetta/contracts",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Language-neutral contracts: JSON Schemas, generated TS types and Go structs, conformance suites.",
   "type": "module",
   "main": "src/index.ts",
