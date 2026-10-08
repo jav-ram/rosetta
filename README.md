@@ -72,6 +72,7 @@ Useful commands:
 | `pnpm typecheck` | Type-checks all TypeScript |
 | `pnpm check:boundaries` | Checks that packages only import `contracts` |
 | `pnpm --filter @rosetta/contracts generate` | Regenerates the TypeScript and Go types from the schemas |
+| `pnpm --filter @rosetta/benchmark-book generate` | Writes the 100- and 300-page test books to `tools/benchmark-book/out/` |
 | `pnpm changeset` | Describes a change for the next release |
 
 ## License

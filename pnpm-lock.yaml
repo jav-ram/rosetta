@@ -88,6 +88,15 @@ importers:
         specifier: workspace:^
         version: link:../contracts
 
+  tools/benchmark-book:
+    devDependencies:
+      '@rosetta/contracts':
+        specifier: workspace:^
+        version: link:../../packages/contracts
+      '@rosetta/parser-wasm':
+        specifier: workspace:^
+        version: link:../../packages/parser-wasm
+
 packages:
 
   '@apidevtools/json-schema-ref-parser@11.9.3':
