@@ -1,0 +1,19 @@
+[
+  {
+    "code": "attr.syntax",
+    "line": 1,
+    "component": "sidebar"
+  },
+  {
+    "code": "attr.duplicate",
+    "line": 5,
+    "component": "pagebreak",
+    "field": "id"
+  },
+  {
+    "code": "attr.unknown",
+    "line": 7,
+    "component": "readaloud",
+    "field": "color"
+  }
+]

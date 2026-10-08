@@ -1,0 +1,17 @@
+[
+  {
+    "code": "yaml.syntax",
+    "line": 2,
+    "component": "statblock"
+  },
+  {
+    "code": "yaml.syntax",
+    "line": 6,
+    "component": "statblock"
+  },
+  {
+    "code": "yaml.syntax",
+    "line": 13,
+    "component": "statblock"
+  }
+]

@@ -1,0 +1,3 @@
+:::statblock
+name: Giant Rat
+:::

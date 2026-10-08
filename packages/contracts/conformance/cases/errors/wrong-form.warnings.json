@@ -1,0 +1,12 @@
+[
+  {
+    "code": "directive.wrong-form",
+    "line": 1,
+    "component": "pagebreak"
+  },
+  {
+    "code": "directive.wrong-form",
+    "line": 5,
+    "component": "readaloud"
+  }
+]

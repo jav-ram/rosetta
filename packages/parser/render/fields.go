@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -51,7 +52,7 @@ type bodyProblem struct {
 	line          int
 }
 
-var keyRE = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_-]*$`)
+var yamlLineRE = regexp.MustCompile(`line (\d+)`)
 
 // parseBody reads a data component's body: a restricted subset of YAML 1.2 (spec 4.1).
 // A fatal problem (yaml.syntax) is returned as fatal; the rest are non-fatal warnings.
@@ -68,7 +69,13 @@ func parseBody(raw string) (fields []Field, problems []bodyProblem, fatal *bodyP
 		if errors.Is(err, io.EOF) {
 			return nil, nil, nil // empty body
 		}
-		return nil, nil, &bodyProblem{"yaml.syntax", "Invalid YAML: " + strings.TrimPrefix(err.Error(), "yaml: "), 1}
+		// The wording of YAML errors differs between libraries, so only the line is reported:
+		// messages are part of the output other parsers are compared against.
+		line := 1
+		if m := yamlLineRE.FindStringSubmatch(err.Error()); m != nil {
+			line, _ = strconv.Atoi(m[1])
+		}
+		return nil, nil, &bodyProblem{"yaml.syntax", fmt.Sprintf("The body is not valid YAML (near line %d).", line), line}
 	}
 	var extra yaml.Node
 	if err := dec.Decode(&extra); err == nil {

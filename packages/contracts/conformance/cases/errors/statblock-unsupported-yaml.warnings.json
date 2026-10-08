@@ -1,0 +1,22 @@
+[
+  {
+    "code": "yaml.unsupported",
+    "line": 2,
+    "component": "statblock"
+  },
+  {
+    "code": "yaml.unsupported",
+    "line": 3,
+    "component": "statblock"
+  },
+  {
+    "code": "yaml.unsupported",
+    "line": 7,
+    "component": "statblock"
+  },
+  {
+    "code": "yaml.unsupported",
+    "line": 12,
+    "component": "statblock"
+  }
+]

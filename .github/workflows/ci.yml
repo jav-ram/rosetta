@@ -14,6 +14,8 @@ jobs:
           go-version-file: go.work
       - run: go vet ./packages/contracts/... ./packages/parser/...
       - run: go test ./packages/contracts/... ./packages/parser/...
+      # The golden suite (packages/contracts/conformance) run against the reference parser; it is also part of the line above.
+      - run: go test ./packages/parser/render -run TestConformance -v
 
   typescript:
     runs-on: ubuntu-latest
