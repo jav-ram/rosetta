@@ -29,10 +29,37 @@ editor.commands.setContent(doc);
 
 `fromAst` turns the parser's AST into a Tiptap document and drops nothing except source positions. The schema was widened for that: links keep their `title`; inline code can combine with bold, italic and links; a list item may start with any block; table cells keep the column alignment (`left`, `center`, `right`); images are inline, as in Markdown.
 
-- **Components** load as a generic `directive` node (any name, known or not). It keeps the name, attributes, `breakable`, parsed `fields` (data components), `raw` text (unknown components) and warnings as attributes, holds its body blocks as editable content, and shows its header and data as plain text. The real node views come in T1.5.
+- **Components** load as one of two nodes (see Components below). They keep the name, attributes, `breakable`, parsed `fields` (data components), `raw` text and warnings as attributes.
 - **Front matter** is returned, not shown: the caller keeps it, and the serializer (T1.4) writes it back.
 - Empty list items, quotes and table cells get an empty paragraph, because the editor needs one. A code block's final newline is not shown.
 - An AST node type the loader does not know throws an error naming it, instead of silently dropping content.
+
+## Components
+
+The editor does not know any component by name. It is given definitions as data (the `ComponentDefinition` type from `@rosetta/contracts`, from the built-in set or a system plugin) and a function that renders Markdown to HTML:
+
+```ts
+const editor = createEditor({
+  element,
+  components: m1Components,                                   // definitions
+  renderComponent: async (markdown) => (await parser.parse(markdown)).html, // the parser worker
+});
+```
+
+Nothing is rendered by the editor itself: it writes one component as Markdown (with `toMarkdown`), asks `renderComponent` for its HTML and shows that. Results are cached and a late answer never replaces a newer one. Without `renderComponent` a component shows its Markdown as plain text.
+
+| Kind | Node | In the editor |
+|---|---|---|
+| container | `directive` | A frame with the component's attributes in a header (a small form) and editable blocks inside. |
+| data | `directiveLeaf` | The parser's rendering. **Selecting it opens a form** made from its definition; leaving it renders the new values. |
+| leaf | `directiveLeaf` | The parser's rendering; a form for its attributes while selected. |
+| unknown (no definition) | `directiveLeaf` | The parser's rendering (a visible warning block). No form. |
+
+The form has a control for each attribute and field by type: text (one line when `plain`, otherwise a text area, because it is Markdown), number, checkbox, select for enums, an add/remove list for lists, and a group for objects. Values are written in the order of the definition, and empty values are left out.
+
+**Editing a component drops the text the author wrote** for what was edited (`raw` for fields, `attributesRaw` for attributes), so the new values are what gets saved. Anything that edits `fields` or `attributes` must do the same.
+
+`editor.commands.insertComponent(name)` inserts a component with its default values after the current block and selects it; the toolbar has a picker for it, filled from the definitions. `componentsOf(editor)` lists them.
 
 ## Saving a document
 

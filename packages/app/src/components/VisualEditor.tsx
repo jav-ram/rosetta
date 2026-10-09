@@ -1,5 +1,7 @@
+import { m1Components } from "@rosetta/contracts";
 import { createEditor, createToolbar, fromAst, toMarkdown, type Editor } from "@rosetta/editor";
 import { useEffect, useRef } from "react";
+import { parser } from "../parser";
 import type { Parsed } from "../useParsed";
 
 const SAVE_DELAY_MS = 250;
@@ -47,6 +49,9 @@ export function VisualEditor({ chapterId, markdown, parsed, onChange }: Props) {
   useEffect(() => {
     const editor = createEditor({
       element: editorHost.current!,
+      // The editor edits these components and asks the parser worker to render them; it has no templates of its own.
+      components: m1Components,
+      renderComponent: async (markdown) => (await parser.parse(markdown)).html,
       onUpdate: () => {
         if (pending.current) clearTimeout(pending.current);
         pending.current = setTimeout(save, SAVE_DELAY_MS);

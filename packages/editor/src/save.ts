@@ -74,6 +74,7 @@ function block(node: JSONContent, previous: JSONContent | undefined, _next: JSON
     case "table":
       return table(node);
     case "directive":
+    case "directiveLeaf":
       return directive(node);
     default:
       throw new Error(`Cannot save a "${node.type}" node`);

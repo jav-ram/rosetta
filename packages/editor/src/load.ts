@@ -74,7 +74,8 @@ function block(node: Node): JSONContent {
         ),
       );
     case "directive":
-      return withContent("directive", blocks(node.children), {
+      // A container holds blocks; everything else (data, leaf, unknown) is one unit without editable content.
+      return withContent(node.kind === "container" ? "directive" : "directiveLeaf", blocks(node.children), {
         name: node.name ?? "",
         form: node.form ?? "block",
         kind: node.kind ?? "unknown",

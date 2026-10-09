@@ -81,7 +81,8 @@ export function docBlock(n: Json): unknown {
     case "codeBlock": return { t: "code", lang: a.language ?? null, text: kids.map((k) => k.text).join("") };
     case "horizontalRule": return { t: "rule" };
     case "table": return { t: "table", rows: kids.map((row) => ({ header: row.content![0]!.type === "tableHeader", cells: row.content!.map((cell) => ({ align: cell.attrs?.align ?? null, c: docInline(cell.content![0]!.content) })) })) };
-    case "directive": return { t: "dir", name: a.name, form: a.form, kind: a.kind, breakable: a.breakable ?? null, attributes: a.attributes, attributesRaw: a.attributesRaw ?? null, fields: a.fields ?? null, raw: a.raw ?? null, warnings: a.warnings, c: kids.map(docBlock) };
+    case "directive":
+    case "directiveLeaf": return { t: "dir", name: a.name, form: a.form, kind: a.kind, breakable: a.breakable ?? null, attributes: a.attributes, attributesRaw: a.attributesRaw ?? null, fields: a.fields ?? null, raw: a.raw ?? null, warnings: a.warnings, c: kids.map(docBlock) };
     default: throw new Error(`doc ${n.type}`);
   }
 }

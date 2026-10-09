@@ -86,8 +86,32 @@ body { background: var(--bg); color: var(--text); }
 .rosetta-editor .selectedCell { background: color-mix(in srgb, var(--accent) 20%, transparent); }
 .rosetta-editor td > p, .rosetta-editor th > p { margin: 0; }
 
-/* Components in the editor: plain placeholders until their node views exist (T1.5). */
-.rosetta-directive { margin: 1em 0; border: 1px dashed var(--line); border-radius: 6px; }
-.rosetta-directive-header { padding: 2px 10px; font: 0.75rem ui-monospace, monospace; color: var(--muted); background: var(--bg); border-radius: 6px 6px 0 0; }
-.rosetta-directive-data { margin: 0; padding: 6px 10px; font-size: 0.8rem; white-space: pre-wrap; background: none; }
-.rosetta-directive-body { padding: 0 12px; }
+/* Components in the editor. Plain frames until the themes exist (M2). */
+.rosetta-component { margin: 1em 0; border: 1px solid var(--line); border-radius: 6px; }
+.rosetta-component.is-selected { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rosetta-component-atom { padding: 4px 12px; cursor: pointer; background: var(--panel); }
+.rosetta-component-rendered:empty::before { content: "…"; color: var(--muted); }
+.rosetta-component-rendered .rosetta-statblock, .rosetta-component-rendered .rosetta-sidebar, .rosetta-component-rendered .rosetta-readaloud { margin: 0; }
+.rosetta-component-container { border-style: dashed; }
+.rosetta-component-header { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 4px 10px; background: var(--bg); border-radius: 6px 6px 0 0; font-size: 0.8rem; }
+.rosetta-component-name { font: 0.75rem ui-monospace, monospace; color: var(--muted); }
+.rosetta-component-body { padding: 0 12px; }
+
+/* Forms generated from component definitions */
+.rosetta-form { display: flex; flex-direction: column; gap: 8px; cursor: default; font-size: 0.85rem; }
+.rosetta-form-inline { flex-direction: row; flex-wrap: wrap; gap: 8px 12px; }
+.rosetta-form-inline .rosetta-form-section { border: 0; padding: 0; margin: 0; display: contents; }
+.rosetta-form-inline legend { display: none; }
+.rosetta-form-section { border: 0; border-top: 1px solid var(--line); padding: 6px 0 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.rosetta-form-section > legend { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding: 0 6px 0 0; }
+.rosetta-form-field { display: flex; flex-direction: column; gap: 2px; }
+.rosetta-form-inline .rosetta-form-field { flex-direction: row; align-items: center; gap: 6px; }
+.rosetta-form-boolean { flex-direction: row; align-items: center; gap: 6px; }
+.rosetta-form label { color: var(--muted); font-size: 0.75rem; }
+.rosetta-form input[type="text"], .rosetta-form input[type="number"], .rosetta-form select, .rosetta-form textarea { font: inherit; padding: 3px 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: inherit; }
+.rosetta-form textarea { resize: vertical; }
+.rosetta-form-list, .rosetta-form-object { display: flex; flex-direction: column; gap: 6px; padding-left: 10px; border-left: 2px solid var(--line); }
+.rosetta-form-item { display: flex; gap: 6px; align-items: flex-start; }
+.rosetta-form-item > .rosetta-form-field { flex: 1; }
+.rosetta-form button { align-self: flex-start; font: inherit; font-size: 0.75rem; padding: 2px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); color: inherit; cursor: pointer; }
+.rosetta-toolbar select { max-width: 12rem; font: inherit; font-size: 0.8rem; padding: 2px 4px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); color: inherit; }

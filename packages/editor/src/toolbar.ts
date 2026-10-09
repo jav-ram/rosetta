@@ -1,4 +1,5 @@
 import type { Editor } from "@tiptap/core";
+import { componentsOf } from "./directive";
 
 export interface ToolbarOptions {
   /** Asks for a URL (links and images). Resolve with `null` to cancel. Defaults to `window.prompt`. */
@@ -103,7 +104,29 @@ export function createToolbar(editor: Editor, options: ToolbarOptions = {}): { e
     entries.push({ button: b, el });
   }
 
+  // Components come from the definitions the editor was given, not from this file.
+  const components = componentsOf(editor);
+  let picker: HTMLSelectElement | null = null;
+  if (components.length) {
+    const sep = doc.createElement("span");
+    sep.className = "rosetta-toolbar-separator";
+    sep.setAttribute("role", "separator");
+    picker = doc.createElement("select");
+    picker.dataset.command = "insertComponent";
+    picker.title = "Insert a component";
+    picker.setAttribute("aria-label", "Insert component");
+    picker.append(new Option("Component…", ""));
+    for (const c of components) picker.append(new Option(c.description ? `${c.name} — ${c.description}` : c.name, c.name));
+    const select = picker;
+    select.addEventListener("change", () => {
+      if (select.value) editor.chain().focus().insertComponent(select.value).run();
+      select.value = "";
+    });
+    element.append(sep, select);
+  }
+
   const refresh = () => {
+    if (picker) picker.disabled = !editor.isEditable;
     const inTable = editor.isActive("table");
     for (const { button, el } of entries) {
       el.hidden = !!button.inTable && !inTable;
