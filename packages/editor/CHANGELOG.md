@@ -1,5 +1,11 @@
 # @rosetta/editor
 
+## 0.1.0
+
+### Minor Changes
+
+- ef3665c: Tiptap editor for standard Markdown elements with a toolbar (editor), mounted as a Visual tab in the app.
+
 ## 0.0.4
 
 ### Patch Changes
