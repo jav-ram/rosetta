@@ -12,6 +12,7 @@
       "description": "Spec version the document was parsed as, for example 0.1."
     },
     "frontMatter": { "type": "object", "description": "Preserved YAML front matter, if any." },
+    "frontMatterRaw": { "type": "string", "description": "The front matter text between the --- lines, exactly as written, so tools can save it back unchanged. Present even when it is not valid YAML (then frontMatter is absent)." },
     "children": { "type": "array", "items": { "$ref": "#/$defs/node" } },
     "warnings": { "type": "array", "items": { "$ref": "warning.schema.json" } }
   },
@@ -35,6 +36,7 @@
         "depth": { "type": "integer", "minimum": 1, "maximum": 6, "description": "heading." },
         "ordered": { "type": "boolean", "description": "list." },
         "start": { "type": "integer", "description": "list, first number when ordered." },
+        "tight": { "type": "boolean", "description": "list: true when its items are not separated by blank lines (items render without paragraphs)." },
         "lang": { "type": "string", "description": "code." },
         "url": { "type": "string", "description": "link, image." },
         "title": { "type": "string", "description": "link, image." },
@@ -49,8 +51,9 @@
           "description": "directive: unknown when no component definition was found."
         },
         "attributes": { "type": "object", "additionalProperties": { "type": "string" }, "description": "directive: attribute values, always strings." },
+        "attributesRaw": { "type": "string", "description": "directive: the text between the braces exactly as written (absent when there were no braces), so it can be saved back unchanged, with shorthands, quotes and mistakes as they were. A tool that changes the attributes must drop it." },
         "fields": { "type": "object", "description": "directive, data components: parsed YAML-style fields." },
-        "raw": { "type": "string", "description": "directive: raw body text, kept for unknown components." },
+        "raw": { "type": "string", "description": "directive: the raw body text. Always present for unknown components; for data components it is the body as written, kept next to the parsed fields so it can be saved back unchanged. A tool that changes a data component's fields must drop it." },
         "breakable": { "type": "boolean", "description": "directive: resolved breakable flag." },
         "warnings": { "type": "array", "items": { "$ref": "warning.schema.json" }, "description": "Warnings attached to this node." }
       }

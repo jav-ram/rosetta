@@ -152,3 +152,94 @@ func TestDocumentOmitsRawHTMLAndKeepsWarnings(t *testing.T) {
 		t.Fatalf("warnings = %v", d["warnings"])
 	}
 }
+
+// The raw front matter is kept so a saved document can write it back unchanged, even when it is not valid YAML.
+func TestDocumentFrontMatterRaw(t *testing.T) {
+	d := docJSON(t, "---\n# a comment\ntitle:   X\n---\n\nBody\n")
+	if d["frontMatterRaw"] != "# a comment\ntitle:   X" {
+		t.Fatalf("frontMatterRaw = %q", d["frontMatterRaw"])
+	}
+	d = docJSON(t, "---\nkey: [unclosed\n---\n\nBody\n")
+	if d["frontMatterRaw"] != "key: [unclosed" || d["frontMatter"] != nil {
+		t.Fatalf("invalid front matter: raw=%q values=%v", d["frontMatterRaw"], d["frontMatter"])
+	}
+	if d = docJSON(t, "Body\n"); d["frontMatterRaw"] != nil {
+		t.Fatalf("no front matter, but frontMatterRaw = %v", d["frontMatterRaw"])
+	}
+}
+
+// Lists say whether they are tight, because the HTML differs (<li>a</li> against <li><p>a</p></li>).
+func TestDocumentListTightness(t *testing.T) {
+	tight := func(src string) any { return docJSON(t, src)["children"].([]any)[0].(map[string]any)["tight"] }
+	if tight("- a\n- b\n") != true || tight("1. a\n2. b\n") != true {
+		t.Fatal("lists without blank lines are tight")
+	}
+	if tight("- a\n\n- b\n") != false || tight("- a\n\n  more\n- b\n") != false {
+		t.Fatal("lists with blank lines between items or blocks are loose")
+	}
+}
+
+// A data component keeps its body text next to the parsed fields, so it can be saved back as written.
+func TestDocumentDataComponentKeepsRawBody(t *testing.T) {
+	d := docJSON(t, ":::statblock\n# a comment\nname: Rat\nac: 15\n:::\n")
+	n := d["children"].([]any)[0].(map[string]any)
+	if n["raw"] != "# a comment\nname: Rat\nac: 15" {
+		t.Fatalf("raw = %q", n["raw"])
+	}
+	if n["fields"].(map[string]any)["name"] != "Rat" {
+		t.Fatalf("fields = %v", n["fields"])
+	}
+}
+
+// The AST holds what a reader sees, as the HTML does: escapes removed and character references resolved.
+func TestDocumentTextIsUnescaped(t *testing.T) {
+	d := docJSON(t, "\\*not\\* &amp; &lt;b&gt; \\&amp; &#35; &bogus; a\\\nb `\\*code\\*`\n")
+	para := d["children"].([]any)[0].(map[string]any)["children"].([]any)
+	var text, code string
+	for _, c := range para {
+		n := c.(map[string]any)
+		switch n["type"] {
+		case "text":
+			text += n["value"].(string)
+		case "inlineCode":
+			code = n["value"].(string)
+		}
+	}
+	if text != "*not* & <b> &amp; # &bogus; ab " { // the hard break between a and b is its own node
+		t.Fatalf("text = %q", text)
+	}
+	if code != `\*code\*` {
+		t.Fatalf("code spans are verbatim, got %q", code)
+	}
+}
+
+func TestDocumentLinksAndImagesAreUnescaped(t *testing.T) {
+	d := docJSON(t, "[a](<u v> \"t&amp;\\\"x\") ![al\\*t `\\*`](p\\_q.png \"ti&copy;\")\n")
+	para := d["children"].([]any)[0].(map[string]any)["children"].([]any)
+	link, img := para[0].(map[string]any), para[2].(map[string]any)
+	if link["url"] != "u v" || link["title"] != `t&"x` {
+		t.Fatalf("link = %v", link)
+	}
+	if img["url"] != "p_q.png" || img["title"] != "ti©" || img["alt"] != `al*t \*` {
+		t.Fatalf("image = %v", img)
+	}
+}
+
+// The attribute text is kept as written (shorthands, quoting, even mistakes), so a saved document can write it back.
+func TestDocumentAttributesRaw(t *testing.T) {
+	attr := func(src string) any {
+		return docJSON(t, src)["children"].([]any)[0].(map[string]any)["attributesRaw"]
+	}
+	if got := attr(":::sidebar{ #tip .wide title=\"A \\\"b\\\"\" }\nx\n:::\n"); got != ` #tip .wide title="A \"b\"" ` {
+		t.Fatalf("attributesRaw = %q", got)
+	}
+	if got := attr("::pagebreak{}\n"); got != "" {
+		t.Fatalf("empty braces: %q", got)
+	}
+	if got := attr("::pagebreak\n"); got != nil {
+		t.Fatalf("no braces must give no attributesRaw, got %v", got)
+	}
+	if got := attr("::pagebreak{a=\"x\n"); got != `a="x` {
+		t.Fatalf("a broken list is kept as written: %q", got)
+	}
+}

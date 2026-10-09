@@ -21,6 +21,10 @@ export interface Document {
    * Preserved YAML front matter, if any.
    */
   frontMatter?: {};
+  /**
+   * The front matter text between the --- lines, exactly as written, so tools can save it back unchanged. Present even when it is not valid YAML (then frontMatter is absent).
+   */
+  frontMatterRaw?: string;
   children: Node[];
   warnings: Warning[];
 }
@@ -67,6 +71,10 @@ export interface Node {
    */
   start?: number;
   /**
+   * list: true when its items are not separated by blank lines (items render without paragraphs).
+   */
+  tight?: boolean;
+  /**
    * code.
    */
   lang?: string;
@@ -109,11 +117,15 @@ export interface Node {
     [k: string]: string;
   };
   /**
+   * directive: the text between the braces exactly as written (absent when there were no braces), so it can be saved back unchanged, with shorthands, quotes and mistakes as they were. A tool that changes the attributes must drop it.
+   */
+  attributesRaw?: string;
+  /**
    * directive, data components: parsed YAML-style fields.
    */
   fields?: {};
   /**
-   * directive: raw body text, kept for unknown components.
+   * directive: the raw body text. Always present for unknown components; for data components it is the body as written, kept next to the parsed fields so it can be saved back unchanged. A tool that changes a data component's fields must drop it.
    */
   raw?: string;
   /**

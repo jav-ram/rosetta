@@ -82,7 +82,7 @@ func Convert(source []byte, opts ...Option) (Result, error) {
 	if fm.warning != nil {
 		res.Warnings = append([]contracts.Warning{*fm.warning}, res.Warnings...)
 	}
-	res.Document = buildDocument(source, root, res.Warnings, fm.values)
+	res.Document = buildDocument(source, root, res.Warnings, fm)
 	return res, nil
 }
 

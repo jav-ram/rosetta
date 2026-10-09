@@ -35,7 +35,6 @@ const buttons: (Button | "|")[] = [
   "|",
   { id: "bold", label: "B", title: "Bold (Mod-B)", run: (e) => void chain(e).toggleBold().run(), active: ["bold"] },
   { id: "italic", label: "I", title: "Italic (Mod-I)", run: (e) => void chain(e).toggleItalic().run(), active: ["italic"] },
-  { id: "strike", label: "S", title: "Strikethrough (Mod-Shift-S)", run: (e) => void chain(e).toggleStrike().run(), active: ["strike"] },
   { id: "code", label: "</>", title: "Inline code (Mod-E)", run: (e) => void chain(e).toggleCode().run(), active: ["code"] },
   {
     id: "link",

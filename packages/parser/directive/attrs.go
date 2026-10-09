@@ -10,6 +10,9 @@ type Attrs struct {
 	Values map[string]string
 	// Order lists keys in first-seen order, so output is stable.
 	Order []string
+	// Raw is the text between the braces exactly as written; HasRaw is false when there were no braces.
+	Raw    string
+	HasRaw bool
 }
 
 // Get returns the value of key.

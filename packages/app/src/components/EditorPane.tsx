@@ -3,16 +3,18 @@ import type { Parsed } from "../useParsed";
 import { VisualEditor } from "./VisualEditor";
 
 interface Props {
+  chapterId: string;
   markdown: string;
   parsed: Parsed;
-  onChange: (markdown: string) => void;
+  /** Gets the new Markdown and the chapter it belongs to (the chapter can change while a save is pending). */
+  onChange: (markdown: string, chapterId?: string) => void;
 }
 
 /**
- * Two views for now. "Visual" is the Tiptap editor: it shows the parsed chapter (T1.3), but its edits are not saved
- * back to Markdown until T1.4. "Markdown" is the temporary text box that drives the preview.
+ * Two views of the same chapter: "Visual" (Tiptap) and "Markdown" (a text box). Edits in either are saved to the
+ * chapter's Markdown, which the other view and the preview then show.
  */
-export function EditorPane({ markdown, parsed, onChange }: Props) {
+export function EditorPane({ chapterId, markdown, parsed, onChange }: Props) {
   const [view, setView] = useState<"visual" | "markdown">("visual");
   return (
     <section className="pane editor" aria-label="Editor">
@@ -26,13 +28,13 @@ export function EditorPane({ markdown, parsed, onChange }: Props) {
             Markdown
           </button>
         </div>
-        <span className="hint">{view === "visual" ? "shows the chapter · edits are not saved yet" : "temporary"}</span>
+        <span className="hint">{view === "visual" ? "edits are saved as Markdown" : "temporary view"}</span>
       </header>
       {/* Both stay mounted so switching tabs keeps the editor's content and undo history. */}
       <div className="editor-body" hidden={view !== "visual"}>
-        <VisualEditor ast={parsed.state === "ready" ? parsed.ast : null} />
+        <VisualEditor chapterId={chapterId} markdown={markdown} parsed={parsed} onChange={onChange} />
       </div>
-      <textarea hidden={view !== "markdown"} value={markdown} onChange={(e) => onChange(e.target.value)} spellCheck={false} aria-label="Chapter text" />
+      <textarea hidden={view !== "markdown"} value={markdown} onChange={(e) => onChange(e.target.value, chapterId)} spellCheck={false} aria-label="Chapter text" />
     </section>
   );
 }

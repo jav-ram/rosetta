@@ -75,6 +75,11 @@ type Document struct {
 	// Preserved YAML front matter, if any.
 	FrontMatter map[string]interface{} `json:"frontMatter,omitempty"`
 
+	// The front matter text between the --- lines, exactly as written, so tools can
+	// save it back unchanged. Present even when it is not valid YAML (then
+	// frontMatter is absent).
+	FrontMatterRaw *string `json:"frontMatterRaw,omitempty"`
+
 	// Spec version the document was parsed as, for example 0.1.
 	RosettaVersion string `json:"rosettaVersion"`
 
@@ -130,6 +135,11 @@ type Node struct {
 	// directive: attribute values, always strings.
 	Attributes map[string]string `json:"attributes,omitempty"`
 
+	// directive: the text between the braces exactly as written (absent when there
+	// were no braces), so it can be saved back unchanged, with shorthands, quotes and
+	// mistakes as they were. A tool that changes the attributes must drop it.
+	AttributesRaw *string `json:"attributesRaw,omitempty"`
+
 	// directive: resolved breakable flag.
 	Breakable *bool `json:"breakable,omitempty"`
 
@@ -163,11 +173,18 @@ type Node struct {
 	// Position corresponds to the JSON schema field "position".
 	Position *Position `json:"position,omitempty"`
 
-	// directive: raw body text, kept for unknown components.
+	// directive: the raw body text. Always present for unknown components; for data
+	// components it is the body as written, kept next to the parsed fields so it can
+	// be saved back unchanged. A tool that changes a data component's fields must
+	// drop it.
 	Raw *string `json:"raw,omitempty"`
 
 	// list, first number when ordered.
 	Start *int `json:"start,omitempty"`
+
+	// list: true when its items are not separated by blank lines (items render
+	// without paragraphs).
+	Tight *bool `json:"tight,omitempty"`
 
 	// link, image.
 	Title *string `json:"title,omitempty"`

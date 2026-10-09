@@ -12,11 +12,11 @@ document.querySelector("#toolbar")!.append(toolbar.element);
 
 ## What it edits today
 
-The standard Markdown elements: headings 1-6, paragraphs, bold, italic, strikethrough (GFM), inline code, links, bullet and numbered lists, blockquotes, code blocks, horizontal rules, images and GFM tables. Each can be made from the toolbar, the keyboard shortcuts (shown in the button tooltips) or Markdown shortcuts while typing (`## `, `- `, `1. `, `> `, ` ``` `, `**bold**`).
+The standard Markdown elements: headings 1-6, paragraphs, bold, italic, inline code, links, bullet and numbered lists, blockquotes, code blocks, horizontal rules, images and GFM tables. Each can be made from the toolbar, the keyboard shortcuts (shown in the button tooltips) or Markdown shortcuts while typing (`## `, `- `, `1. `, `> `, ` ``` `, `**bold**`).
 
 Link and image buttons ask for an address with `window.prompt`; pass `askUrl` to `createToolbar` to use your own dialog. The toolbar's table buttons (add or delete a row or column, delete the table) appear while the cursor is in a table.
 
-`underline` is turned off on purpose: Markdown has no underline.
+`underline` and strikethrough are off on purpose: the spec has neither, so saving them would lose them.
 
 ## Loading a document
 
@@ -34,10 +34,27 @@ editor.commands.setContent(doc);
 - Empty list items, quotes and table cells get an empty paragraph, because the editor needs one. A code block's final newline is not shown.
 - An AST node type the loader does not know throws an error naming it, instead of silently dropping content.
 
+## Saving a document
+
+```ts
+import { toMarkdown } from "@rosetta/editor";
+
+const markdown = toMarkdown(editor.getJSON(), { frontMatterRaw }); // frontMatterRaw from fromAst()
+```
+
+The output parses back to the same content. Saving does not keep the author's formatting: it writes one style (`-` bullets, ATX headings, `*` and `**` for emphasis, fenced code, one blank line between blocks), and raw HTML, which is not part of the document, is gone.
+
+- **Text is escaped** so it stays text: `*`, `_`, `[`, `<`, `&amp;`, a leading `#`, `-`, `1.` or `>`, and a line starting with `::` (the spec's escape for a would-be directive).
+- **Kept as written:** front matter (`frontMatterRaw`, comments included, also when it is invalid), a data component's body (`raw`), and every directive's attribute text (`attributesRaw`). Whoever edits a component's `fields` must set its `raw` to `null`, and whoever edits its `attributes` must set `attributesRaw` to `null`; otherwise the old text is saved. Without `raw` the fields are written as the YAML subset of the spec.
+- **Fences:** a container's `:::` fence is longer than any closing line inside it, so nesting always works. A code fence is longer than any backtick run inside.
+- **Lists** keep tight or loose; two lists in a row use different markers so they do not merge.
+- Empty paragraphs are not saved (Markdown cannot say them). A hard break at the end of a paragraph is dropped.
+- Known limits: when bold and italic cover different stretches the output may use more delimiters than needed; and italic or bold right next to punctuation and a letter (`*"a"*b`) can fail the CommonMark delimiter rules.
+
 ## Not here yet
 
-Saving back to Markdown (T1.4), component node views (T1.5+) and a raw source view (T1.8).
+Component node views (T1.5+) and a raw source view (T1.8).
 
 ## Tests
 
-`pnpm --filter @rosetta/editor test` runs the editor in jsdom: every toolbar button, the keyboard shortcuts, Markdown typing shortcuts, table editing and the AST loader. Loading every golden file is tested in `app` (`test/golden-load.test.ts`), because it needs the parser and `editor` may not depend on it.
+`pnpm --filter @rosetta/editor test` runs the editor in jsdom: every toolbar button, the keyboard shortcuts, Markdown typing shortcuts, table editing, the AST loader and the Markdown writer. Loading every golden file is tested in `app` (`test/golden-load.test.ts`), because it needs the parser and `editor` may not depend on it.

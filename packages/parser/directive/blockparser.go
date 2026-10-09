@@ -125,6 +125,11 @@ func (p *blockParser) Open(parent ast.Node, reader text.Reader, pc parser.Contex
 	if len(rest) > 0 && rest[0] == '{' {
 		var used int
 		attrs, used, problems = parseAttrs(string(rest))
+		inside := rest[1:used]
+		if len(inside) > 0 && inside[len(inside)-1] == '}' {
+			inside = inside[:len(inside)-1]
+		}
+		attrs.Raw, attrs.HasRaw = string(inside), true
 		rest = rest[used:]
 	} else {
 		attrs = Attrs{Values: map[string]string{}}

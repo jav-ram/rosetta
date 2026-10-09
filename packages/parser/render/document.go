@@ -1,6 +1,7 @@
 package render
 
 import (
+	"html"
 	"regexp"
 	"strconv"
 	"strings"
@@ -9,6 +10,7 @@ import (
 	"github.com/jav-ram/rosetta/packages/parser/directive"
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
+	"github.com/yuin/goldmark/util"
 )
 
 // defaultVersion is the spec version assumed when the front matter does not declare one.
@@ -18,12 +20,17 @@ var versionRE = regexp.MustCompile(`^[0-9]+\.[0-9]+$`)
 
 // buildDocument converts the parsed tree to the contracts Document, which is what the editor
 // loads. Raw HTML is dropped, as it is from the HTML output.
-func buildDocument(source []byte, root ast.Node, warnings []contracts.Warning, frontMatter map[string]any) contracts.Document {
+func buildDocument(source []byte, root ast.Node, warnings []contracts.Warning, fm frontMatter) contracts.Document {
+	frontMatterValues := fm.values
 	version := defaultVersion
-	if v, ok := frontMatter["rosetta"].(string); ok && versionRE.MatchString(v) {
+	if v, ok := frontMatterValues["rosetta"].(string); ok && versionRE.MatchString(v) {
 		version = v
 	}
-	doc := contracts.Document{RosettaVersion: version, Children: []contracts.Node{}, Warnings: warnings, FrontMatter: frontMatter}
+	doc := contracts.Document{RosettaVersion: version, Children: []contracts.Node{}, Warnings: warnings, FrontMatter: frontMatterValues}
+	if fm.found {
+		raw := fm.raw
+		doc.FrontMatterRaw = &raw
+	}
 	if doc.Warnings == nil {
 		doc.Warnings = []contracts.Warning{}
 	}
@@ -52,22 +59,58 @@ func linesText(source []byte, n ast.Node) string {
 }
 
 // plainText concatenates the text under an inline node, for alt text and code spans.
-func plainText(source []byte, n ast.Node) string {
+// plainText is the text of a node's descendants. With unescape it is what a reader sees (backslash escapes
+// removed, character references resolved), as in an image's alt text; code spans are always verbatim.
+func plainText(source []byte, n ast.Node, unescape bool) string {
 	var b strings.Builder
 	for c := n.FirstChild(); c != nil; c = c.NextSibling() {
 		switch t := c.(type) {
 		case *ast.Text:
-			b.Write(t.Segment.Value(source))
+			seg := string(t.Segment.Value(source))
+			if unescape {
+				seg = plain(seg)
+			}
+			b.WriteString(seg)
 			if t.SoftLineBreak() {
 				b.WriteByte(' ')
 			}
 		case *ast.String:
 			b.Write(t.Value)
+		case *ast.CodeSpan:
+			b.WriteString(plainText(source, c, false))
 		default:
-			b.WriteString(plainText(source, c))
+			b.WriteString(plainText(source, c, unescape))
 		}
 	}
 	return b.String()
+}
+
+// plain turns source text into what a reader sees: a backslash before punctuation is dropped and character
+// references (&amp; &#35;) are resolved. The HTML output does this when it writes text, so the AST must too.
+func plain(s string) string {
+	if !strings.ContainsAny(s, "\\&") {
+		return s
+	}
+	var out strings.Builder
+	for i := 0; i < len(s); {
+		switch c := s[i]; {
+		case c == '\\' && i+1 < len(s) && util.IsPunct(s[i+1]):
+			out.WriteByte(s[i+1])
+			i += 2
+			continue
+		case c == '&':
+			if j := strings.IndexByte(s[i:], ';'); j > 1 && j <= 33 {
+				if ref := s[i : i+j+1]; html.UnescapeString(ref) != ref {
+					out.WriteString(html.UnescapeString(ref))
+					i += j + 1
+					continue
+				}
+			}
+		}
+		out.WriteByte(s[i])
+		i++
+	}
+	return out.String()
 }
 
 func convertNode(source []byte, n ast.Node) []contracts.Node {
@@ -92,6 +135,8 @@ func convertNode(source []byte, n ast.Node) []contracts.Node {
 		x := node(contracts.NodeTypeList)
 		ordered := v.IsOrdered()
 		x.Ordered = &ordered
+		tight := v.IsTight
+		x.Tight = &tight
 		if ordered {
 			start := v.Start
 			x.Start = &start
@@ -119,7 +164,7 @@ func convertNode(source []byte, n ast.Node) []contracts.Node {
 		return nil
 	case *ast.Text:
 		x := node(contracts.NodeTypeText)
-		val := string(v.Segment.Value(source))
+		val := plain(string(v.Segment.Value(source)))
 		if v.SoftLineBreak() {
 			val += "\n"
 		}
@@ -141,14 +186,14 @@ func convertNode(source []byte, n ast.Node) []contracts.Node {
 		return withChildren(contracts.NodeTypeEmphasis)
 	case *ast.CodeSpan:
 		x := node(contracts.NodeTypeInlineCode)
-		val := plainText(source, n)
+		val := plainText(source, n, false)
 		x.Value = &val
 		return []contracts.Node{x}
 	case *ast.Link:
 		x := node(contracts.NodeTypeLink)
-		x.URL = strp(string(v.Destination))
+		x.URL = strp(plain(string(v.Destination)))
 		if len(v.Title) > 0 {
-			x.Title = strp(string(v.Title))
+			x.Title = strp(plain(string(v.Title)))
 		}
 		x.Children = convertChildren(source, n)
 		return []contracts.Node{x}
@@ -162,11 +207,11 @@ func convertNode(source []byte, n ast.Node) []contracts.Node {
 		return []contracts.Node{x}
 	case *ast.Image:
 		x := node(contracts.NodeTypeImage)
-		x.URL = strp(string(v.Destination))
+		x.URL = strp(plain(string(v.Destination)))
 		if len(v.Title) > 0 {
-			x.Title = strp(string(v.Title))
+			x.Title = strp(plain(string(v.Title)))
 		}
-		x.Alt = strp(plainText(source, n))
+		x.Alt = strp(plainText(source, n, true))
 		return []contracts.Node{x}
 	case *east.Table:
 		x := node(contracts.NodeTypeTable)
@@ -207,6 +252,9 @@ func convertDirective(source []byte, d *directive.Directive) contracts.Node {
 	for k, v := range d.Attrs.Values {
 		x.Attributes[k] = v
 	}
+	if d.Attrs.HasRaw {
+		x.AttributesRaw = strp(d.Attrs.Raw)
+	}
 	rng := d.Range
 	x.Position = &rng
 	x.Warnings = d.Warnings
@@ -218,9 +266,10 @@ func convertDirective(source []byte, d *directive.Directive) contracts.Node {
 	case contracts.NodeKindData:
 		if res, ok := d.Attribute(attrData); ok {
 			if data, ok := res.(*dataResult); ok && data != nil {
-				if data.Fatal != nil {
-					x.Raw = strp(d.Raw(source))
-				} else {
+				// The body text is kept even when it was read, so a saved document can write it back as the
+				// author wrote it (field order, comments). A tool that changes the fields must drop it.
+				x.Raw = strp(d.Raw(source))
+				if data.Fatal == nil {
 					x.Fields = fieldsToMap(data.Fields)
 				}
 			}
