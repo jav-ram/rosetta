@@ -1,5 +1,16 @@
 # @rosetta/editor
 
+## 0.3.0
+
+### Minor Changes
+
+- e823b89: Save the editor's document as Rosetta Markdown (`toMarkdown`); the app saves Visual edits to the chapter. Strikethrough is removed (the spec has none).
+
+### Patch Changes
+
+- Updated dependencies [e823b89]
+  - @rosetta/contracts@0.5.0
+
 ## 0.2.0
 
 ### Minor Changes

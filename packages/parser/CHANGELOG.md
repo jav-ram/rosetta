@@ -1,5 +1,11 @@
 # @rosetta/parser
 
+## 0.5.0
+
+### Minor Changes
+
+- e823b89: The AST now holds what the reader sees: backslash escapes are removed and character references resolved in text, link addresses and titles, and image alt text (as in the HTML). This makes the spec's `\::name` escape work. The AST also reports list tightness, raw front matter, raw attribute text and raw data bodies.
+
 ## 0.4.0
 
 ### Minor Changes
