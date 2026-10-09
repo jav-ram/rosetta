@@ -36,7 +36,7 @@ body { background: var(--bg); color: var(--text); }
 .hint { color: var(--muted); font-size: 0.8rem; }
 
 .sidebar { grid-area: side; border-right: 1px solid var(--line); background: var(--panel); overflow: auto; padding: 12px 8px; }
-.sidebar h2, .pane h2 { margin: 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.sidebar h2, .pane > header h2 { margin: 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
 .sidebar h2 { padding: 0 8px 8px; }
 .sidebar ol { list-style: none; margin: 0; padding: 0; }
 .sidebar button { width: 100%; text-align: left; padding: 8px; border: 0; border-radius: 6px; background: none; color: inherit; font: inherit; cursor: pointer; }
@@ -47,6 +47,7 @@ body { background: var(--bg); color: var(--text); }
 .pane > header { display: flex; gap: 12px; align-items: baseline; padding: 10px 16px; border-bottom: 1px solid var(--line); }
 .editor { grid-area: editor; }
 .preview { grid-area: preview; border-right: 0; overflow: auto; }
+.editor textarea[hidden], .editor-body[hidden] { display: none; }
 .editor textarea { flex: 1; resize: none; border: 0; padding: 16px; background: var(--panel); color: inherit; font: 0.9rem/1.5 ui-monospace, monospace; outline: none; }
 
 .page { margin: 16px; padding: 24px; background: var(--panel); border: 1px solid var(--line); line-height: 1.5; }
@@ -56,3 +57,31 @@ body { background: var(--bg); color: var(--text); }
 .rosetta-readaloud { border-left: 4px solid var(--accent); padding: 4px 16px; background: var(--bg); }
 .rosetta-sidebar, .rosetta-statblock { border: 1px solid var(--line); padding: 8px 16px; }
 .rosetta-warning-block, .rosetta-warnings { color: #b3261e; }
+
+.tabs { display: flex; gap: 4px; }
+.tabs button { border: 0; border-radius: 6px; padding: 2px 10px; background: none; color: var(--muted); font: inherit; font-size: 0.85rem; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--bg); color: var(--accent); font-weight: 600; }
+
+/* Visual editor (Tiptap) */
+.editor-body { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--panel); }
+.rosetta-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; padding: 6px 12px; border-bottom: 1px solid var(--line); }
+.rosetta-toolbar button { min-width: 28px; padding: 3px 7px; border: 1px solid transparent; border-radius: 5px; background: none; color: inherit; font: inherit; font-size: 0.8rem; cursor: pointer; }
+.rosetta-toolbar button:hover:not(:disabled) { background: var(--bg); }
+.rosetta-toolbar button[aria-pressed="true"] { background: var(--bg); border-color: var(--line); color: var(--accent); font-weight: 700; }
+.rosetta-toolbar button:disabled { opacity: 0.35; cursor: default; }
+.rosetta-toolbar button[hidden] { display: none; }
+.rosetta-toolbar-separator { width: 1px; align-self: stretch; margin: 2px 6px; background: var(--line); }
+.visual-editor { flex: 1; overflow: auto; }
+.rosetta-editor { min-height: 100%; padding: 16px 24px; outline: none; line-height: 1.5; }
+.rosetta-editor h1, .rosetta-editor h2, .rosetta-editor h3 { margin: 1em 0 0.4em; line-height: 1.2; }
+.rosetta-editor blockquote { margin: 1em 0; padding-left: 1em; border-left: 3px solid var(--line); color: var(--muted); }
+.rosetta-editor pre { padding: 10px 12px; background: var(--bg); border-radius: 6px; overflow: auto; }
+.rosetta-editor code { background: var(--bg); padding: 0 3px; border-radius: 3px; font-size: 0.9em; }
+.rosetta-editor pre code { padding: 0; }
+.rosetta-editor a { color: var(--accent); }
+.rosetta-editor img { max-width: 100%; }
+.rosetta-editor table { border-collapse: collapse; margin: 1em 0; }
+.rosetta-editor th, .rosetta-editor td { border: 1px solid var(--line); padding: 4px 10px; min-width: 60px; }
+.rosetta-editor th { background: var(--bg); text-align: left; }
+.rosetta-editor .selectedCell { background: color-mix(in srgb, var(--accent) 20%, transparent); }
+.rosetta-editor td > p, .rosetta-editor th > p { margin: 0; }
