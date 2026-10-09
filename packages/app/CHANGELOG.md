@@ -1,5 +1,16 @@
 # @rosetta/app
 
+## 0.3.0
+
+### Minor Changes
+
+- de9aca3: Load the parser's AST into the editor (`fromAst`), with a generic node for components; the app's Visual tab now shows the chapter.
+
+### Patch Changes
+
+- Updated dependencies [de9aca3]
+  - @rosetta/editor@0.2.0
+
 ## 0.2.0
 
 ### Minor Changes
