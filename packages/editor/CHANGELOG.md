@@ -1,5 +1,11 @@
 # @rosetta/editor
 
+## 0.4.0
+
+### Minor Changes
+
+- 4ae9294: Component node view framework: components are registered from definitions, rendered by an injected renderer (the parser worker), and edited through generated forms (data and leaf) or in a frame with editable content (container). The app inserts and edits the built-in components.
+
 ## 0.3.0
 
 ### Minor Changes
