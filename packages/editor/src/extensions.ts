@@ -1,6 +1,6 @@
 import Code from "@tiptap/extension-code";
 import Image from "@tiptap/extension-image";
-import { ListItem } from "@tiptap/extension-list";
+import { BulletList, ListItem, OrderedList } from "@tiptap/extension-list";
 import Link from "@tiptap/extension-link";
 import { TableCell, TableHeader, TableKit } from "@tiptap/extension-table";
 import StarterKit from "@tiptap/starter-kit";
@@ -15,8 +15,17 @@ const align = {
   },
 };
 
+/** Lists are tight (`<li>a</li>`) or loose (`<li><p>a</p></li>`); the parser reports which and the serializer keeps it. */
+const tight = {
+  tight: {
+    default: true,
+    parseHTML: (el: HTMLElement) => el.getAttribute("data-tight") !== "false",
+    renderHTML: (attrs: Record<string, unknown>) => (attrs.tight === false ? { "data-tight": "false" } : {}),
+  },
+};
+
 /**
- * The standard Markdown elements: headings (1-6), paragraphs, bold, italic, strikethrough (GFM), inline code,
+ * The standard Markdown elements: headings (1-6), paragraphs, bold, italic, inline code,
  * links, bullet and ordered lists, blockquotes, code blocks, horizontal rules, images and GFM tables,
  * plus the generic `directive` node that holds any component.
  *
@@ -28,6 +37,9 @@ export function standardExtensions() {
   return [
     StarterKit.configure({
       underline: false, // Markdown has no underline
+      strike: false, // and the spec has no strikethrough: the parser would read ~~x~~ as plain text
+      bulletList: false,
+      orderedList: false,
       code: false,
       link: false,
       listItem: false,
@@ -39,6 +51,12 @@ export function standardExtensions() {
       },
     }).configure({ openOnClick: false, autolink: true, HTMLAttributes: { rel: "noopener noreferrer" } }),
     ListItem.extend({ content: "block+" }),
+    BulletList.extend({ addAttributes: () => tight }),
+    OrderedList.extend({
+      addAttributes() {
+        return { ...this.parent?.(), ...tight };
+      },
+    }),
     // Inline, like in Markdown, where an image is part of a paragraph.
     Image.configure({ inline: true }),
     // GFM tables: one header row, no merged cells.

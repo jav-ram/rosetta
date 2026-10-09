@@ -4,8 +4,10 @@ import type { Document, Node, Warning } from "@rosetta/contracts";
 export interface LoadedDocument {
   /** The Tiptap document, ready for `editor.commands.setContent` or `createEditor({ content })`. */
   doc: JSONContent;
-  /** Front matter is never shown in the editor; the caller keeps it (the serializer writes it back). */
+  /** Front matter is never shown in the editor; the caller keeps it and gives `frontMatterRaw` to `toMarkdown`. */
   frontMatter?: Record<string, unknown>;
+  /** The front matter text as written, also when it is not valid YAML. */
+  frontMatterRaw?: string;
   warnings: Warning[];
 }
 
@@ -16,6 +18,7 @@ export function fromAst(ast: Document): LoadedDocument {
   return {
     doc: { type: "doc", content: blocks(ast.children) },
     ...(ast.frontMatter ? { frontMatter: ast.frontMatter as Record<string, unknown> } : {}),
+    ...(ast.frontMatterRaw !== undefined ? { frontMatterRaw: ast.frontMatterRaw } : {}),
     warnings: ast.warnings,
   };
 }
@@ -46,7 +49,7 @@ function block(node: Node): JSONContent {
       return withContent(
         node.ordered ? "orderedList" : "bulletList",
         (node.children ?? []).map((item) => withContent("listItem", blocksOrEmpty(item.children))),
-        node.ordered ? { start: node.start ?? 1 } : undefined,
+        { ...(node.ordered ? { start: node.start ?? 1 } : {}), tight: node.tight ?? true },
       );
     case "code": {
       // The AST value ends with the newline before the closing fence; the editor shows only the lines.
@@ -77,6 +80,7 @@ function block(node: Node): JSONContent {
         kind: node.kind ?? "unknown",
         breakable: node.breakable ?? null,
         attributes: node.attributes ?? {},
+        attributesRaw: node.attributesRaw ?? null,
         fields: node.fields ?? null,
         raw: node.raw ?? null,
         warnings: node.warnings ?? [],

@@ -10,6 +10,7 @@ import (
 type frontMatter struct {
 	values  map[string]any
 	raw     string
+	found   bool // a front matter block exists (valid or not)
 	warning *contracts.Warning
 }
 
@@ -49,7 +50,7 @@ func splitFrontMatter(src []byte) ([]byte, frontMatter) {
 		end = len(src)
 	}
 	body := src[bom+len(first)+1 : pos] // the YAML between the two "---" lines
-	fm := frontMatter{raw: string(bytes.TrimRight(body, "\r\n"))}
+	fm := frontMatter{found: true, raw: string(bytes.TrimRight(body, "\r\n"))}
 	var values map[string]any
 	if err := yaml.Unmarshal(body, &values); err != nil {
 		w := contracts.Warning{

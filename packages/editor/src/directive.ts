@@ -16,7 +16,9 @@ const json = (name: string, fallback: unknown = null) => ({
  * The component node views (T1.5) replace the display.
  *
  * - containers and unknown components with a body hold their blocks as content;
- * - data components keep their parsed `fields`; unknown ones keep `raw`.
+ * - data components keep their parsed `fields` and the body as written (`raw`); unknown ones keep `raw`.
+ * - the serializer writes `raw` and `attributesRaw` when present (they keep the author's text), so whoever edits
+ *   `fields` must set `raw` to null, and whoever edits `attributes` must set `attributesRaw` to null.
  */
 export const Directive = Node.create({
   name: "directive",
@@ -32,6 +34,7 @@ export const Directive = Node.create({
       kind: { default: "unknown" },
       breakable: json("breakable"),
       attributes: json("attributes", {}),
+      attributesRaw: json("attributesRaw"),
       fields: json("fields"),
       raw: json("raw"),
       warnings: json("warnings", []),

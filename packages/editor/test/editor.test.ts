@@ -13,7 +13,6 @@ describe("toolbar creates and edits every standard element", () => {
   test.each([
     ["bold", "<strong>hello world</strong>"],
     ["italic", "<em>hello world</em>"],
-    ["strike", "<s>hello world</s>"],
     ["code", "<code>hello world</code>"],
     ["h1", "<h1>hello world</h1>"],
     ["h2", "<h2>hello world</h2>"],
@@ -109,7 +108,6 @@ describe("keyboard", () => {
     ["b", { ctrl: true }, "<strong>"],
     ["i", { ctrl: true }, "<em>"],
     ["e", { ctrl: true }, "<code>"],
-    ["s", { ctrl: true, shift: true }, "<s>"],
     ["1", { ctrl: true, alt: true }, "<h1>"],
     ["2", { ctrl: true, alt: true }, "<h2>"],
     ["3", { ctrl: true, alt: true }, "<h3>"],
@@ -136,7 +134,7 @@ describe("keyboard", () => {
     type(s.editor, "1. one");
     press(s.editor, "Enter");
     press(s.editor, "Enter");
-    type(s.editor, "A **bold** and *italic* and `code` and ~~gone~~ word");
+    type(s.editor, "A **bold** and *italic* and `code`");
     const html = s.html();
     expect(html).toContain("<h1>Title</h1>");
     expect(html).toContain("<ul><li><p>item</p></li></ul>");
@@ -145,7 +143,6 @@ describe("keyboard", () => {
     expect(html).toContain("<strong>bold</strong>");
     expect(html).toContain("<em>italic</em>");
     expect(html).toContain("<code>code</code>");
-    expect(html).toContain("<s>gone</s>");
   });
 
   test("typing ``` makes a code block and --- a rule", () => {

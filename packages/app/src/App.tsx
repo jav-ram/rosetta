@@ -11,7 +11,7 @@ export function App() {
   const active = chapters.find((c) => c.id === activeId) ?? chapters[0]!;
   const parsed = useParsed(active.markdown);
 
-  const edit = (markdown: string) => setChapters((all) => all.map((c) => (c.id === active.id ? { ...c, markdown } : c)));
+  const edit = (markdown: string, chapterId = active.id) => setChapters((all) => all.map((c) => (c.id === chapterId ? { ...c, markdown } : c)));
 
   return (
     <div className="shell">
@@ -20,7 +20,7 @@ export function App() {
         <span className="hint">{active.title}</span>
       </header>
       <ChapterSidebar chapters={chapters} activeId={active.id} onSelect={setActiveId} />
-      <EditorPane markdown={active.markdown} parsed={parsed} onChange={edit} />
+      <EditorPane chapterId={active.id} markdown={active.markdown} parsed={parsed} onChange={edit} />
       <PreviewPane parsed={parsed} />
     </div>
   );

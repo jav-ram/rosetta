@@ -15,7 +15,7 @@ test("the sidebar lists every chapter and marks the active one", () => {
 });
 
 test("the editor shows the chapter text", () => {
-  const html = renderToStaticMarkup(<EditorPane markdown="# Hello" parsed={{ state: "loading" }} onChange={noop} />);
+  const html = renderToStaticMarkup(<EditorPane chapterId="a" markdown="# Hello" parsed={{ state: "loading" }} onChange={noop} />);
   expect(html).toContain("# Hello");
 });
 
@@ -23,7 +23,7 @@ test("the preview reports each parser state", () => {
   expect(renderToStaticMarkup(<PreviewPane parsed={{ state: "loading" }} />)).toContain("loading the parser");
   expect(renderToStaticMarkup(<PreviewPane parsed={{ state: "error", message: "boom" }} />)).toContain("boom");
   const ast = { rosettaVersion: "0.1", children: [], warnings: [] };
-  const html = renderToStaticMarkup(<PreviewPane parsed={{ state: "ready", html: "<h1>Hi</h1>", ast, warnings: [] }} />);
+  const html = renderToStaticMarkup(<PreviewPane parsed={{ state: "ready", markdown: "# Hi", html: "<h1>Hi</h1>", ast, warnings: [] }} />);
   expect(html).toContain("<h1>Hi</h1>");
   expect(html).toContain("0 warnings");
 });
