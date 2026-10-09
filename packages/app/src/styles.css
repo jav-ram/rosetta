@@ -85,3 +85,9 @@ body { background: var(--bg); color: var(--text); }
 .rosetta-editor th { background: var(--bg); text-align: left; }
 .rosetta-editor .selectedCell { background: color-mix(in srgb, var(--accent) 20%, transparent); }
 .rosetta-editor td > p, .rosetta-editor th > p { margin: 0; }
+
+/* Components in the editor: plain placeholders until their node views exist (T1.5). */
+.rosetta-directive { margin: 1em 0; border: 1px dashed var(--line); border-radius: 6px; }
+.rosetta-directive-header { padding: 2px 10px; font: 0.75rem ui-monospace, monospace; color: var(--muted); background: var(--bg); border-radius: 6px 6px 0 0; }
+.rosetta-directive-data { margin: 0; padding: 6px 10px; font-size: 0.8rem; white-space: pre-wrap; background: none; }
+.rosetta-directive-body { padding: 0 12px; }

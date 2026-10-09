@@ -15,7 +15,7 @@ test("the sidebar lists every chapter and marks the active one", () => {
 });
 
 test("the editor shows the chapter text", () => {
-  const html = renderToStaticMarkup(<EditorPane markdown="# Hello" onChange={noop} />);
+  const html = renderToStaticMarkup(<EditorPane markdown="# Hello" parsed={{ state: "loading" }} onChange={noop} />);
   expect(html).toContain("# Hello");
 });
 
