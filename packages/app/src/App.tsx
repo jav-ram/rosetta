@@ -20,7 +20,7 @@ export function App() {
         <span className="hint">{active.title}</span>
       </header>
       <ChapterSidebar chapters={chapters} activeId={active.id} onSelect={setActiveId} />
-      <EditorPane markdown={active.markdown} onChange={edit} />
+      <EditorPane markdown={active.markdown} parsed={parsed} onChange={edit} />
       <PreviewPane parsed={parsed} />
     </div>
   );

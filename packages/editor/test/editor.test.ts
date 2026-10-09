@@ -170,7 +170,7 @@ describe("keyboard", () => {
 
 test("editing works on content that was loaded", () => {
   s.cleanup();
-  s = setup("<h2>Loaded</h2><ul><li><p>a</p></li></ul><table><tbody><tr><th>h</th></tr><tr><td>c</td></tr></tbody></table><img src='x.png' alt='pic'>");
+  s = setup("<h2>Loaded</h2><ul><li><p>a</p></li></ul><table><tbody><tr><th>h</th></tr><tr><td>c</td></tr></tbody></table><p><img src='x.png' alt='pic'></p>");
   const types = s.editor.getJSON().content!.map((n) => n.type);
-  expect(types.slice(0, 4)).toEqual(["heading", "bulletList", "table", "image"]);
+  expect(types.slice(0, 4)).toEqual(["heading", "bulletList", "table", "paragraph"]);
 });

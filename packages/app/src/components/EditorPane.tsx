@@ -1,16 +1,18 @@
 import { useState } from "react";
+import type { Parsed } from "../useParsed";
 import { VisualEditor } from "./VisualEditor";
 
 interface Props {
   markdown: string;
+  parsed: Parsed;
   onChange: (markdown: string) => void;
 }
 
 /**
- * Two views for now. "Visual" is the Tiptap editor (T1.2) and is not yet connected to the chapter or the
- * preview: loading and saving Markdown come in T1.3 and T1.4. "Markdown" is the temporary text box that drives the preview.
+ * Two views for now. "Visual" is the Tiptap editor: it shows the parsed chapter (T1.3), but its edits are not saved
+ * back to Markdown until T1.4. "Markdown" is the temporary text box that drives the preview.
  */
-export function EditorPane({ markdown, onChange }: Props) {
+export function EditorPane({ markdown, parsed, onChange }: Props) {
   const [view, setView] = useState<"visual" | "markdown">("visual");
   return (
     <section className="pane editor" aria-label="Editor">
@@ -24,11 +26,11 @@ export function EditorPane({ markdown, onChange }: Props) {
             Markdown
           </button>
         </div>
-        <span className="hint">{view === "visual" ? "not connected to the preview yet" : "temporary"}</span>
+        <span className="hint">{view === "visual" ? "shows the chapter · edits are not saved yet" : "temporary"}</span>
       </header>
       {/* Both stay mounted so switching tabs keeps the editor's content and undo history. */}
       <div className="editor-body" hidden={view !== "visual"}>
-        <VisualEditor />
+        <VisualEditor ast={parsed.state === "ready" ? parsed.ast : null} />
       </div>
       <textarea hidden={view !== "markdown"} value={markdown} onChange={(e) => onChange(e.target.value)} spellCheck={false} aria-label="Chapter text" />
     </section>
