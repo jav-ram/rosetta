@@ -136,14 +136,14 @@ describe("components", () => {
 
   test("a leaf component", () => {
     const { json } = load(doc({ type: "directive", name: "pagebreak", form: "leaf", kind: "leaf" }));
-    expect(json.content![0]).toMatchObject({ type: "directive", attrs: { name: "pagebreak", form: "leaf" } });
+    expect(json.content![0]).toMatchObject({ type: "directiveLeaf", attrs: { name: "pagebreak", form: "leaf" } });
   });
 
-  test("components show their name and data as plain text in the editor", () => {
+  test("without a renderer, a component shows its Markdown as plain text", () => {
     const { editor } = load(doc({ type: "directive", name: "statblock", form: "block", kind: "data", fields: { name: "Rat" }, attributes: { system: "5e" } }));
-    const dom = editor.view.dom.querySelector(".rosetta-directive")!;
-    expect(dom.querySelector(".rosetta-directive-header")!.textContent).toBe(':::statblock system="5e"');
-    expect(dom.querySelector(".rosetta-directive-data")!.textContent).toContain('"name": "Rat"');
+    const dom = editor.view.dom.querySelector(".rosetta-component")!;
+    expect(dom.getAttribute("data-component")).toBe("statblock");
+    expect(dom.querySelector(".rosetta-component-rendered")!.textContent).toBe(':::statblock{system=5e}\nname: Rat\n:::');
   });
 
   test("component data survives copy and paste of the editor's HTML", () => {
