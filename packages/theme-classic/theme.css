@@ -1,0 +1,278 @@
+/*
+ * Rosetta Classic: the layout and look of every M1 component, written only with theme tokens.
+ * No font, color, border or spacing value is written here; each one is read as a CSS variable, defined in theme.json.
+ * `pnpm --filter @rosetta/theme-classic test` checks that (see lint.mjs).
+ *
+ * Content is expected inside an element with the class rosetta-document.
+ */
+
+/* Page: size, margins, running header (chapter title) and page number. */
+@page {
+  size: var(--page-size);
+  margin-top: var(--page-margin-top);
+  margin-bottom: var(--page-margin-bottom);
+  margin-left: var(--page-margin-left);
+  margin-right: var(--page-margin-right);
+
+  @top-center {
+    content: string(chapter);
+    font-family: var(--font-furniture);
+    font-size: var(--font-size-small);
+    color: var(--color-muted);
+    border-bottom: var(--border-rule);
+  }
+
+  @bottom-center {
+    content: counter(page);
+    font-family: var(--font-furniture);
+    font-size: var(--font-size-small);
+    color: var(--color-muted);
+  }
+}
+
+/* Body text and columns. */
+.rosetta-document {
+  font-family: var(--font-body);
+  font-size: var(--font-size-body);
+  line-height: var(--font-line-height);
+  color: var(--color-text);
+  background-color: var(--color-page);
+  background-image: var(--texture-page);
+  column-count: var(--page-columns);
+  column-gap: var(--page-column-gap);
+  column-rule: var(--border-column-rule);
+  orphans: 2;
+  widows: 2;
+}
+
+.rosetta-document p {
+  margin-top: 0;
+  margin-bottom: var(--spacing-block);
+}
+
+/* Headings. The chapter title (h1) is also the running header. */
+.rosetta-document h1,
+.rosetta-document h2,
+.rosetta-document h3,
+.rosetta-document h4,
+.rosetta-document h5,
+.rosetta-document h6 {
+  font-family: var(--font-heading);
+  color: var(--color-heading);
+  margin-top: var(--spacing-heading-above);
+  margin-bottom: var(--spacing-heading-below);
+  break-after: avoid;
+}
+
+.rosetta-document h1 {
+  font-size: var(--font-size-h1);
+  string-set: chapter content(text);
+  column-span: all;
+  border-bottom: var(--border-heading-rule);
+}
+
+.rosetta-document h2 {
+  font-size: var(--font-size-h2);
+  border-bottom: var(--border-rule);
+}
+
+.rosetta-document h3 {
+  font-size: var(--font-size-h3);
+}
+
+.rosetta-document h4,
+.rosetta-document h5,
+.rosetta-document h6 {
+  font-size: var(--font-size-h4);
+}
+
+/* Lists, quotes, rules, code, links. */
+.rosetta-document ul,
+.rosetta-document ol {
+  margin-top: 0;
+  margin-bottom: var(--spacing-block);
+  padding-left: var(--spacing-list-indent);
+}
+
+.rosetta-document blockquote {
+  margin-top: 0;
+  margin-bottom: var(--spacing-block);
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: var(--spacing-frame);
+  border-left: var(--border-rule);
+  color: var(--color-muted);
+}
+
+.rosetta-document hr {
+  border: none;
+  border-top: var(--border-rule);
+  margin-top: var(--spacing-block);
+  margin-bottom: var(--spacing-block);
+}
+
+.rosetta-document code,
+.rosetta-document pre {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-small);
+}
+
+.rosetta-document pre {
+  margin-top: 0;
+  margin-bottom: var(--spacing-block);
+  white-space: pre-wrap;
+}
+
+.rosetta-document a {
+  color: var(--color-accent);
+}
+
+.rosetta-document img {
+  max-width: 100%;
+  mask-image: var(--mask-art);
+}
+
+/* Tables. The header row repeats on continued tables. */
+.rosetta-document table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: var(--spacing-block);
+  font-size: var(--font-size-small);
+}
+
+.rosetta-document thead {
+  display: table-header-group;
+}
+
+.rosetta-document th {
+  font-family: var(--font-heading);
+  color: var(--color-heading);
+  text-align: left;
+  border-bottom: var(--border-heading-rule);
+  padding: var(--spacing-cell);
+}
+
+.rosetta-document td {
+  border-bottom: var(--border-table-row);
+  padding: var(--spacing-cell);
+}
+
+.rosetta-document tbody tr:nth-child(even) {
+  background-color: var(--color-table-stripe);
+}
+
+/* Stat block. */
+.rosetta-statblock {
+  background-color: var(--color-statblock-bg);
+  border-top: var(--border-statblock);
+  border-bottom: var(--border-statblock);
+  padding: var(--spacing-frame);
+  margin-bottom: var(--spacing-block);
+  font-size: var(--font-size-small);
+}
+
+.rosetta-statblock .rosetta-fields,
+.rosetta-statblock .rosetta-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rosetta-statblock .rosetta-field {
+  margin-bottom: var(--spacing-field);
+}
+
+.rosetta-statblock dt {
+  display: inline;
+  font-family: var(--font-heading);
+  font-weight: bold;
+  color: var(--color-statblock-edge);
+}
+
+.rosetta-statblock dt::after {
+  content: " ";
+}
+
+.rosetta-statblock dd {
+  display: inline;
+  margin: 0;
+}
+
+.rosetta-statblock dd > p:first-child {
+  display: inline;
+}
+
+.rosetta-statblock .rosetta-list > li {
+  border-top: var(--border-statblock-inner);
+  padding-top: var(--spacing-field);
+  margin-top: var(--spacing-field);
+}
+
+/* The name of the creature is the title of the block. */
+.rosetta-statblock > .rosetta-fields > .rosetta-field[data-field="name"] dt {
+  display: none;
+}
+
+.rosetta-statblock > .rosetta-fields > .rosetta-field[data-field="name"] dd {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: var(--font-size-title);
+  font-weight: bold;
+  color: var(--color-statblock-edge);
+}
+
+/* Read-aloud text. */
+.rosetta-readaloud {
+  background-color: var(--color-readaloud-bg);
+  border-left: var(--border-readaloud);
+  border-radius: var(--border-radius-frame);
+  padding: var(--spacing-frame);
+  margin-bottom: var(--spacing-block);
+  font-style: italic;
+}
+
+.rosetta-readaloud > :last-child {
+  margin-bottom: 0;
+}
+
+/* Sidebar. */
+.rosetta-sidebar {
+  background-color: var(--color-sidebar-bg);
+  border: var(--border-sidebar);
+  border-radius: var(--border-radius-frame);
+  padding: var(--spacing-frame);
+  margin-bottom: var(--spacing-block);
+  font-size: var(--font-size-small);
+}
+
+.rosetta-sidebar > :last-child {
+  margin-bottom: 0;
+}
+
+.rosetta-sidebar .rosetta-title {
+  margin-top: 0;
+  font-size: var(--font-size-h4);
+  border-bottom: none;
+}
+
+/* Page break. */
+.rosetta-pagebreak {
+  break-after: page;
+}
+
+/* Warnings: shown in the book as they are in the editor, so a problem is not missed. */
+.rosetta-warnings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-furniture);
+  font-size: var(--font-size-small);
+  color: var(--color-warning-text);
+}
+
+.rosetta-warning-block {
+  background-color: var(--color-warning-bg);
+  border: var(--border-warning);
+  padding: var(--spacing-frame);
+  margin-bottom: var(--spacing-block);
+}

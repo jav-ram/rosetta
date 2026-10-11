@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import type { Theme } from "@rosetta/contracts";
-import { compileTheme, propertyName, resolveTokens } from "../src/index";
+import { compileTheme, inlinePageVariables, propertyName, resolveTokens } from "../src/index";
 
 const theme: Theme = {
   name: "Test",
@@ -101,5 +101,42 @@ describe("invalid input", () => {
     const css = compileTheme({ name: "x", tokens: { "texture.page": "url(\"data:image/png;base64,AAA\")", "font.body": "\"a;b\", serif" } });
     expect(css).toContain("--texture-page: url(\"data:image/png;base64,AAA\");");
     expect(css).toContain("--font-body: \"a;b\", serif;");
+  });
+});
+
+describe("inlinePageVariables", () => {
+  const css = `@page {
+  size: var(--page-size);
+  margin-top: var(--page-margin-top);
+  @top-center { border-bottom: var(--border-rule); }
+}
+.a { margin: var(--page-margin-top); }
+@page chapter { size: var(--page-size) }
+`;
+  const tokens = { "page.size": "A4", "page.margin-top": "20mm", "border.rule": "1pt solid var(--color-rule)", "color.rule": "#b58b5a" };
+
+  test("writes token values into page rules and margin boxes, following tokens that use tokens", () => {
+    const out = inlinePageVariables(css, tokens);
+    expect(out).toContain("size: A4;");
+    expect(out).toContain("margin-top: 20mm;");
+    expect(out).toContain("border-bottom: 1pt solid #b58b5a;");
+    expect(out).toContain("@page chapter { size: A4 }");
+  });
+
+  test("leaves everything outside @page alone", () => {
+    expect(inlinePageVariables(css, tokens)).toContain(".a { margin: var(--page-margin-top); }");
+  });
+
+  test("a change of the page size token changes the page rule", () => {
+    expect(inlinePageVariables(css, { ...tokens, "page.size": "letter" })).toContain("size: letter;");
+  });
+
+  test("a token that does not exist, or that refers to itself, is an error", () => {
+    expect(() => inlinePageVariables("@page { size: var(--page-size) }", {})).toThrow(/--page-size/);
+    expect(() => inlinePageVariables("@page { size: var(--page-size) }", { "page.size": "var(--page-size)" })).toThrow(/refer to each other/);
+  });
+
+  test("css without page rules is returned unchanged", () => {
+    expect(inlinePageVariables("p { color: red }", {})).toBe("p { color: red }");
   });
 });

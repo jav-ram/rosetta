@@ -13,6 +13,8 @@ const tokens = resolveTokens(theme, bookOverrides, "readaloud"); // the values o
 
 A theme is a JSON file (`Theme` in `@rosetta/contracts`): `tokens` are the defaults, `components` holds per-component overrides. Token `font.body` becomes `--font-body`; the categories are `font`, `color`, `border`, `spacing`, `texture`, `mask` and `page`.
 
+`@page` rules (page size, margins, running headers) cannot read custom properties, so `inlinePageVariables(css, resolveTokens(theme, overrides))` writes the token values into them.
+
 Cascade, most specific first: component override, then book, then theme default. The CSS has one `:root` rule and one `[data-component="name"]` rule per component, so the browser inherits the rest. Values that could break out of a declaration (`;`, `{`, `}` outside quotes, unbalanced quotes) are rejected.
 
 ## Development

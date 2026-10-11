@@ -86,3 +86,39 @@ function mergedComponents(theme: Theme, overrides: Overrides) {
   if (!names.size) return undefined;
   return Object.fromEntries([...names].map((n) => [n, { ...theme.components?.[n], ...overrides.components?.[n] }]));
 }
+
+/** `var(--name)` in a stylesheet, with no fallback. */
+const VAR = /var\(\s*(--[a-z0-9-]+)\s*\)/gi;
+
+function substitute(text: string, values: Map<string, string>, seen: string[] = []): string {
+  return text.replace(VAR, (_, name: string) => {
+    const value = values.get(name);
+    if (value === undefined) throw new Error(`theme: ${name} is used in a page rule but is not a token`);
+    if (seen.includes(name)) throw new Error(`theme: ${[...seen, name].join(" -> ")} refer to each other`);
+    return substitute(value, values, [...seen, name]);
+  });
+}
+
+/**
+ * Replaces `var(--token)` with the token's value inside `@page` rules (including their margin boxes).
+ * Browsers and Paged.js do not take custom properties in page rules, so the values are written in. Everything outside `@page` is left as it is.
+ */
+export function inlinePageVariables(css: string, tokens: Tokens): string {
+  const values = new Map(Object.entries(tokens).map(([token, value]) => [propertyName(token), value]));
+  let out = "";
+  let at = 0;
+  for (;;) {
+    const start = css.indexOf("@page", at);
+    if (start === -1) return out + css.slice(at);
+    const open = css.indexOf("{", start);
+    if (open === -1) return out + css.slice(at);
+    let depth = 0;
+    let end = open;
+    for (; end < css.length; end++) {
+      if (css[end] === "{") depth++;
+      else if (css[end] === "}" && --depth === 0) break;
+    }
+    out += css.slice(at, start) + substitute(css.slice(start, end + 1), values);
+    at = end + 1;
+  }
+}
