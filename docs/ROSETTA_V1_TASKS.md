@@ -123,12 +123,12 @@ Tasks marked **🔶 Decision** need an answer from you before the tasks after th
 
 ## M2 — Live preview and first theme
 
-- [ ] **T2.0 — 🔶 Decision: default page size**
+- [x] **T2.0 — 🔶 Decision: default page size**
   - Depends on: —
   - Do: US Letter, A4, or both from the start.
   - Done when: the choice is in the Decision log.
 
-- [ ] **T2.1 — Theme token system**
+- [x] **T2.1 — Theme token system**
   - Depends on: T0.1
   - Do: In `theme-engine`, with the token schema in `contracts`. JSON format for theme tokens (fonts, colors, borders, spacing, textures, masks) and a compiler that turns them into CSS custom properties. Supports the cascade: component override → book → theme default.
   - Done when: a token file compiles to CSS and overrides resolve correctly in tests.
@@ -336,3 +336,5 @@ Tasks marked **🔶 Decision** need an answer from you before the tasks after th
 | 2026-10-10 | T1.7 | **No component-specific code was needed** for `readaloud`, `sidebar` (optional `title`) or `pagebreak`; the T1.5 framework covers them, and 12 end-to-end tests in `app` prove insert, edit, save and reload. Only addition: the parser renders `pagebreak` as an empty `div`, so the app styles it as a dashed "page break" line to make it visible and selectable (real layout comes with the M2 themes). |
 | 2026-10-10 | T1.8 | The raw view is the existing Markdown tab (the chapter text in a text box), now finished and tested in the whole app. **Two ways to lose text were fixed:** (1) edits still waiting for the 250 ms save were not in the Markdown view, and the save then landed on top of what was typed there, so the visual editor now saves at once when it is hidden; (2) `setEditable` in Tiptap emits an update by default, so locking the editor while Markdown from the other view loads made it write its old content over the new text (`setEditable(x, false)` now). The editor is also locked from the moment the Markdown changes until the new text is loaded, so nothing typed in that gap is thrown away. Switching views without editing never changes a character; once the visual editor is used, the chapter is saved in the serializer's one style (T1.4). |
 | 2026-10-11 | T1.9 | A 30-page chapter (two benchmark-book chapters joined) was measured in the app: a keystroke costs under 1 ms of script, a save about 1 ms, and the longest main-thread gap while typing was 16 ms, so **no code change was needed** (results in `docs/benchmarks.md`; 300 pages in one chapter is still a few ms per key). Time until paint could not be measured: the desktop app's browser pane throttles painting while a script runs, so those numbers were discarded, and typing in a real browser window should be tried by hand. Added an `app` entry to `.claude/launch.json` (port 5174). |
+| 2026-10-11 | T2.0 | **Default page size: A4 only** for v1. The page size stays a theme token (T2.1), so US Letter can be added later as a second value without changing the layout engine; nothing in v1 offers a choice. |
+| 2026-10-11 | T2.1 | A theme is `{ name, tokens, components? }` (`theme.schema.json` in `contracts`; TS and Go types generated). **Tokens are a flat map of dotted names to CSS value strings**, in seven categories: `font`, `color`, `border`, `spacing`, `texture`, `mask` and `page` (page size, margins and columns, so A4 is `page.size`). `font.body` becomes `--font-body`. Values are plain strings for now: textures and masks will be `url(...)` once assets exist (M3). **Cascade:** component override (the book's, then the theme's) → book tokens → theme defaults, as `resolveTokens(theme, overrides, component)`. `compileTheme` writes one `:root` rule and one `[data-component="name"]` rule per component with only what differs, so the browser's inheritance does the rest; the parser's HTML and the editor both carry `data-component`. A book overrides through the same shape (`{ tokens, components }`); where that lives in `manifest.json` is for M3. The compiler validates against the schema and refuses values that could end a declaration early or open a rule (`;`, `{`, `}` outside quotes or parentheses, unbalanced quotes, comments), since themes may one day come from users. |

@@ -284,3 +284,37 @@ export interface Field1 {
   fields?: Field[];
   description?: string;
 }
+/**
+ * A theme: design tokens (fonts, colors, borders, spacing, textures, masks, page) and optional per-component overrides. Themes are data; the theme engine compiles them to CSS custom properties.
+ *
+ * This interface was referenced by `RosettaContracts`'s JSON-Schema
+ * via the `definition` "Theme".
+ */
+export interface Theme {
+  /**
+   * Display name of the theme.
+   */
+  name: string;
+  tokens: TokenMap;
+  /**
+   * Per-component overrides, keyed by component name (such as readaloud). A component's value wins over the book's and the theme's defaults.
+   */
+  components?: {
+    [k: string]: TokenMap1;
+  };
+}
+/**
+ * The theme's default value for every token.
+ */
+export interface TokenMap {
+  [k: string]: string;
+}
+/**
+ * Token name to CSS value. A name is a category (font, color, border, spacing, texture, mask or page) followed by dotted lowercase parts, such as font.body or color.accent. It becomes the custom property --font-body.
+ *
+ * This interface was referenced by `Theme`'s JSON-Schema
+ * via the `definition` "TokenMap".
+ */
+export interface TokenMap1 {
+  [k: string]: string;
+}

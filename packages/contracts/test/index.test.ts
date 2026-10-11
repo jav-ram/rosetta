@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import { m1Components } from "../src/definitions";
-import { isDocument, validateComponentDefinition, validateDocument, type Document } from "../src/index";
+import { isDocument, validateComponentDefinition, validateDocument, validateTheme, type Document } from "../src/index";
 
 const example = (name: string) => JSON.parse(readFileSync(new URL(`../examples/${name}`, import.meta.url), "utf8"));
 
@@ -60,5 +60,36 @@ describe("M1 component definitions", () => {
   test("covers statblock, readaloud, sidebar and pagebreak, with breakable on block components", () => {
     expect(m1Components.map((d) => d.name)).toEqual(["statblock", "readaloud", "sidebar", "pagebreak"]);
     expect(m1Components.map((d) => d.breakable)).toEqual([false, true, true, undefined]);
+  });
+});
+
+describe("theme", () => {
+  const sample = () => example("sample-theme.json");
+
+  test("sample theme validates", () => {
+    expect(validateTheme(sample())).toEqual({ valid: true, errors: [] });
+  });
+
+  test("tokens need a known category and lowercase dotted name", () => {
+    for (const bad of ["body", "font", "Font.body", "font.Body", "shadow.card", "font..body"]) {
+      const t = sample();
+      t.tokens = { [bad]: "x" };
+      expect(validateTheme(t).valid, bad).toBe(false);
+    }
+  });
+
+  test("values are non-empty strings, and a name is required", () => {
+    const t = sample();
+    t.tokens["spacing.gap"] = 4;
+    expect(validateTheme(t).valid).toBe(false);
+    const u = sample();
+    delete u.name;
+    expect(validateTheme(u).valid).toBe(false);
+  });
+
+  test("component override names are lowercase component names", () => {
+    const t = sample();
+    t.components = { "Read Aloud": { "color.text": "red" } };
+    expect(validateTheme(t).valid).toBe(false);
   });
 });

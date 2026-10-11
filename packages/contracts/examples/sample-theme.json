@@ -1,0 +1,17 @@
+{
+  "name": "Sample",
+  "tokens": {
+    "font.body": "Georgia, serif",
+    "font.heading": "\"Palatino Linotype\", serif",
+    "color.text": "#222222",
+    "color.accent": "#7a1f1f",
+    "border.frame": "1px solid #7a1f1f",
+    "spacing.gap": "1rem",
+    "texture.page": "none",
+    "mask.art": "none",
+    "page.size": "A4"
+  },
+  "components": {
+    "readaloud": { "font.body": "Georgia, serif", "color.text": "#3a2a14" }
+  }
+}

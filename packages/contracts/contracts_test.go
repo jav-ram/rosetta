@@ -97,3 +97,20 @@ func TestM1Components(t *testing.T) {
 		t.Fatal("unexpected breakable flags")
 	}
 }
+
+func TestTheme(t *testing.T) {
+	if err := Validate(SchemaTheme, example(t, "sample-theme.json")); err != nil {
+		t.Fatalf("sample theme should validate: %v", err)
+	}
+	var theme Theme
+	if err := json.Unmarshal(example(t, "sample-theme.json"), &theme); err != nil {
+		t.Fatal(err)
+	}
+	if theme.Tokens["font.body"] == "" || theme.Components["readaloud"]["color.text"] == "" {
+		t.Fatalf("theme not decoded: %+v", theme)
+	}
+	bad := []byte(`{"name":"x","tokens":{"shadow.card":"1px"}}`)
+	if err := Validate(SchemaTheme, bad); err == nil {
+		t.Fatal("unknown token category should be rejected")
+	}
+}

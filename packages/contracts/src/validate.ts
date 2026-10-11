@@ -1,6 +1,6 @@
 import Ajv2020 from "ajv/dist/2020.js";
 import { schemas } from "./schemas";
-import type { ComponentDefinition, Document, Warning } from "./generated/types";
+import type { ComponentDefinition, Document, Theme, Warning } from "./generated/types";
 
 export interface ValidationResult {
   valid: boolean;
@@ -27,9 +27,11 @@ export const validateDocument = validator("ast.schema.json") as (value: unknown)
 export const validateComponentDefinition = validator("component-definition.schema.json") as (
   value: unknown,
 ) => ValidationResult;
+export const validateTheme = validator("theme.schema.json") as (value: unknown) => ValidationResult;
 export const validateWarning = validator("warning.schema.json") as (value: unknown) => ValidationResult;
 
 /** Type guards for callers that want narrowing after a successful validation. */
 export const isDocument = (v: unknown): v is Document => validateDocument(v).valid;
 export const isComponentDefinition = (v: unknown): v is ComponentDefinition => validateComponentDefinition(v).valid;
 export const isWarning = (v: unknown): v is Warning => validateWarning(v).valid;
+export const isTheme = (v: unknown): v is Theme => validateTheme(v).valid;

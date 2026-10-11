@@ -481,7 +481,7 @@ If large exports become a problem before a server is justified, the app can be w
 - Which open-source license: permissive (MIT or Apache-2.0), or copyleft (such as AGPL) so forks that run Rosetta as a service must share their changes?
 
 - Which system ships first, and which one is second to prove the plugin format?
-- Page size defaults: US Letter, A4, or both from the start?
+- ~~Page size defaults~~ Decided (T2.0): A4 only for v1; the size is a theme token, so Letter can be added later.
 - How should the stat block form handle system-specific calculations, such as ability modifiers?
 - What should happen to an unbreakable element taller than a whole column, such as a very long stat block: span both columns, scale down, or force a split with a "continued" marker?
 - For custom themes: allow advanced users to add raw CSS on top of the theme settings, or keep themes to settings only?

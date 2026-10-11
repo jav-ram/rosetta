@@ -262,6 +262,21 @@ type Position struct {
 	Start Point `json:"start"`
 }
 
+// A theme: design tokens (fonts, colors, borders, spacing, textures, masks, page)
+// and optional per-component overrides. Themes are data; the theme engine compiles
+// them to CSS custom properties.
+type Theme struct {
+	// Per-component overrides, keyed by component name (such as readaloud). A
+	// component's value wins over the book's and the theme's defaults.
+	Components map[string]map[string]string `json:"components,omitempty"`
+
+	// Display name of the theme.
+	Name string `json:"name"`
+
+	// The theme's default value for every token.
+	Tokens map[string]string `json:"tokens"`
+}
+
 // A problem found while parsing or rendering. Never fatal: the affected part shows
 // a visible warning and the rest of the document is unaffected (spec section 8).
 type Warning struct {
