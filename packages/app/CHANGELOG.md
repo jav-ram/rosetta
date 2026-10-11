@@ -1,5 +1,16 @@
 # @rosetta/app
 
+## 0.6.0
+
+### Minor Changes
+
+- 310acd2: Stat block end to end (insert, edit through the form, save, reload). New `setDocument` loads a document without opening a component's form, without counting as an edit and without an undo step; the app uses it.
+
+### Patch Changes
+
+- Updated dependencies [310acd2]
+  - @rosetta/editor@0.5.0
+
 ## 0.5.0
 
 ### Minor Changes
