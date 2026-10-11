@@ -4,8 +4,23 @@
     {
       "name": "parser-demo",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["packages/parser-wasm/scripts/serve-demo.mjs"],
+      "runtimeArgs": [
+        "packages/parser-wasm/scripts/serve-demo.mjs"
+      ],
       "port": 5173
+    },
+    {
+      "name": "app",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@rosetta/app",
+        "dev",
+        "--port",
+        "5174",
+        "--strictPort"
+      ],
+      "port": 5174
     }
   ]
 }
