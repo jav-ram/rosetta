@@ -11,6 +11,8 @@ interface Props {
   /** The chapter's Markdown: the source of truth. */
   markdown: string;
   parsed: Parsed;
+  /** False while the Markdown view is showing: edits still waiting to be saved are then saved at once. */
+  visible?: boolean;
   onChange: (markdown: string, chapterId: string) => void;
 }
 
@@ -21,7 +23,7 @@ interface Props {
  * back as Markdown a moment after the last keystroke. A parse of Markdown the editor wrote itself is not loaded
  * again (that would move the cursor); a parse of any other Markdown (another chapter, the Markdown tab) is.
  */
-export function VisualEditor({ chapterId, markdown, parsed, onChange }: Props) {
+export function VisualEditor({ chapterId, markdown, parsed, visible = true, onChange }: Props) {
   const toolbarHost = useRef<HTMLDivElement>(null);
   const editorHost = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Editor | null>(null);
@@ -69,11 +71,22 @@ export function VisualEditor({ chapterId, markdown, parsed, onChange }: Props) {
     // `save` only reads refs, so it is not a dependency.
   }, []);
 
+  // Going to the Markdown view: it must show everything typed so far, and the pending save must not land later on top of its edits.
+  useEffect(() => {
+    if (!visible && pending.current) save();
+    // `save` only reads refs, so it is not a dependency.
+  }, [visible]);
+
+  // Markdown that did not come from this editor (another chapter, the Markdown view) is not shown yet: no typing until it is.
+  useEffect(() => {
+    if (shown.current.markdown !== null) editorRef.current?.setEditable(shown.current.markdown === markdown, false);
+  }, [markdown]);
+
   // Leaving a chapter: write its pending edits to it, and keep the editor still until the new chapter is loaded.
   useEffect(() => {
     if (shown.current.chapterId !== null && shown.current.chapterId !== chapterId) {
       if (pending.current) save();
-      editorRef.current?.setEditable(false);
+      editorRef.current?.setEditable(false, false);
     }
     // `save` only reads refs, so it is not a dependency.
   }, [chapterId]);
@@ -85,7 +98,7 @@ export function VisualEditor({ chapterId, markdown, parsed, onChange }: Props) {
     try {
       const loaded = fromAst(parsed.ast);
       setDocument(editor, loaded.doc);
-      editor.setEditable(true);
+      editor.setEditable(true, false);
       shown.current = { markdown, chapterId, frontMatterRaw: loaded.frontMatterRaw };
     } catch (e) {
       console.error("Could not load the chapter into the editor", e);
