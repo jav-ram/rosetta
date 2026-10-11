@@ -1,7 +1,7 @@
 import type { ComponentDefinition } from "@rosetta/contracts";
 import type { Editor } from "@tiptap/core";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { componentsOf, createEditor, createToolbar, toMarkdown } from "../src/index";
+import { componentsOf, createEditor, createToolbar, setDocument, toMarkdown } from "../src/index";
 
 // One dummy component of each kind. Nothing in the editor knows these names: they are data.
 const data: ComponentDefinition = {
@@ -323,4 +323,39 @@ test("every kind survives copy and paste of the editor's HTML", () => {
   const before = editor.getJSON();
   editor.commands.setContent(editor.getHTML());
   expect(editor.getJSON().content!.filter((n) => n.type?.startsWith("directive"))).toEqual(before.content!.filter((n) => n.type?.startsWith("directive")));
+});
+
+describe("setDocument", () => {
+  const statblock = { type: "directiveLeaf", attrs: { name: "dummy-data", form: "block", kind: "data", fields: { title: "T" }, attributes: {} } };
+
+  test("loading a document that starts with a data component does not open its form", () => {
+    const { editor } = mount();
+    setDocument(editor, { type: "doc", content: [statblock, { type: "paragraph", content: [{ type: "text", text: "after" }] }] });
+    expect(editor.state.selection.constructor.name).toBe("TextSelection");
+    expect(document.querySelector(".rosetta-form")).toBeNull();
+  });
+
+  test("a document that is only a component gets an empty paragraph to put the cursor in, which is not saved", () => {
+    const { editor } = mount();
+    setDocument(editor, { type: "doc", content: [statblock] });
+    expect(editor.state.selection.constructor.name).toBe("TextSelection");
+    expect(document.querySelector(".rosetta-form")).toBeNull();
+    expect(toMarkdown(editor.getJSON())).toBe(":::dummy-data\ntitle: T\n:::\n");
+  });
+
+  test("loading does not count as an edit, so a chapter is not rewritten just by opening it", () => {
+    const onUpdate = vi.fn();
+    const editor = createEditor({ element: document.body.appendChild(document.createElement("div")), onUpdate });
+    open.push(() => editor.destroy());
+    setDocument(editor, { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "x" }] }] });
+    expect(onUpdate).not.toHaveBeenCalled();
+    editor.commands.insertContent("y");
+    expect(onUpdate).toHaveBeenCalledTimes(1);
+  });
+
+  test("loading is not an undoable step", () => {
+    const { editor } = mount();
+    setDocument(editor, { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "x" }] }] });
+    expect(editor.can().undo()).toBe(false);
+  });
 });

@@ -1,5 +1,5 @@
 import { m1Components } from "@rosetta/contracts";
-import { createEditor, createToolbar, fromAst, toMarkdown, type Editor } from "@rosetta/editor";
+import { createEditor, createToolbar, fromAst, setDocument, toMarkdown, type Editor } from "@rosetta/editor";
 import { useEffect, useRef } from "react";
 import { parser } from "../parser";
 import type { Parsed } from "../useParsed";
@@ -84,7 +84,7 @@ export function VisualEditor({ chapterId, markdown, parsed, onChange }: Props) {
     if (!editor || parsed.state !== "ready" || parsed.markdown !== markdown || shown.current.markdown === markdown) return;
     try {
       const loaded = fromAst(parsed.ast);
-      editor.commands.setContent(loaded.doc, { emitUpdate: false });
+      setDocument(editor, loaded.doc);
       editor.setEditable(true);
       shown.current = { markdown, chapterId, frontMatterRaw: loaded.frontMatterRaw };
     } catch (e) {

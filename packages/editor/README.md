@@ -21,11 +21,13 @@ Link and image buttons ask for an address with `window.prompt`; pass `askUrl` to
 ## Loading a document
 
 ```ts
-import { fromAst } from "@rosetta/editor";
+import { fromAst, setDocument } from "@rosetta/editor";
 
 const { doc, frontMatter, warnings } = fromAst(parseResult.ast); // `ast` from @rosetta/parser-wasm
-editor.commands.setContent(doc);
+setDocument(editor, doc); // not editor.commands.setContent
 ```
+
+`setDocument` replaces the document with the cursor in text, as a step that is not an edit: it does not call `onUpdate` (so opening a chapter does not rewrite it) and undo cannot empty the document. With `setContent`, a component at the start of the document would be selected, and its form opened, on load.
 
 `fromAst` turns the parser's AST into a Tiptap document and drops nothing except source positions. The schema was widened for that: links keep their `title`; inline code can combine with bold, italic and links; a list item may start with any block; table cells keep the column alignment (`left`, `center`, `right`); images are inline, as in Markdown.
 
