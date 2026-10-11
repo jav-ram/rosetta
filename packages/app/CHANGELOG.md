@@ -1,5 +1,14 @@
 # @rosetta/app
 
+## 0.7.1
+
+### Patch Changes
+
+- Updated dependencies [bd30a2f]
+  - @rosetta/contracts@0.6.0
+  - @rosetta/editor@0.5.1
+  - @rosetta/parser-wasm@0.2.2
+
 ## 0.7.0
 
 ### Minor Changes

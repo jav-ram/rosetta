@@ -1,5 +1,16 @@
 # @rosetta/theme-engine
 
+## 0.1.0
+
+### Minor Changes
+
+- bd30a2f: Theme token system: `theme.schema.json` (with `Theme` types in TypeScript and Go, and `validateTheme`) and `compileTheme` / `resolveTokens` in `theme-engine`, with the component → book → theme cascade.
+
+### Patch Changes
+
+- Updated dependencies [bd30a2f]
+  - @rosetta/contracts@0.6.0
+
 ## 0.0.5
 
 ### Patch Changes
