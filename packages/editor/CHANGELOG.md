@@ -1,5 +1,12 @@
 # @rosetta/editor
 
+## 0.5.1
+
+### Patch Changes
+
+- Updated dependencies [bd30a2f]
+  - @rosetta/contracts@0.6.0
+
 ## 0.5.0
 
 ### Minor Changes
