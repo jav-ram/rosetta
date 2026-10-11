@@ -1,5 +1,11 @@
 # @rosetta/app
 
+## 0.7.0
+
+### Minor Changes
+
+- a034772: The Markdown view and the visual editor stay in sync without losing text: pending visual edits are saved when switching views, and the editor is locked until Markdown typed elsewhere has loaded.
+
 ## 0.6.1
 
 ### Patch Changes
