@@ -28,11 +28,11 @@ export function EditorPane({ chapterId, markdown, parsed, onChange }: Props) {
             Markdown
           </button>
         </div>
-        <span className="hint">{view === "visual" ? "edits are saved as Markdown" : "temporary view"}</span>
+        <span className="hint">{view === "visual" ? "edits are saved as Markdown" : "the chapter's Markdown, as it is saved"}</span>
       </header>
       {/* Both stay mounted so switching tabs keeps the editor's content and undo history. */}
       <div className="editor-body" hidden={view !== "visual"}>
-        <VisualEditor chapterId={chapterId} markdown={markdown} parsed={parsed} onChange={onChange} />
+        <VisualEditor visible={view === "visual"} chapterId={chapterId} markdown={markdown} parsed={parsed} onChange={onChange} />
       </div>
       <textarea hidden={view !== "markdown"} value={markdown} onChange={(e) => onChange(e.target.value, chapterId)} spellCheck={false} aria-label="Chapter text" />
     </section>
