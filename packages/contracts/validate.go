@@ -23,6 +23,7 @@ const (
 	SchemaComponentDefinition = "component-definition.schema.json"
 	SchemaWarning             = "warning.schema.json"
 	SchemaPosition            = "position.schema.json"
+	SchemaTheme               = "theme.schema.json"
 )
 
 var (

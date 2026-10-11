@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Theme",
+  "description": "A theme: design tokens (fonts, colors, borders, spacing, textures, masks, page) and optional per-component overrides. Themes are data; the theme engine compiles them to CSS custom properties.",
+  "type": "object",
+  "required": ["name", "tokens"],
+  "additionalProperties": false,
+  "properties": {
+    "name": { "type": "string", "minLength": 1, "description": "Display name of the theme." },
+    "tokens": { "$ref": "#/$defs/TokenMap", "description": "The theme's default value for every token." },
+    "components": {
+      "type": "object",
+      "description": "Per-component overrides, keyed by component name (such as readaloud). A component's value wins over the book's and the theme's defaults.",
+      "propertyNames": { "pattern": "^[a-z][a-z0-9-]*$" },
+      "additionalProperties": { "$ref": "#/$defs/TokenMap" }
+    }
+  },
+  "$defs": {
+    "TokenMap": {
+      "type": "object",
+      "description": "Token name to CSS value. A name is a category (font, color, border, spacing, texture, mask or page) followed by dotted lowercase parts, such as font.body or color.accent. It becomes the custom property --font-body.",
+      "propertyNames": { "pattern": "^(font|color|border|spacing|texture|mask|page)(\\.[a-z0-9]+(-[a-z0-9]+)*)+$" },
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    }
+  }
+}

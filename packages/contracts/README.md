@@ -10,6 +10,7 @@ The language-neutral contracts between Rosetta packages. Everything starts from 
 | `component-definition.schema.json` | `ComponentDefinition`: a component's form (block or leaf), kind (data, container or leaf), `breakable` flag, attributes and fields. |
 | `warning.schema.json` | `Warning`: stable `code`, severity, message and source range. |
 | `position.schema.json` | `Position`: a source range. |
+| `theme.schema.json` | `Theme`: a name, design `tokens` (font, color, border, spacing, texture, mask, page) and optional per-component overrides. |
 | `index.schema.json` | Entry point listing all of the above, used for code generation. |
 
 `Node` is one flat shape discriminated by `type` (heading, paragraph, directive, ...), so it maps cleanly to both languages. Directive nodes carry `name`, `form`, `kind`, `attributes` and, depending on the kind, `fields` (data), `children` (container) or `raw` (unknown component).

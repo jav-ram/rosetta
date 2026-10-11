@@ -6,6 +6,7 @@
     "Document": { "$ref": "ast.schema.json" },
     "ComponentDefinition": { "$ref": "component-definition.schema.json" },
     "Warning": { "$ref": "warning.schema.json" },
-    "Position": { "$ref": "position.schema.json" }
+    "Position": { "$ref": "position.schema.json" },
+    "Theme": { "$ref": "theme.schema.json" }
   }
 }
