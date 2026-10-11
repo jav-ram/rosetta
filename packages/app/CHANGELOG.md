@@ -1,5 +1,11 @@
 # @rosetta/app
 
+## 0.6.1
+
+### Patch Changes
+
+- ad13361: readaloud, sidebar and pagebreak are checked end to end, and a page break is shown as a dashed line in the editor.
+
 ## 0.6.0
 
 ### Minor Changes
