@@ -15,5 +15,8 @@
   },
   "dependencies": {
     "@rosetta/contracts": "workspace:^"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.2"
   }
 }

@@ -46,11 +46,11 @@ body { background: var(--bg); color: var(--text); }
 .pane { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--line); }
 .pane > header { display: flex; gap: 12px; align-items: baseline; padding: 10px 16px; border-bottom: 1px solid var(--line); }
 .editor { grid-area: editor; }
-.preview { grid-area: preview; border-right: 0; overflow: auto; }
+.preview { grid-area: preview; border-right: 0; overflow: hidden; }
+.preview-host { position: relative; flex: 1; min-height: 0; }
 .editor textarea[hidden], .editor-body[hidden] { display: none; }
 .editor textarea { flex: 1; resize: none; border: 0; padding: 16px; background: var(--panel); color: inherit; font: 0.9rem/1.5 ui-monospace, monospace; outline: none; }
 
-.page { margin: 16px; padding: 24px; background: var(--panel); border: 1px solid var(--line); line-height: 1.5; }
 .error { margin: 16px; color: #b3261e; }
 
 /* Unstyled until the themes exist (M2); just enough to tell the components apart. */
