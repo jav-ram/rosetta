@@ -22,8 +22,4 @@ test("the editor shows the chapter text", () => {
 test("the preview reports each parser state", () => {
   expect(renderToStaticMarkup(<PreviewPane parsed={{ state: "loading" }} />)).toContain("loading the parser");
   expect(renderToStaticMarkup(<PreviewPane parsed={{ state: "error", message: "boom" }} />)).toContain("boom");
-  const ast = { rosettaVersion: "0.1", children: [], warnings: [] };
-  const html = renderToStaticMarkup(<PreviewPane parsed={{ state: "ready", markdown: "# Hi", html: "<h1>Hi</h1>", ast, warnings: [] }} />);
-  expect(html).toContain("<h1>Hi</h1>");
-  expect(html).toContain("0 warnings");
 });

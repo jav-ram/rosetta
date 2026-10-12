@@ -75,3 +75,29 @@ While typing 60 characters 60 ms apart, and then 20 characters 400 ms apart (so 
 - **Time until the screen is painted.** The browser pane in the desktop app reports itself as hidden while a script runs, which throttles painting: frames showed up 600 to 1,900 ms late even when the only change was setting an attribute on a paragraph, so those numbers say nothing about Rosetta and are not used. The numbers above are the script and main-thread time, which is what the code controls. Typing in a real browser window should be checked by hand once.
 - **Pictures.** The generated chapters point at placeholder images that the app does not have yet (storage is M3), so they showed as broken images. Loading real images may change how much the page has to draw.
 - **Other machines.** One laptop. The numbers have a lot of room, so this is not likely to matter.
+
+## Paged.js preview (T2.3)
+
+The app's preview pane (`@rosetta/preview`, Paged.js 0.4.3 in an iframe) with the Classic theme, A4, two columns. Chrome in the desktop app's browser pane, Apple M1 Pro. The text is the first six chapters of `book-100` joined (20,660 words, 14 images, stat blocks, read-aloud boxes, sidebars and tables), which lays out as **36 pages**; the first two chapters alone (6,989 words) are 12 pages.
+
+| What | Time |
+|---|---|
+| Paged.js layout, 36 pages | 173–373 ms |
+| Paged.js layout, 12 pages | about 100 ms |
+| Paste the chapter in the Markdown tab → pages on screen | 689 ms |
+| One edit in the Markdown tab → pages on screen | 393 ms |
+| One keystroke in the Visual editor → pages on screen | 640 ms |
+
+The last three include everything after the last edit: the editor's 250 ms save wait (Visual only), the parser's 150 ms wait, the parse (13–70 ms), the layout, and the swap. The goal was under 2 seconds for a 30-page chapter, so there is room for about three times the length.
+
+### Two things that made it 10 to 100 times slower, both fixed
+
+1. **Images that cannot load.** With the benchmark book's images missing (the app has no assets until M3), the same 12 pages took 3 to 4 seconds instead of 100 ms, because Paged.js waits for every image. The preview now shows a plain placeholder for any image that is not an absolute `http(s)`, `data` or `blob` URL (`resolveImage` lets M3 supply real ones).
+2. **Frames that are not painted.** Paged.js lays out one page per animation frame and idle callback. When the browser does not paint the frame (a background tab, an unfocused or hidden pane), these slow to about one per second: the 36 pages took 20 to 26 seconds. Layout does not need frames, so inside the preview document both are replaced by a message-channel scheduler, which is not throttled. After that, the numbers above held with the pane hidden (`document.hidden` was true).
+
+### Not measured
+
+- A chapter with real images (they will load from the project's storage in M3).
+- Other machines and browsers. Paged.js itself is not tied to Chrome, but only Chrome was tried.
+- Chapters much longer than 36 pages (the layout time grows with the page count).
+
