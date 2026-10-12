@@ -1,5 +1,16 @@
 # @rosetta/app
 
+## 0.8.0
+
+### Minor Changes
+
+- a660f26: Paged.js preview: `createPreview` in `@rosetta/preview` shows the chapter as pages in an iframe (new pages swap in when ready, scroll kept, missing images get a placeholder), and the app's preview pane uses it with the Classic theme.
+
+### Patch Changes
+
+- Updated dependencies [a660f26]
+  - @rosetta/preview@0.1.0
+
 ## 0.7.2
 
 ### Patch Changes
