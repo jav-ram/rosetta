@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { buildDocument, createPreview, defaultResolveImage, MESSAGE_TYPE } from "../src/index";
+import { buildDocument, createPreview, defaultResolveImage, MESSAGE_TYPE, TABLE_HEADER_SCRIPT } from "../src/index";
 
 const pagedUrl = "/paged.polyfill.js";
 // jsdom has no layout; scrolling does nothing there.
@@ -153,5 +153,78 @@ describe("createPreview", () => {
     expect(frames()).toHaveLength(0);
     expect(await preview.render(input)).toBeNull();
     expect(frames()).toHaveLength(0);
+  });
+});
+
+describe("repeated table headers", () => {
+  type Fn = (clone: Element, source: Element) => void;
+  /** Runs the script with fake Paged.js hooks, and gives back what it registered. */
+  function install() {
+    const hooks: Record<string, Fn[]> = { onPageLayout: [], renderNode: [] };
+    const fake = (name: string) => ({ register: (fn: Fn) => hooks[name]!.push(fn) });
+    const run = new Function(`${TABLE_HEADER_SCRIPT}; return installTableHeaderRepeat;`)() as (h: object) => void;
+    run({ onPageLayout: fake("onPageLayout"), renderNode: fake("renderNode") });
+    return { newPage: () => hooks.onPageLayout!.forEach((f) => f(document.body, document.body)), render: (c: Element, s: Element) => hooks.renderNode!.forEach((f) => f(c, s)) };
+  }
+
+  /** The source table, and the pieces Paged.js builds for a page that starts at a given row: an empty table and tbody around a clone of the row. */
+  function tables() {
+    const source = document.createElement("div");
+    source.innerHTML = `<table><thead><tr data-ref="h"><th data-ref="th">Name</th></tr></thead><tbody><tr data-ref="r1"><td>1</td></tr><tr data-ref="r2"><td>2</td></tr></tbody></table>`;
+    const rows = [...source.querySelectorAll("tbody tr")];
+    const page = document.createElement("div");
+    page.innerHTML = "<table><tbody></tbody></table>";
+    return { source, rows, page, tbody: page.querySelector("tbody")! };
+  }
+
+  test("the script is part of the preview document, before Paged.js starts", () => {
+    const doc = buildDocument(input, { pagedUrl, id: "r1" });
+    expect(doc).toContain("installTableHeaderRepeat(window.PagedPolyfill.chunker.hooks)");
+    expect(doc.indexOf("function installTableHeaderRepeat")).toBeLessThan(doc.indexOf("PagedPolyfill.preview()"));
+  });
+
+  test("a page that starts in the middle of a table gets a copy of the header", () => {
+    const { rows, page, tbody } = tables();
+    const hooks = install();
+    hooks.newPage();
+    const clone = rows[1]!.cloneNode(true) as Element;
+    tbody.append(clone);
+    hooks.render(clone, rows[1]!);
+    const head = page.querySelector("thead");
+    expect(head).not.toBeNull();
+    expect(head!.hasAttribute("data-repeated-header")).toBe(true);
+    expect(head!.textContent).toBe("Name");
+    expect(page.querySelector("table")!.firstElementChild).toBe(head);
+    expect(head!.querySelector("[data-ref]")).toBeNull();
+  });
+
+  test("only the first node of a page is looked at", () => {
+    const { rows, page, tbody } = tables();
+    const hooks = install();
+    hooks.newPage();
+    const first = rows[0]!.cloneNode(true) as Element;
+    tbody.append(first);
+    hooks.render(first, rows[0]!); // not a continuation of anything: the header is added, as the table has none here
+    page.querySelector("thead")?.remove();
+    const second = rows[1]!.cloneNode(true) as Element;
+    tbody.append(second);
+    hooks.render(second, rows[1]!);
+    expect(page.querySelector("thead")).toBeNull();
+  });
+
+  test("a table that already has its header is left alone, and so are other nodes", () => {
+    const { source, rows, page, tbody } = tables();
+    const hooks = install();
+    hooks.newPage();
+    page.querySelector("table")!.prepend(source.querySelector("thead")!.cloneNode(true));
+    const clone = rows[1]!.cloneNode(true) as Element;
+    tbody.append(clone);
+    hooks.render(clone, rows[1]!);
+    expect(page.querySelectorAll("thead")).toHaveLength(1);
+
+    const p = document.createElement("p");
+    hooks.newPage();
+    hooks.render(p.cloneNode() as Element, p);
+    expect(page.querySelectorAll("thead")).toHaveLength(1);
   });
 });

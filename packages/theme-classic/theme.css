@@ -41,8 +41,8 @@
   column-count: var(--page-columns);
   column-gap: var(--page-column-gap);
   column-rule: var(--border-column-rule);
-  orphans: 2;
-  widows: 2;
+  orphans: var(--page-orphans);
+  widows: var(--page-widows);
 }
 
 .rosetta-document p {
@@ -253,6 +253,19 @@
   margin-top: 0;
   font-size: var(--font-size-h4);
   border-bottom: none;
+}
+
+/*
+ * Flow. Text, lists and tables split where a column ends; these never split and move whole to the next column.
+ * Components say which they are: the parser writes data-breakable="false" from the component's definition,
+ * so a component added later follows the same rule without a line here.
+ */
+.rosetta-document [data-breakable="false"],
+.rosetta-document img,
+.rosetta-document figure,
+.rosetta-document li,
+.rosetta-document tr {
+  break-inside: avoid;
 }
 
 /* Page break. */
