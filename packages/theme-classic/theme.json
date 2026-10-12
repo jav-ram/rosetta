@@ -56,6 +56,8 @@
     "page.margin-right": "18mm",
     "page.columns": "2",
     "page.column-gap": "8mm",
+    "page.orphans": "2",
+    "page.widows": "2",
 
     "texture.page": "none",
     "mask.art": "none"

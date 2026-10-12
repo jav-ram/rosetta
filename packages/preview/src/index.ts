@@ -63,6 +63,34 @@ const SCHEDULER = `(function () {
   window.requestIdleCallback = function (callback) { later(function () { callback({ didTimeout: false, timeRemaining: function () { return 50; } }); }); return 0; };
 })();`;
 
+/**
+ * Paged.js splits a table across pages but does not repeat its header row. When a page starts in the middle of a table, a copy
+ * of the table's `thead` is put at the top of the table's part on that page, before the page is measured (so it is part of
+ * the layout). Installed on the layout hooks; exported as source so it can run inside the preview document.
+ *
+ * Not done: when a table runs from one column into the next on the same page, the header is not repeated. The columns are
+ * the browser's multi-column layout, which does not repeat table headers, and rows inserted at a column start cannot be
+ * placed reliably because the columns move when Paged.js removes what overflows the page.
+ */
+export const TABLE_HEADER_SCRIPT = `function installTableHeaderRepeat(hooks) {
+  var startsPage = false;
+  hooks.onPageLayout.register(function () { startsPage = true; });
+  hooks.renderNode.register(function (clone, source) {
+    if (!startsPage || clone.nodeType !== 1) return;
+    startsPage = false;
+    if (source.nodeName !== "TR" || (source.parentNode && source.parentNode.nodeName === "THEAD")) return;
+    var table = clone.closest("table");
+    var original = source.closest("table");
+    var head = original && original.querySelector(":scope > thead");
+    if (!table || !head || table.querySelector(":scope > thead")) return;
+    var copy = head.cloneNode(true);
+    copy.setAttribute("data-repeated-header", "");
+    copy.removeAttribute("data-ref");
+    copy.querySelectorAll("[data-ref]").forEach(function (e) { e.removeAttribute("data-ref"); });
+    table.insertBefore(copy, table.firstChild);
+  });
+}`;
+
 const PLACEHOLDER =
   "data:image/svg+xml;utf8," +
   encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="250"><rect width="400" height="250" fill="#d9d9d9"/></svg>');
@@ -101,6 +129,8 @@ export function buildDocument(input: PreviewInput, options: { pagedUrl: string; 
   var id = ${id};
   function send(message) { message.type = ${JSON.stringify(MESSAGE_TYPE)}; message.id = id; parent.postMessage(message, "*"); }
   if (!window.PagedPolyfill) { send({ error: "Paged.js did not load" }); return; }
+  ${TABLE_HEADER_SCRIPT}
+  try { installTableHeaderRepeat(window.PagedPolyfill.chunker.hooks); } catch (e) { /* the pages are laid out without repeated headers */ }
   var start = performance.now();
   window.PagedPolyfill.preview().then(
     function (flow) { send({ pages: flow.total, layoutMs: performance.now() - start }); },

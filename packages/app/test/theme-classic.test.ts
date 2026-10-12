@@ -1,4 +1,6 @@
-import { describe, expect, test } from "vitest";
+import { instantiate, type RosettaParser } from "@rosetta/parser-wasm";
+import { URL as NodeURL } from "node:url";
+import { beforeAll, describe, expect, test } from "vitest";
 import { validateTheme, type Theme } from "@rosetta/contracts";
 import { compileTheme, inlinePageVariables, resolveTokens } from "@rosetta/theme-engine";
 import themeJson from "@rosetta/theme-classic/theme.json";
@@ -40,5 +42,26 @@ describe("theme-classic with the theme engine", () => {
     const names = new Set(Object.keys(resolveTokens(theme)).map((t) => `--${t.replace(/\./g, "-")}`));
     const used = [...themeCss.matchAll(/var\((--[a-z0-9-]+)\)/g)].map((m) => m[1]!);
     expect(used.filter((u) => !names.has(u))).toEqual([]);
+  });
+});
+
+describe("the flow test chapter", () => {
+  const dist = (f: string) => new NodeURL(`../../parser-wasm/dist/${f}`, import.meta.url);
+  let parser: RosettaParser;
+  beforeAll(async () => {
+    await import(dist("wasm_exec.js").href);
+    parser = await instantiate(readFileSync(dist("rosetta.wasm")));
+  });
+
+  const chapter = () => readFileSync(createRequire(import.meta.url).resolve("@rosetta/theme-classic/theme.json").replace("theme.json", "test-pages/flow.md"), "utf8");
+
+  test("parses without warnings, and the HTML carries what the flow CSS reads", () => {
+    const { html, warnings } = parser.parse(chapter()) as { html: string; warnings: unknown[] };
+    expect(warnings).toEqual([]);
+    expect(html).toMatch(/<div class="rosetta-statblock"[^>]* data-breakable="false"/);
+    expect(html).toMatch(/<div class="rosetta-readaloud"[^>]* data-breakable="true"/);
+    expect(html).toContain("<thead>");
+    expect(html).toContain("<img ");
+    expect(html.match(/<li>/g)!.length).toBeGreaterThan(20);
   });
 });

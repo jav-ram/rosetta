@@ -68,3 +68,34 @@ test("there are styles for every M1 component and for the running header and pag
   assert.ok(css.includes("@top-center") && css.includes("string(chapter)"));
   assert.ok(css.includes("@bottom-center") && css.includes("counter(page)"));
 });
+
+test("flow: unbreakable components, images and rows never split, headings stay with what follows, orphans and widows come from tokens", () => {
+  // The declarations of every rule whose selector list contains `selector` as one of its selectors.
+  const rule = (selector) => {
+    const plain = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    let found = "";
+    for (const block of plain.split("}")) {
+      const [selectors, body] = block.split("{");
+      if (body !== undefined && selectors.split(",").some((sel) => sel.trim() === selector)) found += body;
+    }
+    return found;
+  };
+  assert.match(rule('.rosetta-document [data-breakable="false"]'), /break-inside:\s*avoid/);
+  for (const el of ["img", "figure", "li", "tr"]) assert.match(rule(`.rosetta-document ${el}`), /break-inside:\s*avoid/, el);
+  assert.match(rule(".rosetta-document h1"), /break-after:\s*avoid/);
+  assert.match(rule(".rosetta-document"), /orphans:\s*var\(--page-orphans\)/);
+  assert.match(rule(".rosetta-document"), /widows:\s*var\(--page-widows\)/);
+  assert.equal(theme.tokens["page.orphans"], "2");
+  assert.equal(theme.tokens["page.widows"], "2");
+});
+
+test("the flow test chapter has every case the flow rules are about", () => {
+  const md = read("test-pages/flow.md");
+  assert.match(md, /^\| d100 \|/m); // a table, with a header
+  assert.ok((md.match(/^\|\s*\d+ \|/gm) ?? []).length >= 50); // long enough to split
+  assert.ok((md.match(/^:::statblock/gm) ?? []).length >= 3);
+  assert.ok((md.match(/^!\[/gm) ?? []).length >= 3);
+  assert.match(md, /^:::readaloud/m);
+  assert.match(md, /^:::sidebar/m);
+  assert.match(md, /^- /m);
+});
