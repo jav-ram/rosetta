@@ -203,6 +203,10 @@ export interface ComponentDefinition {
    * Required for data and container components. true: splits across columns and pages. false: moves whole. Omitted for leaf components.
    */
   breakable?: boolean;
+  /**
+   * Leaf components only. following: the component applies to all the content after it, up to the next component with a scope or the end of the document, so the HTML renderer wraps that content in the component's element (this is how a page layout stays in force).
+   */
+  scope?: "following";
   attributes?: Attribute[];
   /**
    * Fields of a data component.

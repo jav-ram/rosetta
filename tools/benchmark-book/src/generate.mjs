@@ -15,6 +15,7 @@ const recipes = [
   ["paragraphs", "list", "readaloud", "pagebreak"],
   ["quote", "paragraphs", "nested"],
   ["paragraphs", "numbered", "statblock", "code"],
+  ["layout", "paragraphs", "list", "layout"],
 ];
 
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");

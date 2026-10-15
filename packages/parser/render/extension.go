@@ -5,6 +5,7 @@ package render
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/jav-ram/rosetta/packages/contracts"
 	"github.com/jav-ram/rosetta/packages/parser/directive"
@@ -128,6 +129,9 @@ func (t *transformer) Transform(doc *ast.Document, reader text.Reader, pc parser
 		var problems []problem
 		valid, ps := validateAttrs(d.Attrs.Values, d.Attrs.Order, def.Attributes)
 		problems = append(problems, ps...)
+		if def.Scope != nil && d.Parent() != nil && d.Parent().Kind() != ast.KindDocument {
+			problems = append(problems, problem{"component.misplaced", fmt.Sprintf("%q applies to the rest of the document, so it can only be placed at the top level, not inside another component or a list.", d.Name), "", 0})
+		}
 		d.SetAttribute(attrAttrs, valid)
 
 		if d.ComponentKind == contracts.NodeKindData && d.Form == contracts.NodeFormBlock {

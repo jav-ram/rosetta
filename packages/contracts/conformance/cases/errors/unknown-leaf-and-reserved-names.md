@@ -1,5 +1,5 @@
 ::mystery
 
-::layout{template="one-column"}
+::page{template="art-full"}
 
 ::roll

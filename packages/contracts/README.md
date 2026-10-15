@@ -7,7 +7,7 @@ The language-neutral contracts between Rosetta packages. Everything starts from 
 | Schema | Describes |
 |---|---|
 | `ast.schema.json` | `Document`: the AST the parser produces. `rosettaVersion`, a tree of `Node`s, and `warnings`. |
-| `component-definition.schema.json` | `ComponentDefinition`: a component's form (block or leaf), kind (data, container or leaf), `breakable` flag, attributes and fields. |
+| `component-definition.schema.json` | `ComponentDefinition`: a component's form (block or leaf), kind (data, container or leaf), `breakable` flag, optional `scope` (a leaf that applies to the content after it, such as `layout`), attributes and fields. |
 | `warning.schema.json` | `Warning`: stable `code`, severity, message and source range. |
 | `position.schema.json` | `Position`: a source range. |
 | `theme.schema.json` | `Theme`: a name, design `tokens` (font, color, border, spacing, texture, mask, page) and optional per-component overrides. |

@@ -165,6 +165,10 @@ Container components take their parameters only from attributes. The body is par
 
 A **leaf component** has no body, only attributes. Example: `pagebreak`. Leaf components are neither data nor container.
 
+A leaf component MAY have a **scope**. With `scope: following`, the component applies to all the content after it, up to the next component that has a scope, or the end of the document. The HTML renderer writes this as one element: the component's element stays open and the content that follows is inside it (`<div class="rosetta-layout" data-scope="following" ...>…content…</div>`). It only works at the top level of the document: inside another component, a list or a quote, the component is rendered on its own, with the warning `component.misplaced`. Example: `layout` (section 9.2).
+
+A leaf component's attributes are written on its element as `data-` attributes (`data-template="one-column"`), so a theme can select on them. Only valid attributes are written.
+
 ### 4.4 Summary
 
 | | Data | Container | Leaf |
@@ -254,6 +258,7 @@ When a whole component cannot render (`yaml.syntax`, `component.unknown`), the w
 | Stray closing line (`:::` with no open block) | Treated as an ordinary paragraph | `directive.stray-close` |
 | Leaf component written with a block fence (section 2.3), or block component written as a leaf (it gets an empty body) | The component is still recognised | `directive.wrong-form` |
 | Unknown component | See section 6 | `component.unknown` |
+| Component with a scope inside another component, a list or a quote | Rendered on its own, without holding the content after it | `component.misplaced` |
 | Attribute syntax error | See section 3.1 | `attr.syntax` |
 | Duplicate attribute | Last wins | `attr.duplicate` |
 | Unsupported YAML feature | The feature is ignored | `yaml.unsupported` |
@@ -295,6 +300,7 @@ Built-in Markdown elements have fixed defaults:
 | `readaloud` | block | container | `true` |
 | `sidebar` | block | container | `true` |
 | `pagebreak` | leaf | leaf | n/a |
+| `layout` | leaf | leaf | n/a |
 
 #### `statblock`
 
@@ -339,9 +345,25 @@ Instead of resting to full, roll on the table below...
 - Starts a new page. It is the only manual flow control: there is no column break.
 - Example: `::pagebreak`
 
+#### `layout`
+
+- Form: leaf, with scope `following`.
+- Attributes: `template` (enum: `one-column`, `two-column`; required; default when inserted by an editor: `one-column`). The template is defined by the theme; the set of values is the definition's, so a theme or system that adds templates adds values.
+- Starts a new page, and **every following page** uses the template, until the next `layout` or the end of the document (that is what its scope means). Content before the first `layout` uses the theme's default template (`two-column`).
+- A `layout` with a missing or invalid `template` still starts a new page, but the template is the default one, and the parser warns (`attr.missing`, `attr.enum`).
+- Example:
+
+```md
+::layout{template="one-column"}
+It was a dark night in Greyhollow when the bells began to ring...
+
+::layout{template="two-column"}
+## Chapter 1: The Basics
+```
+
 ### 9.3 Reserved names
 
-The names `layout`, `page`, `figure`, `toc`, `spell`, `item` and `roll` are reserved for later milestones. Until a definition for them is loaded, they are treated as unknown components (section 6).
+The names `page`, `figure`, `toc`, `spell`, `item` and `roll` are reserved for later milestones. Until a definition for them is loaded, they are treated as unknown components (section 6).
 
 ## 10. Conformance
 

@@ -498,3 +498,90 @@ func TestFrontMatterWithCRLFAndEmpty(t *testing.T) {
 		t.Fatalf("empty front matter: %v %q", r.FrontMatter, r.HTML)
 	}
 }
+
+// --- layout (a leaf component with scope "following") ---
+
+func TestLayoutHoldsTheContentThatFollowsIt(t *testing.T) {
+	r := convert(t, "before\n\n::layout{template=\"one-column\"}\n\nsolo\n\n::layout{template=\"two-column\"}\n\nduo\n")
+	wantHTML(t, r.HTML, `<p>before</p>
+<div class="rosetta-layout" data-component="layout" data-kind="leaf" data-scope="following" data-template="one-column">
+<p>solo</p>
+</div>
+<div class="rosetta-layout" data-component="layout" data-kind="leaf" data-scope="following" data-template="two-column">
+<p>duo</p>
+</div>
+`)
+	if len(r.Warnings) != 0 {
+		t.Fatalf("warnings = %v", codes(r.Warnings))
+	}
+}
+
+func TestLayoutAloneIsAnEmptyElement(t *testing.T) {
+	// What the editor gets when it renders one layout block by itself.
+	r := convert(t, "::layout{template=\"one-column\"}\n")
+	wantHTML(t, r.HTML, `<div class="rosetta-layout" data-component="layout" data-kind="leaf" data-scope="following" data-template="one-column">
+</div>
+`)
+}
+
+func TestLayoutSectionEndsAtTheEndOfTheDocumentWithNoContent(t *testing.T) {
+	r := convert(t, "text\n\n::layout{template=\"one-column\"}\n")
+	if strings.Count(r.HTML, "<div") != strings.Count(r.HTML, "</div>") {
+		t.Fatalf("unbalanced:\n%s", r.HTML)
+	}
+}
+
+func TestLayoutPageBreaksAndComponentsStayInsideItsSection(t *testing.T) {
+	r := convert(t, "::layout{template=\"two-column\"}\n\n:::readaloud\nx\n:::\n\n::pagebreak\n\ny\n")
+	wantHTML(t, r.HTML, `<div class="rosetta-layout" data-component="layout" data-kind="leaf" data-scope="following" data-template="two-column">
+<div class="rosetta-readaloud" data-component="readaloud" data-kind="container" data-breakable="true">
+<p>x</p>
+</div>
+<div class="rosetta-pagebreak" data-component="pagebreak" data-kind="leaf">
+</div>
+<p>y</p>
+</div>
+`)
+}
+
+func TestLayoutInsideAnotherComponentIsMisplaced(t *testing.T) {
+	r := convert(t, ":::sidebar\n::layout{template=\"one-column\"}\n:::\n\nafter\n")
+	if got := codes(r.Warnings); len(got) != 1 || got[0] != "component.misplaced" {
+		t.Fatalf("warnings = %v", got)
+	}
+	// It does not take over the rest of the document.
+	wantContains(t, r.HTML, `<p>after</p>`)
+	if strings.Count(r.HTML, "<div") != strings.Count(r.HTML, "</div>") {
+		t.Fatalf("unbalanced:\n%s", r.HTML)
+	}
+	if strings.Contains(r.HTML, "<p>after</p>\n</div>\n</div>") {
+		t.Fatalf("the content after the sidebar must not be inside a layout:\n%s", r.HTML)
+	}
+}
+
+func TestAnInvalidTemplateStillHoldsTheContent(t *testing.T) {
+	r := convert(t, "::layout{template=\"nope\"}\n\ntext\n")
+	if got := codes(r.Warnings); len(got) != 1 || got[0] != "attr.enum" {
+		t.Fatalf("warnings = %v", got)
+	}
+	wantContains(t, r.HTML, `data-scope="following">`, `<p>text</p>`)
+	if strings.Contains(r.HTML, "data-template") {
+		t.Fatalf("an invalid value is not written:\n%s", r.HTML)
+	}
+}
+
+func TestNoScopedComponentNoSections(t *testing.T) {
+	r := convert(t, "a\n\n::pagebreak\n\nb\n")
+	if strings.Contains(r.HTML, "data-scope") {
+		t.Fatal("only components with a scope hold content")
+	}
+}
+
+func TestTheRendererCanBeUsedTwice(t *testing.T) {
+	// The open section is state of one render: a document that ends inside one must not leak into the next.
+	first := convert(t, "::layout{template=\"one-column\"}\n\na\n")
+	second := convert(t, "b\n")
+	if first.HTML == "" || strings.Contains(second.HTML, "</div>") {
+		t.Fatalf("second render:\n%s", second.HTML)
+	}
+}
