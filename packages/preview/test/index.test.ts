@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { buildDocument, createPreview, defaultResolveImage, MESSAGE_TYPE, TABLE_HEADER_SCRIPT } from "../src/index";
+import { buildDocument, createPreview, defaultResolveImage, MESSAGE_TYPE, OVERSIZED_SCRIPT, TABLE_HEADER_SCRIPT } from "../src/index";
 
 const pagedUrl = "/paged.polyfill.js";
 // jsdom has no layout; scrolling does nothing there.
@@ -81,7 +81,7 @@ describe("createPreview", () => {
     expect(frame!.style.visibility).toBe("hidden");
     expect(frame!.srcdoc).toContain("<h1>Title</h1>");
     reply(frame!, { pages: 12, layoutMs: 140 });
-    expect(await done).toEqual({ pages: 12, layoutMs: 140 });
+    expect(await done).toEqual({ pages: 12, layoutMs: 140, oversized: [] });
     expect(frame!.style.visibility).toBe("visible");
   });
 
@@ -107,7 +107,7 @@ describe("createPreview", () => {
     expect(await slow).toBeNull();
     expect(frames()).toHaveLength(1);
     reply(frames()[0]!, { pages: 3, layoutMs: 5 });
-    expect(await fast).toEqual({ pages: 3, layoutMs: 5 });
+    expect(await fast).toEqual({ pages: 3, layoutMs: 5, oversized: [] });
     expect(frames()[0]!.srcdoc).toContain("new");
   });
 
@@ -226,5 +226,98 @@ describe("repeated table headers", () => {
     hooks.newPage();
     hooks.render(p.cloneNode() as Element, p);
     expect(page.querySelectorAll("thead")).toHaveLength(1);
+  });
+});
+
+describe("oversized components", () => {
+  const load = () => new Function(`${OVERSIZED_SCRIPT}; return { numberBlocks, findOversized };`)() as {
+    numberBlocks: (doc: Document) => void;
+    findOversized: (doc: Document) => { index: number; name: string; heightMm: number; columnMm: number }[];
+  };
+  const mm = (px: number) => Math.round((px * 25.4) / 96);
+
+  /** Pages with `areaPx` of text area; each part is a component fragment `[index, name, breakable, heightPx]`. jsdom has no layout, so the heights are given. */
+  function pages(areaPx: number, parts: [number, string, boolean, number][][]) {
+    const doc = document.implementation.createHTMLDocument("t");
+    for (const page of parts) {
+      const p = doc.createElement("div");
+      p.className = "pagedjs_page";
+      const area = doc.createElement("div");
+      area.className = "pagedjs_page_content";
+      area.getBoundingClientRect = () => ({ height: areaPx }) as DOMRect;
+      p.append(area);
+      for (const [index, name, breakable, height] of page) {
+        const el = doc.createElement("div");
+        el.setAttribute("data-block", String(index));
+        el.setAttribute("data-component", name);
+        el.setAttribute("data-breakable", String(breakable));
+        el.getBoundingClientRect = () => ({ height }) as DOMRect;
+        area.append(el);
+      }
+      doc.body.append(p);
+    }
+    return doc;
+  }
+
+  test("components are numbered in document order, nested ones after their parent", () => {
+    const doc = document.implementation.createHTMLDocument("t");
+    doc.body.innerHTML = '<div data-component="a"><p>x</p><div data-component="b"></div></div><div data-component="c"></div>';
+    load().numberBlocks(doc);
+    expect([...doc.querySelectorAll("[data-component]")].map((e) => `${e.getAttribute("data-component")}${e.getAttribute("data-block")}`)).toEqual(["a0", "b1", "c2"]);
+  });
+
+  test("an unbreakable component that fits is fine", () => {
+    expect(load().findOversized(pages(900, [[[0, "statblock", false, 400]]]))).toEqual([]);
+  });
+
+  test("one taller than the text area is found, in millimetres", () => {
+    const found = load().findOversized(pages(960, [[[2, "statblock", false, 1200]]]));
+    expect(found).toEqual([{ index: 2, name: "statblock", heightMm: mm(1200), columnMm: mm(960) }]);
+  });
+
+  test("one that was split across pages is too tall, with the parts added up", () => {
+    const doc = pages(960, [[[1, "statblock", false, 700]], [[1, "statblock", false, 500]]]);
+    const found = load().findOversized(doc);
+    expect(found).toHaveLength(1);
+    expect(found[0]!.heightMm).toBe(mm(1200));
+  });
+
+  test("the parts on the page are marked with the message, and nothing else is", () => {
+    const doc = pages(960, [[[0, "statblock", false, 300], [1, "statblock", false, 1100]], [[1, "statblock", false, 200]]]);
+    load().findOversized(doc);
+    const marked = [...doc.querySelectorAll("[data-layout-warning]")];
+    expect(marked.map((e) => e.getAttribute("data-block"))).toEqual(["1", "1"]);
+    expect(marked[0]!.getAttribute("data-layout-warning")).toMatch(/^A "statblock" is taller than a column \(\d+ mm; a column is \d+ mm\)$/);
+  });
+
+  test("breakable components may be taller than a column", () => {
+    expect(load().findOversized(pages(960, [[[0, "readaloud", true, 3000]]]))).toEqual([]);
+  });
+
+  test("results are in document order", () => {
+    const found = load().findOversized(pages(500, [[[5, "statblock", false, 900]], [[1, "statblock", false, 900]]]));
+    expect(found.map((f) => f.index)).toEqual([1, 5]);
+  });
+
+  test("the preview document numbers the components before Paged.js starts and reports what it found", () => {
+    const doc = buildDocument(input, { pagedUrl, id: "r1" });
+    expect(doc.indexOf("numberBlocks(document)")).toBeLessThan(doc.indexOf("PagedPolyfill.preview()"));
+    expect(doc).toContain("findOversized(document)");
+  });
+});
+
+describe("what the preview reports", () => {
+  test("the oversized components come with the result", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    const preview = createPreview(host, { pagedUrl });
+    const done = preview.render(input);
+    const frame = host.querySelector("iframe")!;
+    const id = /var id = "(r\d+)"/.exec(frame.srcdoc)![1];
+    const oversized = [{ index: 1, name: "statblock", heightMm: 461, columnMm: 253 }];
+    window.dispatchEvent(new MessageEvent("message", { data: { type: MESSAGE_TYPE, id, pages: 3, layoutMs: 9, oversized }, source: frame.contentWindow }));
+    expect(await done).toEqual({ pages: 3, layoutMs: 9, oversized });
+    preview.destroy();
+    host.remove();
   });
 });

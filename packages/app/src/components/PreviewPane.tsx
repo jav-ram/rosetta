@@ -1,20 +1,33 @@
-import type { Preview } from "@rosetta/preview";
+import type { OversizedBlock, Preview } from "@rosetta/preview";
 import { useEffect, useRef, useState } from "react";
 import { createAppPreview } from "../preview";
 import { bookCss } from "../theme";
 import type { Parsed } from "../useParsed";
 
-type Layout = { state: "idle" } | { state: "working" } | { state: "done"; pages: number; ms: number } | { state: "error"; message: string };
+type Layout = { state: "idle" } | { state: "working" } | { state: "done"; pages: number; ms: number; oversized: OversizedBlock[] } | { state: "error"; message: string };
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+interface Props {
+  parsed: Parsed;
+  /** Called after each layout with the text that was laid out and the components that do not fit in a column. */
+  onLayout?: (markdown: string, oversized: OversizedBlock[]) => void;
+  createPreview?: (host: HTMLElement) => Preview;
+}
+
+/** What the author sees for a component that is taller than a column. */
+export const oversizedMessage = (b: OversizedBlock) =>
+  `A "${b.name}" is taller than a column (${b.heightMm} mm; a column is ${b.columnMm} mm). It cannot fit on a page: shorten it or split it in two.`;
 
 /**
  * The chapter as pages (Paged.js, in an iframe). It is drawn again whenever the parser gives new HTML, which already waits
  * until typing stops; the pages on screen stay until the new ones are ready.
  */
-export function PreviewPane({ parsed, createPreview = createAppPreview }: { parsed: Parsed; createPreview?: (host: HTMLElement) => Preview }) {
+export function PreviewPane({ parsed, onLayout, createPreview = createAppPreview }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const preview = useRef<Preview | null>(null);
+  const onLayoutRef = useRef(onLayout);
+  onLayoutRef.current = onLayout;
   const [layout, setLayout] = useState<Layout>({ state: "idle" });
 
   useEffect(() => {
@@ -30,12 +43,17 @@ export function PreviewPane({ parsed, createPreview = createAppPreview }: { pars
     const started = performance.now();
     setLayout({ state: "working" });
     preview.current.render({ html: parsed.html, css: bookCss }).then(
-      (r) => r && setLayout({ state: "done", pages: r.pages, ms: Math.round(performance.now() - started) }),
+      (r) => {
+        if (!r) return;
+        setLayout({ state: "done", pages: r.pages, ms: Math.round(performance.now() - started), oversized: r.oversized });
+        onLayoutRef.current?.(parsed.markdown, r.oversized);
+      },
       (e: Error) => setLayout({ state: "error", message: e.message }),
     );
   }, [parsed]);
 
   const warnings = parsed.state === "ready" ? plural(parsed.warnings.length, "warning") : "";
+  const oversized = layout.state === "done" ? layout.oversized : [];
   return (
     <section className="pane preview" aria-label="Preview">
       <header>
@@ -44,13 +62,20 @@ export function PreviewPane({ parsed, createPreview = createAppPreview }: { pars
           {parsed.state === "loading" && "loading the parser…"}
           {parsed.state === "error" && "parser error"}
           {parsed.state === "ready" && layout.state === "working" && "laying out the pages…"}
-          {parsed.state === "ready" && layout.state === "done" && `${plural(layout.pages, "page")} · ${layout.ms} ms · ${warnings}`}
+          {parsed.state === "ready" && layout.state === "done" && `${plural(layout.pages, "page")} · ${layout.ms} ms · ${warnings}${oversized.length ? ` · ${plural(oversized.length, "layout problem")}` : ""}`}
           {parsed.state === "ready" && layout.state === "error" && "preview error"}
           {parsed.state === "ready" && layout.state === "idle" && warnings}
         </span>
       </header>
       {parsed.state === "error" && <p className="error">{parsed.message}</p>}
       {layout.state === "error" && <p className="error">{layout.message}</p>}
+      {oversized.length > 0 && (
+        <ul className="layout-warnings" aria-label="Layout problems">
+          {oversized.map((b) => (
+            <li key={b.index}>{oversizedMessage(b)}</li>
+          ))}
+        </ul>
+      )}
       <div className="preview-host" ref={host} />
     </section>
   );

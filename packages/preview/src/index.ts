@@ -27,10 +27,23 @@ export interface PreviewInput {
   css: string;
 }
 
+/** An unbreakable component that is taller than a column, so it cannot fit on any page. */
+export interface OversizedBlock {
+  /** Position among all components in the chapter, in document order (the first component is 0). The editor has the same order. */
+  index: number;
+  /** The component's name, such as `statblock`. */
+  name: string;
+  /** How tall it is, and how tall a column is, in millimetres. */
+  heightMm: number;
+  columnMm: number;
+}
+
 export interface PreviewResult {
   pages: number;
   /** Time Paged.js took to lay out the pages. */
   layoutMs: number;
+  /** Unbreakable components that do not fit in a column. */
+  oversized: OversizedBlock[];
 }
 
 export interface Preview {
@@ -47,6 +60,9 @@ html { background: #6f7480; }
 body { margin: 0; }
 .pagedjs_pages { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 16px; }
 .pagedjs_page { flex: none; background: #fff; box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4); }
+/* A component that does not fit in a column: outlined, with a label. Only on screen; it does not change the layout. */
+[data-layout-warning] { outline: 2px solid #c0392b; outline-offset: 2px; position: relative; }
+[data-layout-warning]::before { content: "\\26A0  " attr(data-layout-warning); position: absolute; top: 0; right: 0; z-index: 10; max-width: 90%; padding: 2px 6px; background: #c0392b; color: #fff; font: 11px/1.3 system-ui, sans-serif; }
 `;
 
 /**
@@ -91,6 +107,43 @@ export const TABLE_HEADER_SCRIPT = `function installTableHeaderRepeat(hooks) {
   });
 }`;
 
+/**
+ * After layout: finds the unbreakable components (`data-breakable="false"`) that are taller than a column. Paged.js moves an
+ * unbreakable element to the next page when it does not fit, and only splits it, or lets it run off the page, when it would not
+ * fit on an empty one. So a component is too tall if it was split, or if it is taller than the page's text area, which is as
+ * tall as a column. Components are numbered in document order before layout (`data-block`), so the editor can find them.
+ * Each one found is also marked on the page with `data-layout-warning` (outline and label; nothing moves).
+ * Runs in the preview document, before the pages are scaled. Exported as source.
+ */
+export const OVERSIZED_SCRIPT = `function numberBlocks(doc) {
+  doc.querySelectorAll("[data-component]").forEach(function (e, i) { e.setAttribute("data-block", String(i)); });
+}
+function findOversized(doc) {
+  var MM = 25.4 / 96;
+  var blocks = {};
+  doc.querySelectorAll(".pagedjs_page").forEach(function (page) {
+    var area = page.querySelector(".pagedjs_page_content");
+    var limit = area ? area.getBoundingClientRect().height : 0;
+    page.querySelectorAll('[data-block][data-breakable="false"]').forEach(function (el) {
+      var index = Number(el.getAttribute("data-block"));
+      var b = blocks[index] || (blocks[index] = { index: index, name: el.getAttribute("data-component") || "", height: 0, limit: limit, parts: 0, elements: [] });
+      b.height += el.getBoundingClientRect().height;
+      b.limit = Math.max(b.limit, limit);
+      b.parts += 1;
+      b.elements.push(el);
+    });
+  });
+  var found = [];
+  Object.keys(blocks).forEach(function (key) {
+    var b = blocks[key];
+    if (b.limit <= 0 || (b.parts < 2 && b.height <= b.limit + 1)) return;
+    var message = 'A "' + b.name + '" is taller than a column (' + Math.round(b.height * MM) + " mm; a column is " + Math.round(b.limit * MM) + " mm)";
+    b.elements.forEach(function (el) { el.setAttribute("data-layout-warning", message); });
+    found.push({ index: b.index, name: b.name, heightMm: Math.round(b.height * MM), columnMm: Math.round(b.limit * MM) });
+  });
+  return found.sort(function (a, b) { return a.index - b.index; });
+}`;
+
 const PLACEHOLDER =
   "data:image/svg+xml;utf8," +
   encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="250"><rect width="400" height="250" fill="#d9d9d9"/></svg>');
@@ -129,11 +182,18 @@ export function buildDocument(input: PreviewInput, options: { pagedUrl: string; 
   var id = ${id};
   function send(message) { message.type = ${JSON.stringify(MESSAGE_TYPE)}; message.id = id; parent.postMessage(message, "*"); }
   if (!window.PagedPolyfill) { send({ error: "Paged.js did not load" }); return; }
+  ${OVERSIZED_SCRIPT}
   ${TABLE_HEADER_SCRIPT}
   try { installTableHeaderRepeat(window.PagedPolyfill.chunker.hooks); } catch (e) { /* the pages are laid out without repeated headers */ }
+  numberBlocks(document);
   var start = performance.now();
   window.PagedPolyfill.preview().then(
-    function (flow) { send({ pages: flow.total, layoutMs: performance.now() - start }); },
+    function (flow) {
+      var layoutMs = performance.now() - start;
+      var oversized = [];
+      try { oversized = findOversized(document); } catch (e) { /* the pages are shown without the check */ }
+      send({ pages: flow.total, layoutMs: layoutMs, oversized: oversized });
+    },
     function (e) { send({ error: String((e && e.message) || e) }); }
   );
 })();
@@ -192,7 +252,7 @@ export function createPreview(host: HTMLElement, options: PreviewOptions): Previ
       const drop = () => finish(() => (iframe.remove(), resolve(null)));
 
       function onMessage(e: MessageEvent) {
-        const data = e.data as { type?: string; id?: string; pages?: number; layoutMs?: number; error?: string } | null;
+        const data = e.data as { type?: string; id?: string; pages?: number; layoutMs?: number; oversized?: OversizedBlock[]; error?: string } | null;
         if (!data || data.type !== MESSAGE_TYPE || data.id !== id || e.source !== iframe.contentWindow) return;
         if (data.error !== undefined) return finish(() => (iframe.remove(), reject(new Error(data.error))));
         finish(() => {
@@ -206,7 +266,7 @@ export function createPreview(host: HTMLElement, options: PreviewOptions): Previ
           iframe.contentWindow?.scrollTo(0, scroll);
           shown?.remove();
           shown = iframe;
-          resolve({ pages: data.pages ?? 0, layoutMs: data.layoutMs ?? 0 });
+          resolve({ pages: data.pages ?? 0, layoutMs: data.layoutMs ?? 0, oversized: data.oversized ?? [] });
         });
       }
 

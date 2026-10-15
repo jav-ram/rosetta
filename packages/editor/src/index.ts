@@ -9,5 +9,6 @@ export { createRegistry, type Definition, type Registry } from "./components/reg
 export { createForm, type Form, type FormValue } from "./components/form";
 export type { RenderComponent } from "./components/render";
 export type { ComponentOptions } from "./extensions";
+export { setLayoutWarnings, type LayoutWarning } from "./layout-warnings";
 export { toMarkdown, type SaveOptions } from "./save";
 export { yamlMapping } from "./yaml";

@@ -1,5 +1,5 @@
 import { m1Components } from "@rosetta/contracts";
-import { createEditor, createToolbar, fromAst, setDocument, toMarkdown, type Editor } from "@rosetta/editor";
+import { createEditor, createToolbar, fromAst, setDocument, setLayoutWarnings, toMarkdown, type Editor, type LayoutWarning } from "@rosetta/editor";
 import { useEffect, useRef } from "react";
 import { parser } from "../parser";
 import type { Parsed } from "../useParsed";
@@ -11,6 +11,8 @@ interface Props {
   /** The chapter's Markdown: the source of truth. */
   markdown: string;
   parsed: Parsed;
+  /** Problems the preview found with components, marked on them. */
+  layoutWarnings?: LayoutWarning[];
   /** False while the Markdown view is showing: edits still waiting to be saved are then saved at once. */
   visible?: boolean;
   onChange: (markdown: string, chapterId: string) => void;
@@ -23,13 +25,15 @@ interface Props {
  * back as Markdown a moment after the last keystroke. A parse of Markdown the editor wrote itself is not loaded
  * again (that would move the cursor); a parse of any other Markdown (another chapter, the Markdown tab) is.
  */
-export function VisualEditor({ chapterId, markdown, parsed, visible = true, onChange }: Props) {
+export function VisualEditor({ chapterId, markdown, parsed, layoutWarnings, visible = true, onChange }: Props) {
   const toolbarHost = useRef<HTMLDivElement>(null);
   const editorHost = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Editor | null>(null);
   /** What the editor currently shows, and where it came from. */
   const shown = useRef<{ markdown: string | null; chapterId: string | null; frontMatterRaw?: string }>({ markdown: null, chapterId: null });
   const pending = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const warningsRef = useRef(layoutWarnings);
+  warningsRef.current = layoutWarnings;
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
@@ -100,10 +104,17 @@ export function VisualEditor({ chapterId, markdown, parsed, visible = true, onCh
       setDocument(editor, loaded.doc);
       editor.setEditable(true, false);
       shown.current = { markdown, chapterId, frontMatterRaw: loaded.frontMatterRaw };
+      // Loading replaced the document, and the marks with it.
+      setLayoutWarnings(editor, warningsRef.current ?? []);
     } catch (e) {
       console.error("Could not load the chapter into the editor", e);
     }
   }, [parsed, markdown, chapterId]);
+
+  // Marks on the components for what the preview found. Not part of the chapter: never saved.
+  useEffect(() => {
+    if (editorRef.current && shown.current.chapterId === chapterId) setLayoutWarnings(editorRef.current, layoutWarnings ?? []);
+  }, [layoutWarnings, chapterId]);
 
   return (
     <>

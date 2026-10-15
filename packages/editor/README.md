@@ -87,3 +87,7 @@ Component node views (T1.5+) and a raw source view (T1.8).
 ## Tests
 
 `pnpm --filter @rosetta/editor test` runs the editor in jsdom: every toolbar button, the keyboard shortcuts, Markdown typing shortcuts, table editing, the AST loader and the Markdown writer. Loading every golden file is tested in `app` (`test/golden-load.test.ts`), because it needs the parser and `editor` may not depend on it.
+
+## Layout warnings
+
+`setLayoutWarnings(editor, [{ index, message }])` marks components with a problem found elsewhere (the preview): the component's frame gets `data-layout-warning="message"` and the class `has-layout-warning`, which the app styles. `index` is the component's position among all components in the document, in document order, counting nested ones after their parent. The marks follow their component while text is edited around it, are not part of the document (never saved, not an edit, not undoable), and `[]` clears them.
