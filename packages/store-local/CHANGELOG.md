@@ -1,5 +1,12 @@
 # @rosetta/store-local
 
+## 0.0.7
+
+### Patch Changes
+
+- Updated dependencies [ab06f42]
+  - @rosetta/contracts@0.7.0
+
 ## 0.0.6
 
 ### Patch Changes

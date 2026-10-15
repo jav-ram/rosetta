@@ -1,5 +1,12 @@
 # @rosetta/theme-engine
 
+## 0.2.1
+
+### Patch Changes
+
+- Updated dependencies [ab06f42]
+  - @rosetta/contracts@0.7.0
+
 ## 0.2.0
 
 ### Minor Changes
