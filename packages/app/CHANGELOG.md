@@ -1,5 +1,18 @@
 # @rosetta/app
 
+## 0.9.0
+
+### Minor Changes
+
+- 825d22d: Oversized element warning: after layout the preview reports unbreakable components that are taller than a column (and outlines them on the page), the preview pane lists them, and the visual editor marks the same block with a warning (`setLayoutWarnings` in `@rosetta/editor`). A test chapter with an oversized stat block is in `theme-classic/test-pages/oversized.md`.
+
+### Patch Changes
+
+- Updated dependencies [825d22d]
+  - @rosetta/preview@0.3.0
+  - @rosetta/editor@0.6.0
+  - @rosetta/theme-classic@0.2.1
+
 ## 0.8.1
 
 ### Patch Changes
