@@ -5,6 +5,8 @@
   --text: #25221c;
   --muted: #7a7466;
   --accent: #7b3f1d;
+  --warn: #b3261e;
+  --warn-bg: #fdecea;
   color-scheme: light;
   font-family: system-ui, sans-serif;
 }
@@ -16,6 +18,8 @@
     --text: #ece8dc;
     --muted: #9b9484;
     --accent: #e0a070;
+    --warn: #d6463b;
+    --warn-bg: #3a1f1c;
     color-scheme: dark;
   }
 }
@@ -90,6 +94,9 @@ body { background: var(--bg); color: var(--text); }
 
 /* Components in the editor. Plain frames until the themes exist (M2). */
 .rosetta-component { margin: 1em 0; border: 1px solid var(--line); border-radius: 6px; }
+.rosetta-component.has-layout-warning { border-color: var(--warn); box-shadow: 0 0 0 2px var(--warn); }
+.rosetta-component.has-layout-warning::before { content: "\26A0  " attr(data-layout-warning); display: block; padding: 4px 10px; background: var(--warn); color: #fff; font-size: 0.8rem; border-radius: 5px 5px 0 0; }
+.layout-warnings { margin: 0; padding: 8px 16px 8px 32px; background: var(--warn-bg); color: var(--warn); font-size: 0.8rem; border-bottom: 1px solid var(--line); }
 .rosetta-component.is-selected { outline: 2px solid var(--accent); outline-offset: 1px; }
 .rosetta-component-atom { padding: 4px 12px; cursor: pointer; background: var(--panel); }
 .rosetta-component-rendered:empty::before { content: "…"; color: var(--muted); }

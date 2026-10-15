@@ -1,3 +1,4 @@
+import type { LayoutWarning } from "@rosetta/editor";
 import { useState } from "react";
 import type { Parsed } from "../useParsed";
 import { VisualEditor } from "./VisualEditor";
@@ -6,6 +7,8 @@ interface Props {
   chapterId: string;
   markdown: string;
   parsed: Parsed;
+  /** Problems the preview found with components, shown on them in the visual editor. */
+  layoutWarnings?: LayoutWarning[];
   /** Gets the new Markdown and the chapter it belongs to (the chapter can change while a save is pending). */
   onChange: (markdown: string, chapterId?: string) => void;
 }
@@ -14,7 +17,7 @@ interface Props {
  * Two views of the same chapter: "Visual" (Tiptap) and "Markdown" (a text box). Edits in either are saved to the
  * chapter's Markdown, which the other view and the preview then show.
  */
-export function EditorPane({ chapterId, markdown, parsed, onChange }: Props) {
+export function EditorPane({ chapterId, markdown, parsed, layoutWarnings, onChange }: Props) {
   const [view, setView] = useState<"visual" | "markdown">("visual");
   return (
     <section className="pane editor" aria-label="Editor">
@@ -32,7 +35,7 @@ export function EditorPane({ chapterId, markdown, parsed, onChange }: Props) {
       </header>
       {/* Both stay mounted so switching tabs keeps the editor's content and undo history. */}
       <div className="editor-body" hidden={view !== "visual"}>
-        <VisualEditor visible={view === "visual"} chapterId={chapterId} markdown={markdown} parsed={parsed} onChange={onChange} />
+        <VisualEditor visible={view === "visual"} chapterId={chapterId} markdown={markdown} parsed={parsed} layoutWarnings={layoutWarnings} onChange={onChange} />
       </div>
       <textarea hidden={view !== "markdown"} value={markdown} onChange={(e) => onChange(e.target.value, chapterId)} spellCheck={false} aria-label="Chapter text" />
     </section>

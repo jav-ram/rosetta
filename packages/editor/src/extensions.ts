@@ -8,6 +8,7 @@ import type { Definition } from "./components/registry";
 import { createRegistry } from "./components/registry";
 import { cachedRenderer, type RenderComponent } from "./components/render";
 import { Directive, DirectiveLeaf } from "./directive";
+import { LayoutWarnings } from "./layout-warnings";
 
 /** `text-align` as a cell attribute: GFM tables align whole columns, and the parser's AST carries that. */
 const align = {
@@ -76,5 +77,6 @@ export function standardExtensions({ components = [], renderComponent }: Compone
     TableHeader.extend({ addAttributes: function () { return { ...this.parent?.(), ...align }; } }),
     Directive.configure(options),
     DirectiveLeaf.configure(options),
+    LayoutWarnings,
   ];
 }
