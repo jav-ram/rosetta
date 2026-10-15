@@ -30,7 +30,46 @@
   }
 }
 
-/* Body text and columns. */
+/*
+ * Page templates. Each one is a named page: `@page <name>` for the page (margins, furniture) and, for its columns, a rule on
+ * `.rosetta-document` inside pages of that name (Paged.js puts a copy of it on every page, and gives each page the class
+ * `pagedjs_<name>_page`). The `layout` directive's element selects a template with the `page` property; everything inside it,
+ * on every following page, is on that template, until the next layout. Content before the first layout is on the default
+ * template, which is two-column.
+ */
+@page one-column {
+  margin-left: var(--page-margin-left-single);
+  margin-right: var(--page-margin-right-single);
+}
+
+@page two-column {
+  margin-left: var(--page-margin-left);
+  margin-right: var(--page-margin-right);
+}
+
+.rosetta-document {
+  column-count: var(--page-columns);
+  column-gap: var(--page-column-gap);
+  column-rule: var(--border-column-rule);
+}
+
+.pagedjs_one-column_page .rosetta-document {
+  column-count: var(--page-columns-single);
+}
+
+.rosetta-document > .rosetta-layout {
+  break-before: page;
+}
+
+.rosetta-document > .rosetta-layout[data-template="one-column"] {
+  page: one-column;
+}
+
+.rosetta-document > .rosetta-layout[data-template="two-column"] {
+  page: two-column;
+}
+
+/* Body text. */
 .rosetta-document {
   font-family: var(--font-body);
   font-size: var(--font-size-body);
@@ -38,9 +77,6 @@
   color: var(--color-text);
   background-color: var(--color-page);
   background-image: var(--texture-page);
-  column-count: var(--page-columns);
-  column-gap: var(--page-column-gap);
-  column-rule: var(--border-column-rule);
   orphans: var(--page-orphans);
   widows: var(--page-widows);
 }

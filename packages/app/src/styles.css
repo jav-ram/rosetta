@@ -62,6 +62,9 @@ body { background: var(--bg); color: var(--text); }
 .rosetta-sidebar, .rosetta-statblock { border: 1px solid var(--line); padding: 8px 16px; }
 .rosetta-pagebreak { border-top: 2px dashed var(--line); text-align: center; color: var(--muted); font-size: 0.75rem; }
 .rosetta-pagebreak::after { content: "page break"; }
+.rosetta-layout { border-top: 2px dashed var(--accent); text-align: center; color: var(--accent); font-size: 0.75rem; }
+.rosetta-layout::after { content: "new page · " attr(data-template) " layout"; }
+.rosetta-layout:not([data-template])::after { content: "new page · layout"; }
 .rosetta-warning-block, .rosetta-warnings { color: #b3261e; }
 
 .tabs { display: flex; gap: 4px; }

@@ -1,0 +1,20 @@
+[
+  {
+    "code": "attr.missing",
+    "line": 1,
+    "component": "layout",
+    "field": "template"
+  },
+  {
+    "code": "attr.enum",
+    "line": 3,
+    "component": "layout",
+    "field": "template"
+  },
+  {
+    "code": "attr.unknown",
+    "line": 5,
+    "component": "layout",
+    "field": "margin"
+  }
+]

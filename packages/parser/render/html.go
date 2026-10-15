@@ -2,6 +2,7 @@ package render
 
 import (
 	"bytes"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -17,6 +18,8 @@ import (
 type htmlRenderer struct {
 	cfg *config
 	md  goldmark.Markdown // plain Markdown, for field values
+	// sectionOpen is true while the element of a component with scope "following" is open: the content after it is inside.
+	sectionOpen bool
 }
 
 func newHTMLRenderer(cfg *config) *htmlRenderer {
@@ -25,6 +28,24 @@ func newHTMLRenderer(cfg *config) *htmlRenderer {
 
 func (r *htmlRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(directive.KindDirective, r.renderDirective)
+	reg.Register(ast.KindDocument, r.renderDocument)
+}
+
+// renderDocument closes the section of the last component with scope "following": it lasts to the end of the document.
+func (r *htmlRenderer) renderDocument(w util.BufWriter, _ []byte, _ ast.Node, entering bool) (ast.WalkStatus, error) {
+	if entering {
+		r.sectionOpen = false
+	} else {
+		r.closeSection(w)
+	}
+	return ast.WalkContinue, nil
+}
+
+func (r *htmlRenderer) closeSection(w util.BufWriter) {
+	if r.sectionOpen {
+		_, _ = w.WriteString("</div>\n")
+		r.sectionOpen = false
+	}
 }
 
 // defaultTitleLevel is the heading level of a title that has no leading "#".
@@ -66,8 +87,23 @@ func (r *htmlRenderer) wrapperOpen(w util.BufWriter, d *directive.Directive, att
 	if id := attrs["id"]; id != "" {
 		_, _ = w.WriteString(` id="` + esc(id) + `"`)
 	}
+	// A leaf component has no content to show, so what it says is in data attributes, for the theme (a layout's template).
+	if d.ComponentKind == contracts.NodeKindLeaf {
+		def := r.cfg.defs[d.Name]
+		if def.Scope != nil {
+			_, _ = w.WriteString(` data-scope="` + esc(string(*def.Scope)) + `"`)
+		}
+		for _, a := range def.Attributes {
+			if v, ok := attrs[a.Name]; ok && dataName.MatchString(a.Name) {
+				_, _ = w.WriteString(` data-` + strings.ToLower(a.Name) + `="` + esc(v) + `"`)
+			}
+		}
+	}
 	_, _ = w.WriteString(">\n")
 }
+
+// dataName is what an attribute name must look like to become a data-* attribute.
+var dataName = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9-]*$`)
 
 func (r *htmlRenderer) warnings(w util.BufWriter, ws []contracts.Warning) {
 	if r.cfg.hideWarnings || len(ws) == 0 {
@@ -137,9 +173,20 @@ func (r *htmlRenderer) renderDirective(w util.BufWriter, source []byte, n ast.No
 		if !entering {
 			return ast.WalkContinue, nil
 		}
+		// A component with scope "following" (at the top level) holds the content after it: its element stays open
+		// until the next such component or the end of the document.
+		def := r.cfg.defs[d.Name]
+		scoped := def.Scope != nil && n.Parent() != nil && n.Parent().Kind() == ast.KindDocument
+		if scoped {
+			r.closeSection(w)
+		}
 		r.wrapperOpen(w, d, validAttrs)
 		r.warnings(w, d.Warnings)
-		_, _ = w.WriteString("</div>\n")
+		if scoped {
+			r.sectionOpen = true
+		} else {
+			_, _ = w.WriteString("</div>\n")
+		}
 		return ast.WalkSkipChildren, nil
 	}
 }

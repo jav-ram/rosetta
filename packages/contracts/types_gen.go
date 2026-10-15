@@ -53,6 +53,12 @@ type ComponentDefinition struct {
 
 	// Name corresponds to the JSON schema field "name".
 	Name string `json:"name"`
+
+	// Leaf components only. following: the component applies to all the content after
+	// it, up to the next component with a scope or the end of the document, so the
+	// HTML renderer wraps that content in the component's element (this is how a page
+	// layout stays in force).
+	Scope *ComponentDefinitionScope `json:"scope,omitempty"`
 }
 
 type ComponentDefinitionForm string
@@ -65,6 +71,10 @@ type ComponentDefinitionKind string
 const ComponentDefinitionKindContainer ComponentDefinitionKind = "container"
 const ComponentDefinitionKindData ComponentDefinitionKind = "data"
 const ComponentDefinitionKindLeaf ComponentDefinitionKind = "leaf"
+
+type ComponentDefinitionScope string
+
+const ComponentDefinitionScopeFollowing ComponentDefinitionScope = "following"
 
 // The Rosetta AST produced by the parser. Node is deliberately one flat shape
 // discriminated by `type`, so that it maps cleanly to both TypeScript and Go.

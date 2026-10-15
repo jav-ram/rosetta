@@ -4,8 +4,7 @@
  * known once the preview exists (M2); the estimate just sizes the book.
  *
  * EXTENDING: when a component is added to `m1Components` (or its successor), add a generator
- * for it to `components` below. The test fails until you do. Page templates (`::layout`,
- * `::page`, M2) belong in `src/sections.mjs` when they exist.
+ * for it to `components` below. The test fails until you do. (`::page`, M2, goes here too when it is defined.)
  */
 import { creatureName, paragraph, shortPhrase, title } from "./text.mjs";
 
@@ -51,6 +50,11 @@ export const components = {
 
   pagebreak() {
     return { markdown: "::pagebreak", pages: 0.5 }; // on average half a page is left empty
+  },
+
+  /** Switches the page template for the rest of the chapter, or until the next layout. Always starts a new page. */
+  layout(rng) {
+    return { markdown: `::layout{template="${rng.pick(["one-column", "two-column"])}"}`, pages: 0.5 };
   },
 };
 

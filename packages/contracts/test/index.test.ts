@@ -57,9 +57,23 @@ describe("M1 component definitions", () => {
     for (const def of m1Components) expect(validateComponentDefinition(def), def.name).toEqual({ valid: true, errors: [] });
   });
 
-  test("covers statblock, readaloud, sidebar and pagebreak, with breakable on block components", () => {
-    expect(m1Components.map((d) => d.name)).toEqual(["statblock", "readaloud", "sidebar", "pagebreak"]);
-    expect(m1Components.map((d) => d.breakable)).toEqual([false, true, true, undefined]);
+  test("covers statblock, readaloud, sidebar, pagebreak and layout, with breakable on block components", () => {
+    expect(m1Components.map((d) => d.name)).toEqual(["statblock", "readaloud", "sidebar", "pagebreak", "layout"]);
+    expect(m1Components.map((d) => d.breakable)).toEqual([false, true, true, undefined, undefined]);
+  });
+
+  test("layout is a leaf that holds the content after it, with a required template", () => {
+    const layout = m1Components.find((d) => d.name === "layout")!;
+    expect(layout.kind).toBe("leaf");
+    expect(layout.scope).toBe("following");
+    expect(layout.attributes).toEqual([expect.objectContaining({ name: "template", type: "enum", values: ["one-column", "two-column"], required: true })]);
+  });
+
+  test("only leaf components can have a scope, and the only scope is following", () => {
+    const leaf = { name: "layout", form: "leaf", kind: "leaf", scope: "following" };
+    expect(validateComponentDefinition(leaf).valid).toBe(true);
+    expect(validateComponentDefinition({ ...leaf, scope: "all" }).valid).toBe(false);
+    expect(validateComponentDefinition({ name: "box", form: "block", kind: "container", breakable: true, scope: "following" }).valid).toBe(false);
   });
 });
 

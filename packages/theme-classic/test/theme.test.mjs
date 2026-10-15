@@ -99,3 +99,25 @@ test("the flow test chapter has every case the flow rules are about", () => {
   assert.match(md, /^:::sidebar/m);
   assert.match(md, /^- /m);
 });
+
+test("page templates: a named page and a layout rule for each template the layout component offers", () => {
+  const defs = JSON.parse(readFileSync(new URL("../../contracts/definitions/m1-components.json", import.meta.url), "utf8"));
+  const templates = defs.find((d) => d.name === "layout").attributes.find((a) => a.name === "template").values;
+  assert.deepEqual(templates, ["one-column", "two-column"]);
+  const plain = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  for (const t of templates) {
+    assert.ok(plain.includes(`@page ${t} {`), `@page ${t}`);
+    assert.match(plain, new RegExp(`\\.rosetta-document > \\.rosetta-layout\\[data-template="${t}"\\]\\s*\\{[^}]*page:\\s*${t};`), `page: ${t}`);
+  }
+  // a layout always starts a new page, and only a top-level one counts
+  assert.match(plain, /\.rosetta-document > \.rosetta-layout\s*\{[^}]*break-before:\s*page/);
+  // the columns of a page come from its template
+  assert.match(plain, /\.pagedjs_one-column_page \.rosetta-document\s*\{[^}]*column-count:\s*var\(--page-columns-single\)/);
+  assert.match(plain, /(^|\n)\.rosetta-document\s*\{[^}]*column-count:\s*var\(--page-columns\)/);
+  assert.equal(theme.tokens["page.columns-single"], "1");
+});
+
+test("the layout test chapter switches layout mid-chapter, and back", () => {
+  const md = read("test-pages/layout.md");
+  assert.deepEqual([...md.matchAll(/^::layout\{template="([a-z-]+)"\}$/gm)].map((m) => m[1]), ["one-column", "two-column", "one-column"]);
+});

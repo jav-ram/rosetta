@@ -7,7 +7,7 @@ import { instantiate, type RosettaParser } from "@rosetta/parser-wasm";
 import { afterEach, beforeAll, describe, expect, test } from "vitest";
 import "./dom-setup";
 
-// readaloud, sidebar and pagebreak, with the temporary M1 definitions, in the real editor and with the real parser.
+// readaloud, sidebar, pagebreak and layout, with the temporary M1 definitions, in the real editor and with the real parser.
 
 const dist = (f: string) => new NodeURL(`../../parser-wasm/dist/${f}`, import.meta.url);
 let parser: RosettaParser;
@@ -155,5 +155,60 @@ describe("pagebreak", () => {
     const editor = mount("::pagebreak\n");
     editor.commands.setNodeSelection(find(editor, "pagebreak"));
     expect(document.querySelectorAll(".rosetta-form input, .rosetta-form textarea")).toHaveLength(0);
+  });
+});
+
+describe("layout (the page divider)", () => {
+  const template = () => document.querySelector<HTMLSelectElement>('.rosetta-form [data-field="template"] select')!;
+  const choose = (value: string) => {
+    template().value = value;
+    template().dispatchEvent(new Event("change"));
+  };
+
+  test("is inserted with a template, saved on its own line and read back without warnings", () => {
+    const editor = mount("Before.\n");
+    editor.commands.setTextSelection(editor.state.doc.content.size - 1);
+    insert("layout");
+    const markdown = toMarkdown(editor.getJSON());
+    expect(markdown).toBe('Before.\n\n::layout{template=one-column}\n');
+    const children = checked(markdown);
+    expect(children[1]).toMatchObject({ name: "layout", kind: "leaf", attributes: { template: "one-column" } });
+  });
+
+  test("the template is chosen in a form, and the choice is what is saved", () => {
+    const editor = mount("Before.\n");
+    editor.commands.setTextSelection(editor.state.doc.content.size - 1);
+    insert("layout");
+    expect([...template().options].map((o) => o.value)).toEqual(["one-column", "two-column"]);
+    choose("two-column");
+    expect(toMarkdown(editor.getJSON())).toBe('Before.\n\n::layout{template=two-column}\n');
+    expect(checked(toMarkdown(editor.getJSON()))[1]).toMatchObject({ attributes: { template: "two-column" } });
+  });
+
+  test("reloading keeps it, and it is shown as a divider that says which template", async () => {
+    const source = 'One.\n\n::layout{template="two-column"}\n\nTwo.\n';
+    const editor = mount(source);
+    expect(toMarkdown(editor.getJSON())).toBe(source);
+    await wait();
+    const shown = document.querySelector(".rosetta-component-rendered .rosetta-layout")!;
+    expect(shown.getAttribute("data-template")).toBe("two-column");
+  });
+
+  test("the text after it is not inside it in the editor: it is still ordinary text", () => {
+    const editor = mount('One.\n\n::layout{template="one-column"}\n\nTwo.\n');
+    expect(editor.getJSON().content!.map((n) => n.type)).toEqual(["paragraph", "directiveLeaf", "paragraph"]);
+  });
+
+  test("a hand-written layout is saved as written until its form is used", () => {
+    const source = '::layout{template="one-column" id=chapter-two}\n';
+    const editor = mount(source);
+    expect(toMarkdown(editor.getJSON())).toBe(source);
+  });
+
+  test("it can be removed with the keyboard", () => {
+    const editor = mount('One.\n\n::layout{template="one-column"}\n\nTwo.\n');
+    editor.commands.setNodeSelection(find(editor, "layout"));
+    editor.commands.deleteSelection();
+    expect(toMarkdown(editor.getJSON())).toBe("One.\n\nTwo.\n");
   });
 });

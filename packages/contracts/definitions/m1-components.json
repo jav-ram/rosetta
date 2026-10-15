@@ -47,5 +47,15 @@
     "description": "Starts a new page.",
     "form": "leaf",
     "kind": "leaf"
+  },
+  {
+    "name": "layout",
+    "description": "Changes the page template for every following page. It always starts a new page.",
+    "form": "leaf",
+    "kind": "leaf",
+    "scope": "following",
+    "attributes": [
+      { "name": "template", "type": "enum", "values": ["one-column", "two-column"], "required": true, "default": "one-column", "description": "The page template, defined by the theme." }
+    ]
   }
 ]

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { instantiate, type RosettaParser } from "@rosetta/parser-wasm";
 import { URL as NodeURL } from "node:url";
 import { beforeAll, describe, expect, test } from "vitest";
@@ -42,6 +43,29 @@ describe("theme-classic with the theme engine", () => {
     const names = new Set(Object.keys(resolveTokens(theme)).map((t) => `--${t.replace(/\./g, "-")}`));
     const used = [...themeCss.matchAll(/var\((--[a-z0-9-]+)\)/g)].map((m) => m[1]!);
     expect(used.filter((u) => !names.has(u))).toEqual([]);
+  });
+});
+
+describe("the layout test chapter", () => {
+  const dist = (f: string) => new NodeURL(`../../parser-wasm/dist/${f}`, import.meta.url);
+  let parser: RosettaParser;
+  beforeAll(async () => {
+    await import(dist("wasm_exec.js").href);
+    parser = await instantiate(readFileSync(dist("rosetta.wasm")));
+  });
+
+  test("parses without warnings, and each layout holds what follows it, to the next layout", () => {
+    const md = readFileSync(createRequire(import.meta.url).resolve("@rosetta/theme-classic/theme.json").replace("theme.json", "test-pages/layout.md"), "utf8");
+    const { html, warnings } = parser.parse(md) as { html: string; warnings: unknown[] };
+    expect(warnings).toEqual([]);
+    const doc = new DOMParser().parseFromString(`<div id="r">${html}</div>`, "text/html");
+    const root = doc.getElementById("r")!;
+    // The text before the first layout is not inside one; the three layouts are top-level and hold the headings after them.
+    const layouts = [...root.children].filter((e) => e.classList.contains("rosetta-layout"));
+    expect(layouts.map((e) => e.getAttribute("data-template"))).toEqual(["one-column", "two-column", "one-column"]);
+    expect(layouts.map((e) => e.querySelector("h2")?.textContent)).toEqual(["One column", "Two columns again", "One column to finish"]);
+    expect(root.firstElementChild!.tagName).toBe("H1");
+    expect(root.querySelectorAll(".rosetta-layout .rosetta-layout")).toHaveLength(0);
   });
 });
 

@@ -60,6 +60,9 @@ func TestComponentDefinitions(t *testing.T) {
 		"block without breakable": {string(example(t, "invalid-component-definition.json")), false},
 		"leaf":                    {`{"name":"pagebreak","form":"leaf","kind":"leaf"}`, true},
 		"leaf with breakable":     {`{"name":"pagebreak","form":"leaf","kind":"leaf","breakable":true}`, false},
+		"leaf with scope":         {`{"name":"layout","form":"leaf","kind":"leaf","scope":"following"}`, true},
+		"unknown scope":           {`{"name":"layout","form":"leaf","kind":"leaf","scope":"everything"}`, false},
+		"container with scope":    {`{"name":"readaloud","form":"block","kind":"container","breakable":true,"scope":"following"}`, false},
 		"container":               {`{"name":"readaloud","form":"block","kind":"container","breakable":true}`, true},
 		"container with fields":   {`{"name":"readaloud","form":"block","kind":"container","breakable":true,"fields":[{"name":"x","type":"string"}]}`, false},
 	}
@@ -90,7 +93,7 @@ func TestM1Components(t *testing.T) {
 			t.Errorf("component %q does not satisfy the schema: %v", d.Name, err)
 		}
 	}
-	if !reflect.DeepEqual(names, []string{"statblock", "readaloud", "sidebar", "pagebreak"}) {
+	if !reflect.DeepEqual(names, []string{"statblock", "readaloud", "sidebar", "pagebreak", "layout"}) {
 		t.Fatalf("names = %v", names)
 	}
 	if defs[0].Breakable == nil || *defs[0].Breakable || defs[1].Breakable == nil || !*defs[1].Breakable || defs[3].Breakable != nil {
