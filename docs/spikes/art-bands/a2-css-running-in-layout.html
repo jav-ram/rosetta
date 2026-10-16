@@ -1,0 +1,65 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>A2: the same inside a one-column layout</title>
+<style>
+:root { --art-height: 90mm; }
+html { background: #6f7480; }
+body { margin: 0; }
+.pagedjs_pages { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 16px; }
+.pagedjs_page { flex: none; background: #fff; box-shadow: 0 1px 5px rgba(0,0,0,.4); }
+.doc { font: 10pt/1.35 Georgia, serif; column-count: 2; column-gap: 8mm; }
+.doc h1 { column-span: all; font-size: 22pt; string-set: chapter content(text); }
+.doc p { margin: 0 0 6pt; }
+
+@page { size: A4; margin: 22mm 18mm; @top-center { content: string(chapter); font: 8pt sans-serif; } @bottom-center { content: counter(page); font: 8pt sans-serif; } }
+
+/* The art band: a running element, shown in the top margin of the first page of an art-top page. */
+.art-band { position: running(band); }
+.art-band img { display: block; width: 210mm; height: 90mm; max-width: none; object-fit: cover; margin: 0 0 0 -18mm; } /* full bleed: the page is 210mm wide, the band reaches the edges through the margins */
+.page-art { page: art-top; break-before: page; }
+@page art-top:first {
+  margin-top: 90mm;
+  @top-left-corner { content: ""; }
+  @top-center { content: element(band); width: 100%; }
+}
+@page one-column { margin-left: 28mm; margin-right: 28mm; }
+.layout-one { page: one-column; break-before: page; }
+.pagedjs_one-column_page .doc { column-count: 1; }
+</style>
+<script>
+// Paged.js lays out one page per animation frame; replace frames so it runs in a background or hidden tab too (same as @rosetta/preview).
+(function(){var c=new MessageChannel(),q=[];c.port1.onmessage=function(){var r=q.shift();r&&r()};function later(r){q.push(r);c.port2.postMessage(0)}
+window.requestAnimationFrame=function(cb){later(function(){cb(performance.now())});return 0};
+window.requestIdleCallback=function(cb){later(function(){cb({didTimeout:false,timeRemaining:function(){return 50}})});return 0};})();
+window.PagedConfig = { auto: false };
+</script>
+<script src="/packages/app/node_modules/pagedjs/dist/paged.polyfill.min.js"></script>
+</head><body>
+<div class="doc">
+<h1>Experiment A2</h1>
+<p>Crypt oath tower bridge tide hollow crypt river tide the hollow banner oath. Ledger hollow oath oath hollow ash tower pilgrim tower watcher ash the river. Crypt lantern furnace the banner hollow tide ash salt ash crypt ridge. Bridge vault lantern tower hollow ledger banner salt furnace salt watcher ash. Oath crypt salt crypt pilgrim relic the banner tide marsh relic oath crypt crypt vault.</p>
+<p>Crypt banner furnace vault river hollow hollow river bridge river salt tower the. Salt salt vault lantern tide tide lantern ash crypt relic oath banner watcher pilgrim. Furnace the river vault tide oath lantern ledger salt furnace. Tower lantern relic relic bridge tower ash ash ridge watcher ash tide oath vault. Banner salt pilgrim furnace salt banner watcher furnace oath relic the salt crypt relic the ash tide crypt.</p>
+<p>Lantern relic ridge bridge bridge tide banner hollow the crypt lantern the. Banner ridge furnace crypt tide relic marsh bridge marsh relic bridge tide banner furnace ash. The crypt tower furnace watcher pilgrim banner pilgrim relic marsh salt. Vault tide relic relic pilgrim ridge marsh river relic ledger crypt. Banner pilgrim vault lantern watcher ledger relic crypt marsh banner relic river tide bridge crypt tower salt.</p>
+<p>Watcher banner ridge bridge salt furnace salt crypt salt lantern salt tower ledger the. Tide watcher salt oath pilgrim lantern ridge watcher furnace oath relic pilgrim river crypt furnace vault pilgrim. Lantern watcher ledger salt crypt lantern the hollow vault marsh. Furnace pilgrim the watcher oath salt lantern tide vault relic tower banner oath hollow lantern bridge pilgrim ledger. Oath vault marsh pilgrim banner tower the hollow crypt ash lantern.</p>
+<section class="layout-one"><h2>One column from here</h2><section class="page-art">
+<div class="art-band"><img src="art-top.svg" alt=""></div>
+<p>Pilgrim banner tide watcher watcher salt lantern hollow relic the lantern tower lantern vault. River hollow lantern river watcher watcher hollow relic marsh relic. Bridge ash ash crypt furnace bridge banner ledger relic salt vault. Oath the ash river crypt marsh lantern bridge ridge tide oath ash. Tide salt lantern bridge hollow relic salt salt ridge the.</p>
+<p>Ledger oath banner crypt river salt pilgrim salt tower the relic bridge oath. Vault ridge vault watcher ash vault relic crypt oath vault crypt the hollow tower. Ash lantern watcher river crypt vault ash marsh the relic vault the vault. Furnace crypt furnace river lantern crypt watcher watcher pilgrim vault oath vault oath lantern oath relic crypt. River pilgrim marsh pilgrim ridge tide ash banner bridge tide ash bridge.</p>
+<p>Salt river ash watcher pilgrim salt marsh salt crypt crypt watcher hollow tower ash tower marsh vault hollow. Watcher ridge crypt marsh tower banner ledger tower crypt watcher relic pilgrim oath furnace salt tide crypt. Ledger furnace the banner hollow ash ledger marsh crypt bridge pilgrim relic hollow tower. Hollow tide ledger ridge crypt oath the hollow river ash lantern ridge pilgrim pilgrim river ledger. Pilgrim ledger banner tower marsh tide lantern banner marsh lantern relic marsh salt river.</p>
+<p>Vault river banner furnace lantern bridge ridge crypt relic the the. Relic salt ash hollow river ledger crypt hollow ash tower oath relic vault banner river. Vault ridge watcher banner vault watcher bridge bridge ridge furnace banner vault relic crypt oath watcher. Hollow watcher bridge lantern furnace crypt marsh tower marsh bridge ridge. Vault oath tower relic tide salt oath furnace marsh ridge hollow.</p>
+<p>Marsh river vault marsh oath oath crypt ash bridge vault banner banner ash lantern. Lantern hollow watcher banner pilgrim watcher bridge relic ash ridge oath river. Hollow vault tower banner crypt vault vault crypt vault marsh ledger crypt salt ash tower. Ash ledger oath watcher marsh crypt marsh ledger banner bridge furnace the. Salt ash relic oath crypt furnace hollow watcher furnace hollow the tide ledger the vault pilgrim hollow.</p>
+<p>Watcher ridge ledger ledger watcher ledger lantern watcher ridge vault crypt furnace. Tower ridge river tide lantern the bridge tide pilgrim watcher river hollow. The relic relic relic bridge tower river tide lantern river relic ledger river ledger salt pilgrim hollow relic. Lantern salt river ledger marsh ash hollow hollow river oath salt. Hollow furnace the ridge ridge ash ridge marsh ridge lantern banner bridge bridge.</p>
+<p>Watcher bridge tide ash pilgrim the ledger banner bridge tower ridge oath ledger marsh ledger the marsh. Watcher marsh the tower vault tide marsh ridge hollow marsh lantern the ash ridge relic salt. Lantern pilgrim ash lantern ash hollow the pilgrim pilgrim vault. Hollow ledger marsh relic tide vault bridge vault tide lantern furnace banner ridge furnace hollow pilgrim. Banner the relic bridge relic river lantern salt river crypt tide the vault the river the marsh watcher.</p>
+<p>Hollow lantern ledger watcher relic ledger hollow relic hollow bridge. Ash furnace tide ash river furnace marsh salt vault watcher. Oath relic oath ash marsh ash oath bridge marsh bridge salt ridge pilgrim ridge hollow bridge. Marsh watcher tide ash hollow lantern tower marsh the ridge river vault relic pilgrim. Tide lantern ridge ridge relic bridge the river ledger ash.</p>
+</section></section>
+<p>Relic crypt furnace vault ridge river ledger pilgrim lantern tower tower. Vault pilgrim furnace ledger pilgrim oath watcher salt watcher tide. Oath ledger ridge marsh tide river lantern vault tide the vault ledger banner river vault. Ash pilgrim tide vault hollow bridge ash tide ridge vault furnace tide ridge ash ledger vault oath. Ridge furnace river relic bridge ledger hollow river oath bridge.</p>
+<p>River tide watcher ledger pilgrim bridge lantern relic pilgrim salt ridge river banner ledger relic marsh. Ledger tide ridge oath salt bridge ledger tide salt hollow salt hollow crypt. Furnace the marsh vault the tower furnace watcher watcher lantern. Lantern ledger ledger banner hollow salt lantern bridge ridge ledger furnace tower vault ridge furnace salt ridge. Ledger tower hollow furnace ash bridge marsh salt furnace ridge hollow.</p>
+<p>Oath pilgrim bridge furnace furnace the ridge bridge bridge furnace pilgrim watcher the the tower watcher tower oath. Marsh lantern the ledger ridge bridge bridge oath lantern hollow. Pilgrim the banner salt relic lantern tide oath vault ridge furnace banner. Hollow salt banner relic lantern the salt lantern marsh crypt pilgrim tower salt. Relic oath tower banner the marsh lantern the hollow lantern ridge ridge watcher tide watcher salt bridge watcher.</p>
+<p>Furnace marsh river tower oath vault salt bridge ridge ridge banner banner. Furnace watcher tower crypt relic tower watcher lantern salt hollow pilgrim ridge crypt tide banner the relic. Vault hollow tower banner banner vault salt river bridge lantern watcher hollow ridge ledger furnace bridge marsh ash. Relic lantern banner ledger lantern relic relic tide ash oath furnace lantern tower salt banner salt. Hollow pilgrim ledger river watcher vault vault the furnace river salt.</p>
+</div>
+<script>
+window.addEventListener("load", function () {
+  var t0 = performance.now();
+  window.PagedPolyfill.preview().then(function (f) { document.title = "done " + f.total + " pages " + Math.round(performance.now() - t0) + " ms"; window.__done = { pages: f.total, ms: performance.now() - t0 }; });
+});
+</script>
+</body></html>

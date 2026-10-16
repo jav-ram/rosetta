@@ -253,7 +253,7 @@ These are two different things:
 
 - **`one-column` and `two-column`**: named pages with a different column count on the text area. Straightforward.
 - **`art-full`**: a named page with no margins and the image sized to the page. The page number is drawn on top of the art in its usual position; the theme styles it so it stays legible over any image (for example with a small backing shape). Bleed comes later with print output.
-- **`art-top` / `art-bottom`**: a named page with an enlarged top or bottom margin. The art is placed in that margin area as a Paged.js running element, so the text area shrinks automatically and the columns flow within it.
+- **`art-top` / `art-bottom`**: a named page with an enlarged top or bottom margin. The art is added to the page by a small Paged.js hook (T2.7 found that named pages and running elements lose the layout in force, and cannot take a per-page height): the hook raises the margin before the page is laid out, so the text area shrinks and the columns flow within it.
 - **In the editor**, `::layout` and `::page` appear as page divider blocks showing the template name and an art thumbnail. The live preview shows the real result.
 
 > **Risk:** pinning art to the top or bottom of a page is the hardest layout feature to get right in Paged.js. It gets a technical spike in M2, before the rest of the layout work is built on it.
@@ -470,7 +470,7 @@ If large exports become a problem before a server is justified, the app can be w
 | WebAssembly parser too large to load quickly | Try TinyGo; load the worker lazily; measure in M0 |
 | Markdown round trip loses content or formatting | Golden test suite runs round trips on every change |
 | Paged.js struggles with complex layouts (art, columns, long stat blocks) | Page templates instead of manual tweaks; test with the benchmark book early |
-| Art pinned to the top or bottom of a page does not work well in Paged.js | Spike in M2; fallback is placing the art band at the start of a new page using `figure{span="all"}` |
+| Art pinned to the top or bottom of a page does not work well in Paged.js | Spiked (T2.7, `docs/spikes/art-bands.md`): works with a small `beforePageLayout` hook; the fallback (art at the start of a new page using `figure{span="all"}`) is not needed |
 | Browser export too slow for large books | Expected — this is what the backend solves; Electron as interim option |
 | Browsers render print slightly differently | Chrome / Edge as the reference browser |
 | IndexedDB data lost when users clear browser data | Prompt users to export `.rosetta` backups; File System Access API where available |
