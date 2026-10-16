@@ -58,9 +58,9 @@ body { background: var(--bg); color: var(--text); }
 .error { margin: 16px; color: #b3261e; }
 
 /* How components and text look comes from the theme (content.css). What is left here is the editor's own marks. */
-.rosetta-pagebreak { border-top: 2px dashed var(--line); text-align: center; color: var(--muted); font-size: 0.75rem; }
+.rosetta-pagebreak { border-top: 2px dashed var(--form-line); text-align: center; color: var(--form-muted); font-size: 0.75rem; }
 .rosetta-pagebreak::after { content: "page break"; }
-.rosetta-layout { border-top: 2px dashed var(--accent); text-align: center; color: var(--accent); font-size: 0.75rem; }
+.rosetta-layout { border-top: 2px dashed var(--form-accent); text-align: center; color: var(--form-accent); font-size: 0.75rem; }
 .rosetta-layout::after { content: "new page · layout"; }
 .rosetta-layout[data-template]::after { content: "new page · " attr(data-template) " layout"; }
 
@@ -77,10 +77,23 @@ body { background: var(--bg); color: var(--text); }
 .rosetta-toolbar button:disabled { opacity: 0.35; cursor: default; }
 .rosetta-toolbar button[hidden] { display: none; }
 .rosetta-toolbar-separator { width: 1px; align-self: stretch; margin: 2px 6px; background: var(--line); }
-.visual-editor { flex: 1; overflow: auto; background: var(--panel); }
-/* The page: the theme gives it its fonts, colors and one column's width (content.css). */
-.rosetta-editor { min-height: 100%; padding: 40px 24px 16px; outline: none; }
-.rosetta-editor .selectedCell { background: color-mix(in srgb, var(--accent) 20%, transparent); }
+.visual-editor { flex: 1; overflow: auto; scrollbar-gutter: stable; background: var(--panel); }
+/* The page: the theme gives it its fonts, colors and one column's width (content.css).
+   The page is always the theme's light page, so what sits on it (forms, header, dividers) takes its colors from the
+   theme and not from the app's light or dark mode. These --form-* variables are the one place they are chosen. */
+.rosetta-editor {
+  --form-bg: var(--color-page);
+  --form-panel: var(--color-table-stripe);
+  --form-text: var(--color-text);
+  --form-muted: var(--color-muted);
+  --form-line: var(--color-rule);
+  --form-accent: var(--color-accent);
+  color-scheme: light; /* native parts (select list, checkbox, scrollbars) follow the page, not a dark app */
+  /* Set by the app so the one-column page fills the pane: the page is scaled up as a whole, so text wraps as it will in print. */
+  zoom: var(--editor-zoom, 1);
+  min-height: 100%; padding: 40px 24px 16px; outline: none;
+}
+.rosetta-editor .selectedCell { background: color-mix(in srgb, var(--form-accent) 20%, transparent); }
 .rosetta-editor td > p, .rosetta-editor th > p { margin: 0; }
 .rosetta-editor th, .rosetta-editor td { min-width: 60px; }
 /* The editor's lists and tables are built differently from the parser's HTML; these make them look the same. */
@@ -94,33 +107,39 @@ body { background: var(--bg); color: var(--text); }
 .rosetta-component.has-layout-warning { outline: 2px solid var(--warn); outline-offset: 2px; }
 .rosetta-component.has-layout-warning::before { content: "\26A0  " attr(data-layout-warning); display: block; padding: 4px 10px; background: var(--warn); color: #fff; font: 0.8rem system-ui, sans-serif; }
 .layout-warnings { margin: 0; padding: 8px 16px 8px 32px; background: var(--warn-bg); color: var(--warn); font-size: 0.8rem; border-bottom: 1px solid var(--line); }
-.rosetta-component.is-selected { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rosetta-component.is-selected { outline: 2px solid var(--form-accent); outline-offset: 2px; }
 .rosetta-component-atom { cursor: pointer; }
-.rosetta-component-rendered:empty::before { content: "…"; color: var(--muted); }
-.rosetta-component-container:hover { outline: 1px dashed var(--line); outline-offset: 2px; }
+.rosetta-component-rendered:empty::before { content: "…"; color: var(--form-muted); }
+.rosetta-component-container:hover { outline: 1px dashed var(--form-line); outline-offset: 2px; }
 /* The body of a container is not a box of its own, so the theme's rules for the component's children apply to its content. */
 .rosetta-component-body { display: contents; }
 .rosetta-component-body > :last-child { margin-bottom: 0; }
 /* The attribute form floats above the component while the pointer is over it or the form is in use. */
-.rosetta-component-header { display: none; position: absolute; left: 0; right: 0; bottom: 100%; z-index: 2; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 4px 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px 6px 0 0; color: var(--text); font: 0.8rem system-ui, sans-serif; font-style: normal; }
+.rosetta-component-header { display: none; position: absolute; left: 0; right: 0; bottom: 100%; z-index: 2; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 4px 10px; background: var(--form-panel); border: 1px solid var(--form-line); border-radius: 6px 6px 0 0; color: var(--form-text); font: 0.8rem system-ui, sans-serif; font-style: normal; }
 .rosetta-component-container:hover > .rosetta-component-header, .rosetta-component-header:focus-within { display: flex; }
-.rosetta-component-name { font: 0.75rem ui-monospace, monospace; color: var(--muted); }
+.rosetta-component-name { font: 0.75rem ui-monospace, monospace; color: var(--form-muted); }
 
-/* Forms generated from component definitions */
-.rosetta-form { display: flex; flex-direction: column; gap: 8px; cursor: default; font-size: 0.85rem; }
+/* Forms generated from component definitions. They are on the page, so they use the page's --form-* colors. */
+.rosetta-form { display: flex; flex-direction: column; gap: 8px; cursor: default; font-size: 0.85rem; color: var(--form-text); }
 .rosetta-form-inline { flex-direction: row; flex-wrap: wrap; gap: 8px 12px; }
 .rosetta-form-inline .rosetta-form-section { border: 0; padding: 0; margin: 0; display: contents; }
 .rosetta-form-inline legend { display: none; }
-.rosetta-form-section { border: 0; border-top: 1px solid var(--line); padding: 6px 0 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
-.rosetta-form-section > legend { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding: 0 6px 0 0; }
+.rosetta-form-section { border: 0; border-top: 1px solid var(--form-line); padding: 6px 0 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.rosetta-form-section > legend { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--form-muted); padding: 0 6px 0 0; }
 .rosetta-form-field { display: flex; flex-direction: column; gap: 2px; }
 .rosetta-form-inline .rosetta-form-field { flex-direction: row; align-items: center; gap: 6px; }
 .rosetta-form-boolean { flex-direction: row; align-items: center; gap: 6px; }
-.rosetta-form label { color: var(--muted); font-size: 0.75rem; }
-.rosetta-form input[type="text"], .rosetta-form input[type="number"], .rosetta-form select, .rosetta-form textarea { font: inherit; padding: 3px 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: inherit; }
+.rosetta-form label { color: var(--form-muted); font-size: 0.75rem; }
+.rosetta-form input[type="text"], .rosetta-form input[type="number"], .rosetta-form select, .rosetta-form textarea { font: inherit; padding: 3px 6px; border: 1px solid var(--form-line); border-radius: 4px; background: var(--form-bg); color: var(--form-text); }
+.rosetta-form:not(.rosetta-form-inline) .rosetta-form-field > :is(input[type="text"], input[type="number"], select, textarea) { width: 100%; min-width: 0; }
+.rosetta-form input::placeholder, .rosetta-form textarea::placeholder { color: var(--form-muted); opacity: 1; }
+.rosetta-form :is(input, select, textarea):focus-visible, .rosetta-form button:focus-visible { outline: 2px solid var(--form-accent); outline-offset: 1px; }
+.rosetta-form :is(input, select, textarea, button):disabled { background: var(--form-panel); color: var(--form-muted); cursor: not-allowed; }
+.rosetta-form input[type="checkbox"] { accent-color: var(--form-accent); }
 .rosetta-form textarea { resize: vertical; }
-.rosetta-form-list, .rosetta-form-object { display: flex; flex-direction: column; gap: 6px; padding-left: 10px; border-left: 2px solid var(--line); }
+.rosetta-form-list, .rosetta-form-object { display: flex; flex-direction: column; gap: 6px; padding-left: 10px; border-left: 2px solid var(--form-line); }
 .rosetta-form-item { display: flex; gap: 6px; align-items: flex-start; }
 .rosetta-form-item > .rosetta-form-field { flex: 1; }
-.rosetta-form button { align-self: flex-start; font: inherit; font-size: 0.75rem; padding: 2px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); color: inherit; cursor: pointer; }
+.rosetta-form button { align-self: flex-start; font: inherit; font-size: 0.75rem; padding: 2px 8px; border: 1px solid var(--form-line); border-radius: 4px; background: var(--form-bg); color: var(--form-text); cursor: pointer; }
+.rosetta-form button:hover:not(:disabled) { background: var(--form-panel); }
 .rosetta-toolbar select { max-width: 12rem; font: inherit; font-size: 0.8rem; padding: 2px 4px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); color: inherit; }

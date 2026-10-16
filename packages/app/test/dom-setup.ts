@@ -5,3 +5,12 @@ for (const proto of [Element.prototype, Range.prototype]) {
   proto.getClientRects = rects;
   proto.getBoundingClientRect = () => rect as DOMRect;
 }
+
+// Nor does it have ResizeObserver; nothing here resizes.
+if (typeof ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
