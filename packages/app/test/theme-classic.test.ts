@@ -10,7 +10,9 @@ import { createRequire } from "node:module";
 
 
 const theme = themeJson as Theme;
-const themeCss = readFileSync(createRequire(import.meta.url).resolve("@rosetta/theme-classic/theme.css"), "utf8");
+const read = (file: string) => readFileSync(createRequire(import.meta.url).resolve(`@rosetta/theme-classic/${file}`), "utf8");
+const pagesCss = read("pages.css");
+const themeCss = `${read("content.css")}\n${pagesCss}`;
 
 describe("theme-classic with the theme engine", () => {
   test("the theme follows the theme schema", () => {
@@ -25,7 +27,7 @@ describe("theme-classic with the theme engine", () => {
   });
 
   test("page rules get their values written in, with no variables left", () => {
-    const out = inlinePageVariables(themeCss, resolveTokens(theme));
+    const out = inlinePageVariables(pagesCss, resolveTokens(theme));
     const pageRules = out.slice(out.indexOf("@page"), out.indexOf(".rosetta-document {"));
     expect(pageRules).not.toContain("var(");
     expect(pageRules).toContain("size: A4;");
@@ -35,7 +37,7 @@ describe("theme-classic with the theme engine", () => {
 
   test("a book can change the page size and the body font without touching the CSS", () => {
     const book = { tokens: { "page.size": "letter", "font.body": "Lato, sans-serif" } };
-    expect(inlinePageVariables(themeCss, resolveTokens(theme, book))).toContain("size: letter;");
+    expect(inlinePageVariables(pagesCss, resolveTokens(theme, book))).toContain("size: letter;");
     expect(compileTheme(theme, book)).toContain("--font-body: Lato, sans-serif;");
   });
 

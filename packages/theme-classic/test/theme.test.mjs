@@ -5,10 +5,18 @@ import { declarations, lintCss } from "../lint.mjs";
 
 const read = (name) => readFileSync(new URL(`../${name}`, import.meta.url), "utf8");
 const theme = JSON.parse(read("theme.json"));
-const css = read("theme.css");
+// content.css is how things look (also in the editor); pages.css is pagination (preview and export only).
+const content = read("content.css");
+const pages = read("pages.css");
+const css = `${pages}\n${content}`;
 
 test("the theme's CSS has no hardcoded fonts, colors, borders or spacing", () => {
-  assert.deepEqual(lintCss(css), []);
+  assert.deepEqual(lintCss(content), []);
+  assert.deepEqual(lintCss(pages), []);
+});
+
+test("content.css can be used on screen: no page or flow rules, which belong to pages.css", () => {
+  assert.doesNotMatch(content, /@page|break-(before|after|inside)|string-set|column-(span|count)|orphans|widows|page:/);
 });
 
 test("the lint does catch hardcoded values", () => {

@@ -57,15 +57,12 @@ body { background: var(--bg); color: var(--text); }
 
 .error { margin: 16px; color: #b3261e; }
 
-/* Unstyled until the themes exist (M2); just enough to tell the components apart. */
-.rosetta-readaloud { border-left: 4px solid var(--accent); padding: 4px 16px; background: var(--bg); }
-.rosetta-sidebar, .rosetta-statblock { border: 1px solid var(--line); padding: 8px 16px; }
+/* How components and text look comes from the theme (content.css). What is left here is the editor's own marks. */
 .rosetta-pagebreak { border-top: 2px dashed var(--line); text-align: center; color: var(--muted); font-size: 0.75rem; }
 .rosetta-pagebreak::after { content: "page break"; }
 .rosetta-layout { border-top: 2px dashed var(--accent); text-align: center; color: var(--accent); font-size: 0.75rem; }
-.rosetta-layout::after { content: "new page · " attr(data-template) " layout"; }
-.rosetta-layout:not([data-template])::after { content: "new page · layout"; }
-.rosetta-warning-block, .rosetta-warnings { color: #b3261e; }
+.rosetta-layout::after { content: "new page · layout"; }
+.rosetta-layout[data-template]::after { content: "new page · " attr(data-template) " layout"; }
 
 .tabs { display: flex; gap: 4px; }
 .tabs button { border: 0; border-radius: 6px; padding: 2px 10px; background: none; color: var(--muted); font: inherit; font-size: 0.85rem; cursor: pointer; }
@@ -80,34 +77,34 @@ body { background: var(--bg); color: var(--text); }
 .rosetta-toolbar button:disabled { opacity: 0.35; cursor: default; }
 .rosetta-toolbar button[hidden] { display: none; }
 .rosetta-toolbar-separator { width: 1px; align-self: stretch; margin: 2px 6px; background: var(--line); }
-.visual-editor { flex: 1; overflow: auto; }
-.rosetta-editor { min-height: 100%; padding: 16px 24px; outline: none; line-height: 1.5; }
-.rosetta-editor h1, .rosetta-editor h2, .rosetta-editor h3 { margin: 1em 0 0.4em; line-height: 1.2; }
-.rosetta-editor blockquote { margin: 1em 0; padding-left: 1em; border-left: 3px solid var(--line); color: var(--muted); }
-.rosetta-editor pre { padding: 10px 12px; background: var(--bg); border-radius: 6px; overflow: auto; }
-.rosetta-editor code { background: var(--bg); padding: 0 3px; border-radius: 3px; font-size: 0.9em; }
-.rosetta-editor pre code { padding: 0; }
-.rosetta-editor a { color: var(--accent); }
-.rosetta-editor img { max-width: 100%; }
-.rosetta-editor table { border-collapse: collapse; margin: 1em 0; }
-.rosetta-editor th, .rosetta-editor td { border: 1px solid var(--line); padding: 4px 10px; min-width: 60px; }
-.rosetta-editor th { background: var(--bg); text-align: left; }
+.visual-editor { flex: 1; overflow: auto; background: var(--panel); }
+/* The page: the theme gives it its fonts, colors and one column's width (content.css). */
+.rosetta-editor { min-height: 100%; padding: 40px 24px 16px; outline: none; }
 .rosetta-editor .selectedCell { background: color-mix(in srgb, var(--accent) 20%, transparent); }
 .rosetta-editor td > p, .rosetta-editor th > p { margin: 0; }
+.rosetta-editor th, .rosetta-editor td { min-width: 60px; }
+/* The editor's lists and tables are built differently from the parser's HTML; these make them look the same. */
+.rosetta-editor :is(ul, ol):not([data-tight="false"]) > li > p { margin: 0; }
+.rosetta-editor li > :last-child { margin-bottom: 0; }
+.rosetta-editor.rosetta-document tbody tr:nth-child(even) { background-color: transparent; } /* no <thead>: the header is row 1 */
+.rosetta-editor.rosetta-document tbody tr:nth-child(odd):not(:first-child) { background-color: var(--color-table-stripe); }
 
-/* Components in the editor. Plain frames until the themes exist (M2). */
-.rosetta-component { margin: 1em 0; border: 1px solid var(--line); border-radius: 6px; }
-.rosetta-component.has-layout-warning { border-color: var(--warn); box-shadow: 0 0 0 2px var(--warn); }
-.rosetta-component.has-layout-warning::before { content: "\26A0  " attr(data-layout-warning); display: block; padding: 4px 10px; background: var(--warn); color: #fff; font-size: 0.8rem; border-radius: 5px 5px 0 0; }
+/* Components in the editor. The theme styles the component itself; the frame adds no border, margin or padding. */
+.rosetta-component { position: relative; }
+.rosetta-component.has-layout-warning { outline: 2px solid var(--warn); outline-offset: 2px; }
+.rosetta-component.has-layout-warning::before { content: "\26A0  " attr(data-layout-warning); display: block; padding: 4px 10px; background: var(--warn); color: #fff; font: 0.8rem system-ui, sans-serif; }
 .layout-warnings { margin: 0; padding: 8px 16px 8px 32px; background: var(--warn-bg); color: var(--warn); font-size: 0.8rem; border-bottom: 1px solid var(--line); }
-.rosetta-component.is-selected { outline: 2px solid var(--accent); outline-offset: 1px; }
-.rosetta-component-atom { padding: 4px 12px; cursor: pointer; background: var(--panel); }
+.rosetta-component.is-selected { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rosetta-component-atom { cursor: pointer; }
 .rosetta-component-rendered:empty::before { content: "…"; color: var(--muted); }
-.rosetta-component-rendered .rosetta-statblock, .rosetta-component-rendered .rosetta-sidebar, .rosetta-component-rendered .rosetta-readaloud { margin: 0; }
-.rosetta-component-container { border-style: dashed; }
-.rosetta-component-header { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 4px 10px; background: var(--bg); border-radius: 6px 6px 0 0; font-size: 0.8rem; }
+.rosetta-component-container:hover { outline: 1px dashed var(--line); outline-offset: 2px; }
+/* The body of a container is not a box of its own, so the theme's rules for the component's children apply to its content. */
+.rosetta-component-body { display: contents; }
+.rosetta-component-body > :last-child { margin-bottom: 0; }
+/* The attribute form floats above the component while the pointer is over it or the form is in use. */
+.rosetta-component-header { display: none; position: absolute; left: 0; right: 0; bottom: 100%; z-index: 2; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 4px 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px 6px 0 0; color: var(--text); font: 0.8rem system-ui, sans-serif; font-style: normal; }
+.rosetta-component-container:hover > .rosetta-component-header, .rosetta-component-header:focus-within { display: flex; }
 .rosetta-component-name { font: 0.75rem ui-monospace, monospace; color: var(--muted); }
-.rosetta-component-body { padding: 0 12px; }
 
 /* Forms generated from component definitions */
 .rosetta-form { display: flex; flex-direction: column; gap: 8px; cursor: default; font-size: 0.85rem; }

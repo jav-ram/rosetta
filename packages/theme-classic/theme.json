@@ -59,6 +59,7 @@
     "page.margin-left-single": "28mm",
     "page.margin-right-single": "28mm",
     "page.column-gap": "8mm",
+    "page.column-width": "83mm",
     "page.orphans": "2",
     "page.widows": "2",
 

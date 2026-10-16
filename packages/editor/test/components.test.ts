@@ -210,8 +210,8 @@ describe("rendering is done by the renderer that was passed in", () => {
     editor.commands.insertComponent("dummy-mark");
     editor.commands.setTextSelection(1); // deselect
     await wait();
-    expect(render).toHaveBeenCalledWith("::dummy-mark{n=1}");
-    expect(document.querySelector(".rosetta-component-rendered .from-parser")!.textContent).toBe("17");
+    expect(render).toHaveBeenCalledWith("::dummy-mark{n=1}\n");
+    expect(document.querySelector(".rosetta-component-rendered .from-parser")!.textContent).toBe("18");
     editor.commands.setNodeSelection(find(editor, "dummy-mark").pos);
     editor.commands.setTextSelection(1);
     await wait();
@@ -225,7 +225,7 @@ describe("rendering is done by the renderer that was passed in", () => {
     type(control("title"), "Edited");
     editor.commands.setTextSelection(1);
     await wait();
-    expect(document.querySelector(".rosetta-component-rendered")!.textContent).toBe(":::dummy-data\ntitle: Edited\n:::");
+    expect(document.querySelector(".rosetta-component-rendered")!.textContent).toBe(":::dummy-data\ntitle: Edited\n:::\n");
   });
 
   test("an old result never replaces a newer one", async () => {
@@ -235,10 +235,10 @@ describe("rendering is done by the renderer that was passed in", () => {
     type(control("n"), "5");
     editor.commands.setTextSelection(1); // asks for ::dummy-mark{n=5}
     await wait();
-    expect([...pending.keys()]).toEqual(["::dummy-mark{n=1}", "::dummy-mark{n=5}"]);
-    pending.get("::dummy-mark{n=5}")!("<p>new</p>");
+    expect([...pending.keys()]).toEqual(["::dummy-mark{n=1}\n", "::dummy-mark{n=5}\n"]);
+    pending.get("::dummy-mark{n=5}\n")!("<p>new</p>");
     await wait(10);
-    pending.get("::dummy-mark{n=1}")!("<p>old</p>");
+    pending.get("::dummy-mark{n=1}\n")!("<p>old</p>");
     await wait(10);
     expect(document.querySelector(".rosetta-component-rendered")!.textContent).toBe("new");
   });
@@ -259,7 +259,7 @@ describe("rendering is done by the renderer that was passed in", () => {
       content: { type: "doc", content: [{ type: "directiveLeaf", attrs: { name: "mystery", form: "block", kind: "unknown", raw: "body", attributes: {} } }] },
     });
     await wait();
-    expect(render).toHaveBeenCalledWith(":::mystery\nbody\n:::");
+    expect(render).toHaveBeenCalledWith(":::mystery\nbody\n:::\n");
     select(editor, "mystery");
     expect(document.querySelector(".rosetta-form")).toBeNull();
     expect(document.querySelector(".rosetta-component-rendered .warning")).not.toBeNull();
@@ -294,6 +294,24 @@ describe("container component", () => {
     expect(attrs.attributesRaw).toBeNull();
     expect(document.querySelector('.rosetta-component-header [data-field="title"] input')).toBe(input);
     expect(toMarkdown(editor.getJSON())).toBe(":::dummy-box{title=B wide=true}\nx\n:::\n");
+  });
+
+  test("the frame carries the theme's class and flags, and the title as a heading, as the parser's HTML does", () => {
+    const { editor } = mount({
+      content: { type: "doc", content: [{ type: "directive", attrs: { name: "dummy-box", form: "block", kind: "container", breakable: false, attributes: { title: "## Rumors", class: "wide" } }, content: [{ type: "paragraph", content: [{ type: "text", text: "x" }] }] }] },
+    });
+    const frame = document.querySelector<HTMLElement>(".rosetta-component-container")!;
+    expect(frame.classList.contains("rosetta-dummy-box")).toBe(true);
+    expect(frame.classList.contains("wide")).toBe(true);
+    expect(frame.dataset.breakable).toBe("false");
+    const title = frame.querySelector(":scope > .rosetta-title")!;
+    expect([title.tagName, title.textContent]).toEqual(["H2", "Rumors"]);
+    const input = frame.querySelector<HTMLInputElement>('.rosetta-component-header [data-field="title"] input')!;
+    type(input, "Plain");
+    expect(frame.querySelector(":scope > .rosetta-title")!.tagName).toBe("H3");
+    type(input, "");
+    expect(frame.querySelector(":scope > .rosetta-title")).toBeNull();
+    expect(editor.view.dom.classList.contains("rosetta-document")).toBe(true);
   });
 
   test("another component name is not a container view of the same node", () => {

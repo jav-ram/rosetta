@@ -1,0 +1,48 @@
+name: Pages
+# Publishes the app to GitHub Pages when the "Version packages" PR is merged, so the site changes only on a release.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    # The merge commit of that PR is titled "Version packages (#N)".
+    if: startsWith(github.event.head_commit.message, 'Version packages')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The app build compiles the Go parser to WebAssembly.
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @rosetta/app build
+        env:
+          PAGES_BASE: /${{ github.event.repository.name }}/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: packages/app/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -6,12 +6,14 @@
   "files": [
     "rosetta-package.json",
     "theme.json",
-    "theme.css",
+    "content.css",
+    "pages.css",
     "lint.mjs"
   ],
   "exports": {
     "./theme.json": "./theme.json",
-    "./theme.css": "./theme.css",
+    "./content.css": "./content.css",
+    "./pages.css": "./pages.css",
     "./lint.mjs": "./lint.mjs",
     "./rosetta-package.json": "./rosetta-package.json"
   },
