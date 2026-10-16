@@ -1,5 +1,12 @@
 # @rosetta/editor
 
+## 0.7.1
+
+### Patch Changes
+
+- Updated dependencies [e23941b]
+  - @rosetta/contracts@0.8.0
+
 ## 0.7.0
 
 ### Minor Changes
