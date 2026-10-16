@@ -11,6 +11,10 @@ The language-neutral contracts between Rosetta packages. Everything starts from 
 | `warning.schema.json` | `Warning`: stable `code`, severity, message and source range. |
 | `position.schema.json` | `Position`: a source range. |
 | `theme.schema.json` | `Theme`: a name, design `tokens` (font, color, border, spacing, texture, mask, page) and optional per-component overrides. |
+| `manifest.schema.json` | `Manifest`: a project's `title`, `system`, `theme`, `cover` and the ordered list of `chapters`. In a `.rosetta` file this is `manifest.json`. |
+| `chapter.schema.json` | `Chapter`: a manifest entry, with `id` (never changes), `title` and `start` (`next-page`, or `right-page`). The chapter's text is not part of it. |
+| `asset-ref.schema.json` | `AssetRef`: `id`, `mediaType`, `size` and, when known, `name`, `width`, `height`. |
+| `project-summary.schema.json` | `ProjectSummary`: `id`, `title` and `updatedAt`, what the projects list shows. |
 | `index.schema.json` | Entry point listing all of the above, used for code generation. |
 
 `Node` is one flat shape discriminated by `type` (heading, paragraph, directive, ...), so it maps cleanly to both languages. Directive nodes carry `name`, `form`, `kind`, `attributes` and, depending on the kind, `fields` (data), `children` (container) or `raw` (unknown component).
@@ -34,6 +38,26 @@ doc, err := contracts.ValidateDocument(data) // validates, then decodes into con
 ```
 
 Both validators use the same schemas (the Go module embeds them).
+
+## Project storage
+
+`ProjectStore` (in `src/store.ts`) is the interface all app code uses to read and write projects: `listProjects`, `createProject`, `deleteProject`, `loadManifest`, `saveManifest`, `loadChapter`, `saveChapter`, `putAsset`, `getAsset`. The rules every store follows are written on the interface. The main ones:
+
+- A project is a manifest, the Markdown of each chapter the manifest lists, and assets. The manifest is the list of what exists: a chapter dropped from it loses its text, and renaming or reordering keeps it, because chapter ids never change.
+- Stores return copies, and a save is complete when its promise resolves.
+- Failures are a `ProjectStoreError` with the code `not-found` or `invalid` (a manifest that does not validate, with `validateManifest`, which also checks that chapter ids are unique).
+
+### Store conformance suite
+
+Any store can run the suite from `@rosetta/contracts/store-conformance`. It needs no test runner:
+
+```ts
+import { projectStoreCases } from "@rosetta/contracts/store-conformance";
+
+for (const c of projectStoreCases({ create: async () => new MyStore() })) test(c.name, c.run);
+```
+
+Give the factory a `reopen(store)` that closes the store and opens it again on the same data, and the suite also checks that nothing was lost. `test/memory-store.ts` is a simple in-memory store that passes it, and `test/store.test.ts` checks that the suite fails for stores that break a rule.
 
 ## Generated code
 

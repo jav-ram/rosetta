@@ -24,6 +24,10 @@ const (
 	SchemaWarning             = "warning.schema.json"
 	SchemaPosition            = "position.schema.json"
 	SchemaTheme               = "theme.schema.json"
+	SchemaManifest            = "manifest.schema.json"
+	SchemaChapter             = "chapter.schema.json"
+	SchemaAssetRef            = "asset-ref.schema.json"
+	SchemaProjectSummary      = "project-summary.schema.json"
 )
 
 var (
@@ -107,6 +111,26 @@ func ValidateDocument(data []byte) (*Document, error) {
 		return nil, err
 	}
 	return &d, nil
+}
+
+// ValidateManifest validates and decodes a manifest. Besides the schema it checks what the schema cannot say:
+// chapter ids are unique.
+func ValidateManifest(data []byte) (*Manifest, error) {
+	if err := Validate(SchemaManifest, data); err != nil {
+		return nil, err
+	}
+	var m Manifest
+	if err := json.Unmarshal(data, &m); err != nil {
+		return nil, err
+	}
+	seen := map[Id]bool{}
+	for i, c := range m.Chapters {
+		if seen[c.Id] {
+			return nil, fmt.Errorf("/chapters/%d/id: duplicate chapter id %q", i, c.Id)
+		}
+		seen[c.Id] = true
+	}
+	return &m, nil
 }
 
 //go:embed definitions/m1-components.json

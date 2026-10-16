@@ -117,3 +117,44 @@ func TestTheme(t *testing.T) {
 		t.Fatal("unknown token category should be rejected")
 	}
 }
+
+func TestManifest(t *testing.T) {
+	m, err := ValidateManifest(example(t, "sample-manifest.json"))
+	if err != nil {
+		t.Fatalf("sample manifest should validate: %v", err)
+	}
+	if m.Title != "The Lost Mine" || len(m.Chapters) != 3 || m.Cover.Image.Id != "a1" {
+		t.Fatalf("unexpected decode: %+v", m)
+	}
+	if m.Chapters[1].Start == nil || string(*m.Chapters[1].Start) != "right-page" || m.Chapters[0].Start != nil {
+		t.Fatalf("chapter start not decoded: %+v", m.Chapters)
+	}
+}
+
+func TestManifestRejects(t *testing.T) {
+	for name, json := range map[string]string{
+		"missing title":        `{"rosettaVersion":"0.1","chapters":[]}`,
+		"bad chapter id":       `{"rosettaVersion":"0.1","title":"T","chapters":[{"id":"a b","title":"A"}]}`,
+		"duplicate chapter id": `{"rosettaVersion":"0.1","title":"T","chapters":[{"id":"a","title":"A"},{"id":"a","title":"B"}]}`,
+		"unknown field":        `{"rosettaVersion":"0.1","title":"T","chapters":[],"extra":1}`,
+	} {
+		if _, err := ValidateManifest([]byte(json)); err == nil {
+			t.Errorf("%s: should be rejected", name)
+		}
+	}
+}
+
+func TestAssetRefAndSummary(t *testing.T) {
+	if err := Validate(SchemaAssetRef, []byte(`{"id":"a1","mediaType":"image/png","size":3}`)); err != nil {
+		t.Fatal(err)
+	}
+	if err := Validate(SchemaAssetRef, []byte(`{"id":"a1","mediaType":"png","size":3}`)); err == nil {
+		t.Error("media type without a slash should be rejected")
+	}
+	if err := Validate(SchemaProjectSummary, []byte(`{"id":"p1","title":"T","updatedAt":"2026-10-16T09:30:00Z"}`)); err != nil {
+		t.Fatal(err)
+	}
+	if err := Validate(SchemaProjectSummary, []byte(`{"id":"p1","title":"T","updatedAt":"yesterday"}`)); err == nil {
+		t.Error("a time that is not ISO should be rejected")
+	}
+}

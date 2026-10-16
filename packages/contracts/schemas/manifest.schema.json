@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Manifest",
+  "description": "A project's table of contents and settings: its title, system, theme, the ordered list of chapters and the cover. The order of `chapters` is the order of the book. In a .rosetta file this is manifest.json.",
+  "type": "object",
+  "required": ["rosettaVersion", "title", "chapters"],
+  "additionalProperties": false,
+  "properties": {
+    "rosettaVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+$", "description": "Spec version the project was written for, for example 0.1." },
+    "title": { "type": "string", "minLength": 1 },
+    "system": { "type": "string", "minLength": 1, "description": "Name of the game-system plugin, such as example." },
+    "theme": { "type": "string", "minLength": 1, "description": "Name of the theme, such as classic." },
+    "cover": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string", "minLength": 1, "description": "Text on the cover when it differs from the book's title." },
+        "image": { "$ref": "asset-ref.schema.json" }
+      }
+    },
+    "chapters": {
+      "type": "array",
+      "description": "In book order. Ids are unique within the project (not expressible here; validateManifest checks it).",
+      "items": { "$ref": "chapter.schema.json" }
+    }
+  }
+}

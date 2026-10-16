@@ -1,0 +1,15 @@
+{
+  "rosettaVersion": "0.1",
+  "title": "The Lost Mine",
+  "system": "example",
+  "theme": "classic",
+  "cover": {
+    "title": "The Lost Mine of Karth",
+    "image": { "id": "a1", "name": "cover.png", "mediaType": "image/png", "size": 482113, "width": 1600, "height": 2200 }
+  },
+  "chapters": [
+    { "id": "introduction", "title": "Introduction" },
+    { "id": "character-creation", "title": "Character creation", "start": "right-page" },
+    { "id": "bestiary", "title": "Bestiary" }
+  ]
+}

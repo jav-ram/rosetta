@@ -42,7 +42,7 @@ try {
   writeFileSync(join(root, "src", "generated", "types.ts"), ts);
 
   // Go
-  const files = ["ast", "component-definition", "warning", "position", "theme"].map((n) => join(tmp, `${n}.schema.json`));
+  const files = ["ast", "component-definition", "warning", "position", "theme", "asset-ref", "chapter", "manifest", "project-summary"].map((n) => join(tmp, `${n}.schema.json`));
   const goOut = join(tmp, "types_gen.go");
   execFileSync(
     "go",

@@ -322,3 +322,110 @@ export interface TokenMap {
 export interface TokenMap1 {
   [k: string]: string;
 }
+/**
+ * A project's table of contents and settings: its title, system, theme, the ordered list of chapters and the cover. The order of `chapters` is the order of the book. In a .rosetta file this is manifest.json.
+ *
+ * This interface was referenced by `RosettaContracts`'s JSON-Schema
+ * via the `definition` "Manifest".
+ */
+export interface Manifest {
+  /**
+   * Spec version the project was written for, for example 0.1.
+   */
+  rosettaVersion: string;
+  title: string;
+  /**
+   * Name of the game-system plugin, such as example.
+   */
+  system?: string;
+  /**
+   * Name of the theme, such as classic.
+   */
+  theme?: string;
+  cover?: {
+    /**
+     * Text on the cover when it differs from the book's title.
+     */
+    title?: string;
+    image?: AssetRef;
+  };
+  /**
+   * In book order. Ids are unique within the project (not expressible here; validateManifest checks it).
+   */
+  chapters: Chapter[];
+}
+/**
+ * A reference to a file stored with a project (an image, a font). The store chooses the id when the file is added; the file itself is read with ProjectStore.getAsset. A reference never changes: a stored asset is immutable.
+ *
+ * This interface was referenced by `RosettaContracts`'s JSON-Schema
+ * via the `definition` "AssetRef".
+ */
+export interface AssetRef {
+  /**
+   * Letters, digits, - and _, starting with a letter or digit. Safe in a file name and in a URL.
+   *
+   * This interface was referenced by `AssetRef`'s JSON-Schema
+   * via the `definition` "id".
+   */
+  id: string;
+  /**
+   * The file's original name, for display. Not unique, and not how the asset is found.
+   */
+  name?: string;
+  /**
+   * Lowercase media type, such as image/png. application/octet-stream when unknown.
+   */
+  mediaType: string;
+  /**
+   * Size of the original in bytes.
+   */
+  size: number;
+  /**
+   * Pixel width of an image, when known.
+   */
+  width?: number;
+  /**
+   * Pixel height of an image, when known.
+   */
+  height?: number;
+}
+/**
+ * A chapter as the manifest lists it: its identity and how it starts. The chapter's text (Rosetta Markdown) is not part of this; it is read and written with ProjectStore.loadChapter and saveChapter, by id.
+ *
+ * This interface was referenced by `RosettaContracts`'s JSON-Schema
+ * via the `definition` "Chapter".
+ */
+export interface Chapter {
+  /**
+   * Letters, digits, - and _, starting with a letter or digit. Safe in a file name and in a URL.
+   */
+  id: string;
+  /**
+   * Shown in the chapter list.
+   */
+  title: string;
+  /**
+   * Every chapter starts on a new page. right-page starts it on a right-hand page. Absent means next-page.
+   */
+  start?: "next-page" | "right-page";
+}
+/**
+ * What the projects list shows about a project, without loading it.
+ *
+ * This interface was referenced by `RosettaContracts`'s JSON-Schema
+ * via the `definition` "ProjectSummary".
+ */
+export interface ProjectSummary {
+  /**
+   * Letters, digits, - and _, starting with a letter or digit. Safe in a file name and in a URL.
+   */
+  id: string;
+  /**
+   * The manifest's title.
+   */
+  title: string;
+  /**
+   * UTC time of the last change to the manifest, a chapter or an asset, as an ISO 8601 string.
+   */
+  updatedAt: string;
+}

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AssetRef",
+  "description": "A reference to a file stored with a project (an image, a font). The store chooses the id when the file is added; the file itself is read with ProjectStore.getAsset. A reference never changes: a stored asset is immutable.",
+  "type": "object",
+  "required": ["id", "mediaType", "size"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "$ref": "#/$defs/id" },
+    "name": { "type": "string", "minLength": 1, "description": "The file's original name, for display. Not unique, and not how the asset is found." },
+    "mediaType": { "type": "string", "pattern": "^[a-z0-9][a-z0-9!#$&^_.+-]*/[a-z0-9][a-z0-9!#$&^_.+-]*$", "description": "Lowercase media type, such as image/png. application/octet-stream when unknown." },
+    "size": { "type": "integer", "minimum": 0, "description": "Size of the original in bytes." },
+    "width": { "type": "integer", "minimum": 1, "description": "Pixel width of an image, when known." },
+    "height": { "type": "integer", "minimum": 1, "description": "Pixel height of an image, when known." }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$", "description": "Letters, digits, - and _, starting with a letter or digit. Safe in a file name and in a URL." }
+  }
+}
