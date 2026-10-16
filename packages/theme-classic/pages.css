@@ -1,0 +1,114 @@
+/*
+ * Rosetta Classic, pagination: page size, margins, running header, page numbers, columns, page templates and flow.
+ * Only the preview and the export use this file (Paged.js); the editor uses content.css alone.
+ * No font, color, border or spacing value is written here; each one is read as a CSS variable, defined in theme.json.
+ * `pnpm --filter @rosetta/theme-classic test` checks that (see lint.mjs).
+ *
+ * Content is expected inside an element with the class rosetta-document.
+ */
+
+/* Page: size, margins, running header (chapter title) and page number. */
+@page {
+  size: var(--page-size);
+  margin-top: var(--page-margin-top);
+  margin-bottom: var(--page-margin-bottom);
+  margin-left: var(--page-margin-left);
+  margin-right: var(--page-margin-right);
+
+  @top-center {
+    content: string(chapter);
+    font-family: var(--font-furniture);
+    font-size: var(--font-size-small);
+    color: var(--color-muted);
+    border-bottom: var(--border-rule);
+  }
+
+  @bottom-center {
+    content: counter(page);
+    font-family: var(--font-furniture);
+    font-size: var(--font-size-small);
+    color: var(--color-muted);
+  }
+}
+
+/*
+ * Page templates. Each one is a named page: `@page <name>` for the page (margins, furniture) and, for its columns, a rule on
+ * `.rosetta-document` inside pages of that name (Paged.js puts a copy of it on every page, and gives each page the class
+ * `pagedjs_<name>_page`). The `layout` directive's element selects a template with the `page` property; everything inside it,
+ * on every following page, is on that template, until the next layout. Content before the first layout is on the default
+ * template, which is two-column.
+ */
+@page one-column {
+  margin-left: var(--page-margin-left-single);
+  margin-right: var(--page-margin-right-single);
+}
+
+@page two-column {
+  margin-left: var(--page-margin-left);
+  margin-right: var(--page-margin-right);
+}
+
+.rosetta-document {
+  column-count: var(--page-columns);
+  column-gap: var(--page-column-gap);
+  column-rule: var(--border-column-rule);
+}
+
+.pagedjs_one-column_page .rosetta-document {
+  column-count: var(--page-columns-single);
+}
+
+.rosetta-document > .rosetta-layout {
+  break-before: page;
+}
+
+.rosetta-document > .rosetta-layout[data-template="one-column"] {
+  page: one-column;
+}
+
+.rosetta-document > .rosetta-layout[data-template="two-column"] {
+  page: two-column;
+}
+
+/* Text flow: orphans and widows, and headings stay with what follows. The chapter title (h1) is also the running header. */
+.rosetta-document {
+  orphans: var(--page-orphans);
+  widows: var(--page-widows);
+}
+
+.rosetta-document h1,
+.rosetta-document h2,
+.rosetta-document h3,
+.rosetta-document h4,
+.rosetta-document h5,
+.rosetta-document h6 {
+  break-after: avoid;
+}
+
+.rosetta-document h1 {
+  string-set: chapter content(text);
+  column-span: all;
+}
+
+/* A table header row repeats on continued tables. */
+.rosetta-document thead {
+  display: table-header-group;
+}
+
+/*
+ * Flow. Text, lists and tables split where a column ends; these never split and move whole to the next column.
+ * Components say which they are: the parser writes data-breakable="false" from the component's definition,
+ * so a component added later follows the same rule without a line here.
+ */
+.rosetta-document [data-breakable="false"],
+.rosetta-document img,
+.rosetta-document figure,
+.rosetta-document li,
+.rosetta-document tr {
+  break-inside: avoid;
+}
+
+/* Page break. */
+.rosetta-pagebreak {
+  break-after: page;
+}

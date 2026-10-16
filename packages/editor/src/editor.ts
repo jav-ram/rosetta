@@ -16,7 +16,7 @@ export function createEditor({ element, content = "", onUpdate, components, rend
     element,
     content,
     extensions: standardExtensions({ components, renderComponent }),
-    editorProps: { attributes: { class: "rosetta-editor", role: "textbox", "aria-multiline": "true", "aria-label": "Chapter text" } },
+    editorProps: { attributes: { class: "rosetta-editor rosetta-document", role: "textbox", "aria-multiline": "true", "aria-label": "Chapter text" } },
     onUpdate: ({ editor }) => onUpdate?.(editor),
   });
 }

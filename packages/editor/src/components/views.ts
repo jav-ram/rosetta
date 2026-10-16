@@ -2,7 +2,7 @@ import type { NodeViewRendererProps } from "@tiptap/core";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import { toMarkdown } from "../save";
 import { createForm, type Form, type FormValue } from "./form";
-import type { Registry } from "./registry";
+import type { Definition, Registry } from "./registry";
 import type { RenderComponent } from "./render";
 
 export interface ViewOptions {
@@ -18,12 +18,49 @@ const attrsOf = (node: PMNode) => ({
   fields: ((node.attrs.fields ?? {}) as Record<string, unknown>) ?? {},
 });
 
+/**
+ * The frame of a component: `data-component` and `data-kind`, as in the parser's HTML.
+ */
 function frame(node: PMNode, extra: string): HTMLDivElement {
   const dom = document.createElement("div");
   dom.className = `rosetta-component ${extra}`;
   dom.dataset.component = node.attrs.name;
   dom.dataset.kind = node.attrs.kind;
   return dom;
+}
+
+/** A container's frame is the component's element, so it takes the theme's classes and flags as the parser's HTML has them. */
+function themed(dom: HTMLElement, node: PMNode, def?: Definition) {
+  const custom = ((node.attrs.attributes ?? {}) as Record<string, string>).class;
+  dom.classList.add(`rosetta-${node.attrs.name}`, ...(custom ? custom.split(/\s+/).filter(Boolean) : []));
+  const breakable = node.attrs.breakable ?? def?.breakable;
+  if (breakable !== undefined && breakable !== null) dom.dataset.breakable = String(breakable);
+}
+
+/** A title attribute is read like a Markdown heading: one to six leading "#" set the level, otherwise it is an h3. */
+export function parseTitle(value: string | undefined): { level: number; text: string } | null {
+  const s = (value ?? "").trim();
+  const hashes = /^#{1,6}(?=\s|$)/.exec(s)?.[0].length ?? 0;
+  const text = hashes ? s.slice(hashes).trim() : s;
+  return text ? { level: hashes || 3, text } : null;
+}
+
+/** Shows (or removes) the title heading of a container, as the preview's HTML has it. */
+function drawTitle(dom: HTMLElement, before: Node, node: PMNode) {
+  const current = dom.querySelector(":scope > .rosetta-title");
+  const title = parseTitle(((node.attrs.attributes ?? {}) as Record<string, string>).title);
+  if (!title) return void current?.remove();
+  const tag = `h${title.level}`;
+  if (current && current.tagName.toLowerCase() === tag) {
+    current.textContent = title.text;
+    return;
+  }
+  const heading = document.createElement(tag);
+  heading.className = "rosetta-title";
+  heading.contentEditable = "false";
+  heading.textContent = title.text;
+  if (current) current.replaceWith(heading);
+  else dom.insertBefore(heading, before);
 }
 
 /** Writes new attributes into the node. The text the author wrote for them is dropped, so the new values are what gets saved. */
@@ -41,6 +78,7 @@ export function containerView(options: ViewOptions) {
     let node = props.node;
     const def = options.registry.get(node.attrs.name);
     const dom = frame(node, "rosetta-component-container");
+    themed(dom, node, def);
     const header = document.createElement("div");
     header.className = "rosetta-component-header";
     header.contentEditable = "false";
@@ -51,6 +89,7 @@ export function containerView(options: ViewOptions) {
     const contentDOM = document.createElement("div");
     contentDOM.className = "rosetta-component-body";
     dom.append(header, contentDOM);
+    drawTitle(dom, contentDOM, node);
 
     // Attributes are edited in a small form in the header. It is built once and kept while typing.
     let form: Form | null = null;
@@ -66,6 +105,7 @@ export function containerView(options: ViewOptions) {
       update(updated: PMNode) {
         if (updated.type !== node.type || updated.attrs.name !== node.attrs.name) return false;
         node = updated;
+        drawTitle(dom, contentDOM, node);
         if (form && !form.shows({ ...attrsOf(node), fields: {} })) form.set({ ...attrsOf(node), fields: {} });
         return true;
       },
@@ -85,7 +125,7 @@ export function atomView(options: ViewOptions) {
     const def = options.registry.get(node.attrs.name);
     const hasForm = !!def && (!!def.fields?.length || !!def.attributes?.length);
 
-    const dom = frame(node, "rosetta-component-atom");
+    const dom = frame(node, "rosetta-component-atom"); // the parser's HTML inside is the component's element
     dom.contentEditable = "false";
     const rendered = document.createElement("div");
     rendered.className = "rosetta-component-rendered";
@@ -99,14 +139,15 @@ export function atomView(options: ViewOptions) {
     let timer: ReturnType<typeof setTimeout> | null = null;
     let version = 0;
 
-    const markdown = () => toMarkdown({ type: "doc", content: [node.toJSON()] }).replace(/\n$/, "");
+    // The final newline stays: the parser reads a closing `:::` with no newline after it as text.
+    const markdown = () => toMarkdown({ type: "doc", content: [node.toJSON()] });
 
     function draw() {
       if (selected && form) return;
       const mine = ++version;
       const source = markdown();
       if (!options.render) {
-        rendered.textContent = source;
+        rendered.textContent = source.trimEnd();
         return;
       }
       options.render(source).then(
