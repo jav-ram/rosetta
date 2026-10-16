@@ -260,3 +260,83 @@ The lantern tower lantern river lantern river crypt bridge ledger. River ash vau
 
 Crypt hollow furnace ridge bridge salt salt river marsh bridge the the tide lantern relic vault watcher. Hollow tower lantern ledger salt tower relic vault bridge relic hollow watcher oath ledger furnace salt relic. Banner oath lantern furnace furnace bridge hollow ash relic watcher banner watcher bridge ledger hollow vault.
 
+## Statblocks fill the left column first
+
+Seven statblocks in a row. The left column fills to the bottom of the page before anything goes to the right one, on every page including the last, and no statblock is split.
+
+:::statblock{system="5e"}
+name: Bone Warden
+size: Medium undead
+ac: 15
+hp: 52 (8d8+16)
+speed: 30 ft.
+traits:
+  - name: Brittle
+    text: Takes **double** damage from bludgeoning.
+:::
+
+:::statblock{system="5e"}
+name: Ash Wraith
+size: Medium undead
+ac: 15
+hp: 52 (8d8+16)
+speed: 30 ft.
+traits:
+  - name: Brittle
+    text: Takes **double** damage from bludgeoning.
+:::
+
+:::statblock{system="5e"}
+name: Crypt Hound
+size: Medium undead
+ac: 15
+hp: 52 (8d8+16)
+speed: 30 ft.
+traits:
+  - name: Brittle
+    text: Takes **double** damage from bludgeoning.
+:::
+
+:::statblock{system="5e"}
+name: Tomb Sentinel
+size: Medium undead
+ac: 15
+hp: 52 (8d8+16)
+speed: 30 ft.
+traits:
+  - name: Brittle
+    text: Takes **double** damage from bludgeoning.
+:::
+
+:::statblock{system="5e"}
+name: Grave Moth
+size: Medium undead
+ac: 15
+hp: 52 (8d8+16)
+speed: 30 ft.
+traits:
+  - name: Brittle
+    text: Takes **double** damage from bludgeoning.
+:::
+
+:::statblock{system="5e"}
+name: Salt Ghoul
+size: Medium undead
+ac: 15
+hp: 52 (8d8+16)
+speed: 30 ft.
+traits:
+  - name: Brittle
+    text: Takes **double** damage from bludgeoning.
+:::
+
+:::statblock{system="5e"}
+name: Lantern Shade
+size: Medium undead
+ac: 15
+hp: 52 (8d8+16)
+speed: 30 ft.
+traits:
+  - name: Brittle
+    text: Takes **double** damage from bludgeoning.
+:::

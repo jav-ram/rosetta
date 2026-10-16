@@ -144,6 +144,23 @@ function findOversized(doc) {
   return found.sort(function (a, b) { return a.index - b.index; });
 }`;
 
+/**
+ * After layout: marks each page whose columns can fill one after the other with the class `rosetta-filled`, which the theme
+ * uses to turn off column balancing (`column-fill: auto` at the height of the page).
+ *
+ * Paged.js cannot lay out with `column-fill: auto`: it finds where a page is full by looking at the height of the column box,
+ * and a box of fixed height never looks full (the overflow goes into extra columns beside the page, which it does not see).
+ * So the pages are laid out with balanced columns, which is what Paged.js needs, and filled left to right afterwards. The same
+ * content always fits: filling in order is never worse than balancing the same content. A page with an oversized component is
+ * left balanced, because that component runs past the bottom of the page and fixed-height columns would split it.
+ * Runs in the preview document, after `findOversized`. Exported as source.
+ */
+export const FILL_COLUMNS_SCRIPT = `function fillColumns(doc) {
+  doc.querySelectorAll(".pagedjs_page").forEach(function (page) {
+    if (!page.querySelector("[data-layout-warning]")) page.classList.add("rosetta-filled");
+  });
+}`;
+
 const PLACEHOLDER =
   "data:image/svg+xml;utf8," +
   encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="250"><rect width="400" height="250" fill="#d9d9d9"/></svg>');
@@ -184,6 +201,7 @@ export function buildDocument(input: PreviewInput, options: { pagedUrl: string; 
   if (!window.PagedPolyfill) { send({ error: "Paged.js did not load" }); return; }
   ${OVERSIZED_SCRIPT}
   ${TABLE_HEADER_SCRIPT}
+  ${FILL_COLUMNS_SCRIPT}
   try { installTableHeaderRepeat(window.PagedPolyfill.chunker.hooks); } catch (e) { /* the pages are laid out without repeated headers */ }
   numberBlocks(document);
   var start = performance.now();
@@ -192,6 +210,7 @@ export function buildDocument(input: PreviewInput, options: { pagedUrl: string; 
       var layoutMs = performance.now() - start;
       var oversized = [];
       try { oversized = findOversized(document); } catch (e) { /* the pages are shown without the check */ }
+      try { fillColumns(document); } catch (e) { /* the columns stay balanced */ }
       send({ pages: flow.total, layoutMs: layoutMs, oversized: oversized });
     },
     function (e) { send({ error: String((e && e.message) || e) }); }

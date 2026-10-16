@@ -70,6 +70,17 @@
   page: two-column;
 }
 
+/*
+ * Columns fill one after the other: the first column to the bottom of the page, then the next. A browser balances columns by
+ * default, which splits the content of a page that is not full (the last page of a chapter, the page before a layout change)
+ * evenly, so content goes to the right column while the left still has room. Paged.js can only lay pages out with balanced
+ * columns, so the preview adds `rosetta-filled` to each page once the layout is done, and the columns are filled in order then.
+ */
+.pagedjs_page.rosetta-filled .rosetta-document {
+  column-fill: auto;
+  height: 100%;
+}
+
 /* Text flow: orphans and widows, and headings stay with what follows. The chapter title (h1) is also the running header. */
 .rosetta-document {
   orphans: var(--page-orphans);
