@@ -1,5 +1,16 @@
 # @rosetta/app
 
+## 0.11.1
+
+### Patch Changes
+
+- Updated dependencies [e23941b]
+  - @rosetta/contracts@0.8.0
+  - @rosetta/editor@0.7.1
+  - @rosetta/parser-wasm@0.2.4
+  - @rosetta/preview@0.3.2
+  - @rosetta/theme-engine@0.2.2
+
 ## 0.11.0
 
 ### Minor Changes

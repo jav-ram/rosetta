@@ -1,5 +1,12 @@
 # @rosetta/preview
 
+## 0.3.2
+
+### Patch Changes
+
+- Updated dependencies [e23941b]
+  - @rosetta/contracts@0.8.0
+
 ## 0.3.1
 
 ### Patch Changes
