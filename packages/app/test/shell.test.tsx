@@ -3,7 +3,7 @@ import { expect, test } from "vitest";
 import { ChapterSidebar } from "../src/components/ChapterSidebar";
 import { EditorPane } from "../src/components/EditorPane";
 import { PreviewPane } from "../src/components/PreviewPane";
-import { sampleChapters } from "../src/sample";
+import { sampleChapters } from "./sample-chapters";
 
 const noop = () => {};
 

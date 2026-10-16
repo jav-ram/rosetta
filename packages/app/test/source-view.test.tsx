@@ -7,6 +7,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 import "./dom-setup";
+import { seed } from "./seed";
 
 // The Visual and Markdown views of a chapter, in the whole app, with the real editor and the real parser.
 
@@ -41,7 +42,10 @@ async function start() {
   const host = document.body.appendChild(document.createElement("div"));
   const root = createRoot(host);
   roots.push({ root, host });
-  await act(async () => root.render(<Workspace />));
+  const { store, project } = await seed();
+  await act(async () => root.render(<Workspace store={store} project={project} />));
+  // The project opens, then its first chapter is read from the store, and only then is there an editor.
+  for (let i = 0; i < 50 && !document.querySelector(".visual-editor .ProseMirror"); i++) await act(async () => void (await new Promise((r) => setTimeout(r, 50))));
   await settle();
 }
 

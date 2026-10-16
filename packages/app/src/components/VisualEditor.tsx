@@ -78,6 +78,14 @@ export function VisualEditor({ chapterId, markdown, parsed, layoutWarnings, visi
     // `save` only reads refs, so it is not a dependency.
   }, []);
 
+  // The tab being hidden (or the page closing) must not leave typed text unsaved.
+  useEffect(() => {
+    const hidden = () => document.hidden && pending.current && save();
+    document.addEventListener("visibilitychange", hidden);
+    return () => document.removeEventListener("visibilitychange", hidden);
+    // `save` only reads refs, so it is not a dependency.
+  }, []);
+
   // Going to the Markdown view: it must show everything typed so far, and the pending save must not land later on top of its edits.
   useEffect(() => {
     if (!visible && pending.current) save();

@@ -1,4 +1,4 @@
-/** Placeholder project shown until storage exists (M3). */
+/** The chapters of a small sample project, for tests that need a project with text in it. */
 export interface Chapter {
   id: string;
   title: string;
