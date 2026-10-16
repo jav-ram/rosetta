@@ -53,11 +53,13 @@ Nothing is rendered by the editor itself: it writes one component as Markdown (w
 | Kind | Node | In the editor |
 |---|---|---|
 | container | `directive` | A frame with the component's attributes in a header (a small form) and editable blocks inside. |
-| data | `directiveLeaf` | The parser's rendering. **Selecting it opens a form** made from its definition; leaving it renders the new values. |
+| data | `directiveLeaf` | The parser's rendering. **Selecting it makes the values editable where they are shown** (see below); leaving it renders the new values. |
 | leaf | `directiveLeaf` | The parser's rendering; a form for its attributes while selected. |
 | unknown (no definition) | `directiveLeaf` | The parser's rendering (a visible warning block). No form. |
 
-The form has a control for each attribute and field by type: text (one line when `plain`, otherwise a text area, because it is Markdown), number, checkbox, select for enums, an add/remove list for lists, and a group for objects. Values are written in the order of the definition, and empty values are left out.
+**Editing in place.** When the editor has a renderer, a data component is edited as it looks. The component is rendered by the parser with every field present (a field with no value gets a stand-in, so it has a place), and each value in that HTML is replaced by a control of its type that takes the value's font, color and size: the theme styles it as it styles the rendered component, so it does not change shape. A list gets a × on each item and an add button; the attributes are in a small header above. Markdown text is edited as its source (`**bold**`). A required value that is empty is marked, and the parser's warnings show once the component is closed. This is driven by the definition (`createInline`), so any data component gets it, and the stand-ins are never saved. If there is no renderer, or its HTML is not shaped like the parser's, the component is edited in the form below.
+
+The form (leaf components' attributes, and the fallback) has a control for each attribute and field by type: text (one line when `plain`, otherwise a text area, because it is Markdown), number, checkbox, select for enums, an add/remove list for lists, and a group for objects. Values are written in the order of the definition, and empty values are left out.
 
 **Editing a component drops the text the author wrote** for what was edited (`raw` for fields, `attributesRaw` for attributes), so the new values are what gets saved. Anything that edits `fields` or `attributes` must do the same.
 

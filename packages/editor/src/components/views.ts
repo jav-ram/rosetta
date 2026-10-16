@@ -1,8 +1,9 @@
 import type { NodeViewRendererProps } from "@tiptap/core";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import { toMarkdown } from "../save";
-import { createForm, type Form, type FormValue } from "./form";
-import type { Definition, Registry } from "./registry";
+import { createForm, normalizeFields, type Form, type FormValue } from "./form";
+import { createInline, skeleton, type Fields } from "./inline";
+import { deepEqual, type Definition, type Registry } from "./registry";
 import type { RenderComponent } from "./render";
 
 export interface ViewOptions {
@@ -135,6 +136,9 @@ export function atomView(options: ViewOptions) {
     dom.append(rendered, formHost);
 
     let form: Form | null = null;
+    // A data component is edited where it is shown (`inline.ts`) when there is a renderer to show it with; otherwise in a form.
+    let inline: { model: Fields; header: HTMLElement | null; headerForm: Form | null } | null = null;
+    let opened = 0; // counts openings, so a render that comes back after the component was closed or opened again is dropped
     let selected = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
     let version = 0;
@@ -143,7 +147,7 @@ export function atomView(options: ViewOptions) {
     const markdown = () => toMarkdown({ type: "doc", content: [node.toJSON()] });
 
     function draw() {
-      if (selected && form) return;
+      if (selected && (form || inline)) return;
       const mine = ++version;
       const source = markdown();
       if (!options.render) {
@@ -165,8 +169,65 @@ export function atomView(options: ViewOptions) {
       timer = setTimeout(draw, 120);
     };
 
-    function openForm() {
+    const editsInline = () => !!options.render && !!def && node.attrs.kind === "data" && !!def.fields?.length;
+
+    const skeletonMarkdown = (model: Fields) =>
+      toMarkdown({ type: "doc", content: [{ ...node.toJSON(), attrs: { ...node.attrs, fields: skeleton(def!, model), raw: null } }] });
+
+    function commit(fields: Fields) {
+      const pos = props.getPos();
+      if (pos === undefined) return;
+      // Editing the values drops the text the author wrote for them, so the new values are what gets saved.
+      props.view.dispatch(props.view.state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, fields: normalizeFields(fields, def!), raw: null }));
+    }
+
+    /** Shows the component as the parser renders it, with a control in place of each value. Falls back to the form if that cannot be done. */
+    async function showInline(model: Fields, focusPath?: string) {
+      const mine = ++opened;
+      let html: string;
+      try {
+        html = await options.render!(skeletonMarkdown(model));
+      } catch {
+        if (mine === opened && selected) openForm(true);
+        return;
+      }
+      if (mine !== opened || !selected) return;
+      const made = createInline({
+        def: def!,
+        html,
+        fields: model,
+        focusPath,
+        onEdit: commit,
+        onStructure: (fields, focus) => void showInline(fields, focus),
+      });
+      if (!made) return void openForm(true);
+      if (!inline) {
+        const header = def!.attributes?.length ? document.createElement("div") : null;
+        let headerForm: Form | null = null;
+        if (header) {
+          header.className = "rosetta-component-header rosetta-inline-header";
+          const name = document.createElement("span");
+          name.className = "rosetta-component-name";
+          name.textContent = node.attrs.name;
+          headerForm = createForm({ ...def!, fields: undefined }, { ...attrsOf(node), fields: {} }, (value: FormValue) => patchAttributes(props, node, value.attributes));
+          headerForm.element.classList.add("rosetta-form-inline");
+          header.append(name, headerForm.element);
+        }
+        inline = { model, header, headerForm };
+      }
+      inline.model = model;
+      formHost.replaceChildren(...(inline.header ? [inline.header] : []), made.element);
+      formHost.hidden = false;
+      rendered.hidden = true;
+    }
+
+    function openForm(plain = false) {
       if (!hasForm || !def) return;
+      if (!plain && editsInline()) {
+        void showInline(structuredClone(attrsOf(node).fields) as Fields);
+        return;
+      }
+      inline = null;
       const value = attrsOf(node);
       form = createForm(def, value, (next) => {
         const pos = props.getPos();
@@ -191,7 +252,12 @@ export function atomView(options: ViewOptions) {
       update(updated: PMNode) {
         if (updated.type !== node.type || updated.attrs.name !== node.attrs.name) return false;
         node = updated;
-        if (form) {
+        if (inline) {
+          const { fields } = attrsOf(node);
+          if (inline.headerForm && !inline.headerForm.shows({ ...attrsOf(node), fields: {} })) inline.headerForm.set({ ...attrsOf(node), fields: {} });
+          // changed from outside, for example by undo: show the new values
+          if (!deepEqual(normalizeFields(inline.model, def!), normalizeFields(fields as Fields, def!))) void showInline(structuredClone(fields) as Fields);
+        } else if (form) {
           if (!form.shows(attrsOf(node))) form.set(attrsOf(node)); // changed from outside, for example by undo
         } else drawSoon();
         return true;
@@ -205,6 +271,8 @@ export function atomView(options: ViewOptions) {
         selected = false;
         dom.classList.remove("is-selected");
         form = null;
+        inline = null;
+        opened++;
         formHost.replaceChildren();
         formHost.hidden = true;
         rendered.hidden = false;
@@ -216,6 +284,7 @@ export function atomView(options: ViewOptions) {
       destroy() {
         if (timer) clearTimeout(timer);
         version++;
+        opened++;
       },
     };
     return view as unknown as NodeView;

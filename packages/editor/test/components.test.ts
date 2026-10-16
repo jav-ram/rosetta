@@ -203,6 +203,52 @@ describe("data component: rendered output, or a form while selected", () => {
   });
 });
 
+describe("editing in place", () => {
+  test("a data component is rendered with every field present, so each value has a place to be edited", async () => {
+    const render = vi.fn(async (md: string) => `<pre>${md}</pre>`);
+    const { editor } = mount({ renderComponent: render });
+    editor.commands.insertComponent("dummy-data");
+    await wait();
+    const asked = render.mock.calls.map((c) => c[0]).find((md) => md.includes("rows:"))!;
+    expect(asked).toContain(":::dummy-data");
+    // what is empty gets a stand-in of the right type: text, 0, false, the first enum value, and one item of each list
+    for (const line of ["title: x", "notes: x", "count: 0", "flag: false", "level: low", "tags:", "rows:", "box:"]) expect(asked, line).toContain(line);
+    expect(asked).toMatch(/tags:\n {2}- x/);
+    expect(asked).toMatch(/rows:\n {2}- k: x\n {4}v: 0/);
+    // and the stand-ins are not saved: the node still has no fields
+    expect(find(editor, "dummy-data").attrs.fields ?? {}).toEqual({});
+  });
+
+  test("HTML that is not shaped like the parser's falls back to the form, with the same controls", async () => {
+    const { editor } = mount({ renderComponent: async () => "<p>not a component</p>" });
+    editor.commands.insertComponent("dummy-data");
+    await wait();
+    expect(document.querySelector(".rosetta-inline")).toBeNull();
+    expect(control("title")).toMatchObject({ tagName: "INPUT", type: "text" });
+  });
+
+  test("a renderer that fails also falls back to the form", async () => {
+    const { editor } = mount({ renderComponent: () => Promise.reject(new Error("worker is down")) });
+    editor.commands.insertComponent("dummy-data");
+    await wait();
+    expect(control("title")).toBeTruthy();
+  });
+
+  test("without a renderer there is a form, as before", () => {
+    const { editor } = mount();
+    editor.commands.insertComponent("dummy-data");
+    expect(control("title")).toBeTruthy();
+    expect(document.querySelector(".rosetta-inline")).toBeNull();
+  });
+
+  test("a leaf component keeps its form even with a renderer, since it has no values to show", async () => {
+    const { editor } = mount({ renderComponent: async () => "<div></div>" });
+    editor.commands.insertComponent("dummy-mark");
+    await wait();
+    expect(control("n")).toBeTruthy();
+  });
+});
+
 describe("rendering is done by the renderer that was passed in", () => {
   test("the component's Markdown goes in, its HTML is shown, and nothing is rendered twice", async () => {
     const render = vi.fn(async (md: string) => `<div class="from-parser">${md.length}</div>`);
@@ -219,9 +265,10 @@ describe("rendering is done by the renderer that was passed in", () => {
   });
 
   test("after editing, the new Markdown is rendered when the form closes", async () => {
-    const render = vi.fn(async (md: string) => `<pre>${md}</pre>`);
+    const render = vi.fn(async (md: string) => `<pre>${md}</pre>`); // not the parser's shape, so the component is edited in a form
     const { editor } = mount({ renderComponent: render });
     editor.commands.insertComponent("dummy-data");
+    await wait();
     type(control("title"), "Edited");
     editor.commands.setTextSelection(1);
     await wait();
