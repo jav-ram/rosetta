@@ -58,11 +58,11 @@ async function settle(ms = 500) {
 }
 
 async function start() {
-  const { App } = await import("../src/App");
+  const { Workspace } = await import("../src/Workspace");
   const host = document.body.appendChild(document.createElement("div"));
   const root = createRoot(host);
   roots.push({ root, host });
-  await act(async () => root.render(<App />));
+  await act(async () => root.render(<Workspace />));
   await settle();
 }
 

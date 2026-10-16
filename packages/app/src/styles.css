@@ -27,6 +27,26 @@
 html, body, #root { height: 100%; margin: 0; }
 body { background: var(--bg); color: var(--text); }
 
+/* The list of projects. */
+.projects { max-width: 640px; margin: 0 auto; padding: 48px 16px; }
+.projects h1 { margin: 0 0 24px; font-size: 1.5rem; }
+.projects button, .topbar .link { font: inherit; font-size: 0.85rem; padding: 4px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: inherit; cursor: pointer; }
+.projects button:hover:not(:disabled), .topbar .link:hover { background: var(--bg); }
+.projects button:disabled { opacity: 0.4; cursor: default; }
+.projects button.danger { border-color: var(--warn); color: var(--warn); }
+.projects input[type="text"] { flex: 1; font: inherit; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: inherit; }
+.projects-new, .projects-rename { display: flex; gap: 8px; margin-bottom: 16px; }
+.projects-rename { margin: 0; flex: 1; }
+.projects-error { margin: 0 0 16px; padding: 8px 12px; border-radius: 6px; background: var(--warn-bg); color: var(--warn); }
+.projects-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+.projects-list li { display: flex; align-items: center; gap: 8px; padding: 8px 12px; }
+.projects-list li + li { border-top: 1px solid var(--line); }
+.projects-list li > button.projects-open { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 0; background: none; padding: 4px 0; font-size: 1rem; }
+.projects-list li > button.projects-open:hover { background: none; color: var(--accent); }
+.projects-confirm { display: flex; align-items: center; gap: 8px; flex: 1; }
+.projects-confirm > span { flex: 1; }
+.topbar .link { color: var(--accent); }
+
 /* Desktop layout: chapters | editor | preview. */
 .shell {
   display: grid;

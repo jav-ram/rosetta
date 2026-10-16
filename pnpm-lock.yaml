@@ -35,6 +35,9 @@ importers:
       '@rosetta/preview':
         specifier: workspace:^
         version: link:../preview
+      '@rosetta/store-local':
+        specifier: workspace:^
+        version: link:../store-local
       '@rosetta/theme-classic':
         specifier: workspace:^
         version: link:../theme-classic
@@ -60,6 +63,9 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^5.2.0
         version: 5.2.0(vite@7.3.7(@types/node@26.6.4)(yaml@2.9.1))
+      fake-indexeddb:
+        specifier: ^6.2.6
+        version: 6.2.6
       jsdom:
         specifier: ^30.1.2
         version: 30.1.2
