@@ -7,6 +7,7 @@ export { fromAst, type LoadedDocument } from "./load";
 export { Directive, DirectiveLeaf, componentsOf, newComponent } from "./directive";
 export { createRegistry, type Definition, type Registry } from "./components/registry";
 export { createForm, type Form, type FormValue } from "./components/form";
+export { createInline, skeleton, type Inline, type InlineOptions } from "./components/inline";
 export type { RenderComponent } from "./components/render";
 export type { ComponentOptions } from "./extensions";
 export { setLayoutWarnings, type LayoutWarning } from "./layout-warnings";

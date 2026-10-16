@@ -18,8 +18,10 @@ const data: ComponentDefinition = {
     { name: "notes", type: "string" },
     { name: "count", type: "number" },
     { name: "flag", type: "boolean" },
+    { name: "level", type: "enum", values: ["low", "high"] },
     { name: "tags", type: "list", items: { name: "tag", type: "string", plain: true } },
     { name: "rows", type: "list", items: { name: "row", type: "object", fields: [{ name: "k", type: "string", plain: true }, { name: "v", type: "number" }] } as never },
+    { name: "box", type: "object", fields: [{ name: "w", type: "number" }, { name: "h", type: "number" }] as never },
   ],
 };
 const box: ComponentDefinition = { name: "dummy-box", form: "block", kind: "container", breakable: true, attributes: [{ name: "title", type: "string" }] };
@@ -50,7 +52,16 @@ const type = (el: Element, value: string) => {
   (el as HTMLInputElement).value = value;
   el.dispatchEvent(new Event("input", { bubbles: true }));
 };
+// A data component's values are edited in place, found by path; a leaf's attributes are in a form.
 const control = (name: string) => document.querySelector<HTMLInputElement>(`.rosetta-form [data-field="${name}"] input, .rosetta-form [data-field="${name}"] textarea, .rosetta-form [data-field="${name}"] select`)!;
+const inplace = (path: string) => document.querySelector<HTMLInputElement>(`.rosetta-inline [data-path="${path}"]`)!;
+const waitFor = async (check: () => unknown, ms = 3000) => {
+  const end = Date.now() + ms;
+  while (!check()) {
+    if (Date.now() > end) throw new Error("timed out");
+    await new Promise((r) => setTimeout(r, 10));
+  }
+};
 const click = (el: Element) => el.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 const wait = (ms = 250) => new Promise((r) => setTimeout(r, ms));
 
@@ -62,24 +73,31 @@ function reload(markdown: string) {
 }
 
 describe("a dummy component of each kind round-trips", () => {
-  test("data: made, edited through its form, saved, read back, loaded and saved again", () => {
+  test("data: made, edited in place, saved, read back, loaded and saved again", async () => {
     const editor = mount();
     editor.commands.insertComponent("dummy-data");
-    type(control("title"), "The title");
-    type(control("notes"), "Some *notes*\nOn two lines");
-    type(control("count"), "7");
-    const flag = control("flag");
+    await waitFor(() => inplace("title"));
+    type(inplace("title"), "The title");
+    type(inplace("notes"), "Some *notes*\nOn two lines");
+    type(inplace("count"), "7");
+    const flag = inplace("flag");
     flag.checked = true;
     flag.dispatchEvent(new Event("change"));
-    const mode = control("mode") as unknown as HTMLSelectElement;
+    const mode = document.querySelector<HTMLSelectElement>('.rosetta-inline-header [data-field="mode"] select')!; // attributes are in the header
     mode.value = "b";
     mode.dispatchEvent(new Event("change"));
     click(document.querySelector("[aria-label='Add tags']")!);
-    type(document.querySelector<HTMLInputElement>('[data-field="tags"] .rosetta-form-item input')!, "first");
+    await waitFor(() => inplace("tags.0"));
+    type(inplace("tags.0"), "first");
     click(document.querySelector("[aria-label='Add rows']")!);
-    const [k, v] = document.querySelectorAll<HTMLInputElement>('[data-field="rows"] .rosetta-form-item input');
-    type(k!, "x: y"); // text that needs quoting in YAML
-    type(v!, "3");
+    await waitFor(() => inplace("rows.0.k"));
+    type(inplace("rows.0.k"), "x: y"); // text that needs quoting in YAML
+    type(inplace("rows.0.v"), "3");
+    const level = inplace("level") as unknown as HTMLSelectElement;
+    level.value = "high";
+    level.dispatchEvent(new Event("change"));
+    type(inplace("box.w"), "4");
+    type(inplace("box.h"), "5");
 
     const markdown = toMarkdown(editor.getJSON());
     const { ast, warnings, saved } = reload(markdown);
@@ -87,7 +105,7 @@ describe("a dummy component of each kind round-trips", () => {
     expect(ast.children).toHaveLength(1);
     expect(ast.children[0]).toMatchObject({
       type: "directive", name: "dummy-data", kind: "data", attributes: { mode: "b" },
-      fields: { title: "The title", notes: "Some *notes*\nOn two lines", count: 7, flag: true, tags: ["first"], rows: [{ k: "x: y", v: 3 }] },
+      fields: { title: "The title", notes: "Some *notes*\nOn two lines", count: 7, flag: true, level: "high", tags: ["first"], rows: [{ k: "x: y", v: 3 }], box: { w: 4, h: 5 } },
     });
     expect(saved).toBe(markdown); // loading it and saving it again changes nothing
   });
@@ -130,10 +148,11 @@ describe("a dummy component of each kind round-trips", () => {
 });
 
 describe("rendering comes from the parser", () => {
-  test("a data component shows the parser's HTML, and the form's changes show after it closes", async () => {
+  test("a data component shows the parser's HTML, and the changes show after it closes", async () => {
     const editor = mount();
     editor.commands.insertComponent("dummy-data");
-    type(control("title"), "Shown");
+    await waitFor(() => inplace("title"));
+    type(inplace("title"), "Shown");
     editor.commands.setTextSelection(1);
     await wait();
     const rendered = document.querySelector(".rosetta-component-rendered")!;

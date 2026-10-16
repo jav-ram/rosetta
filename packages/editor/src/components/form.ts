@@ -208,6 +208,9 @@ function option(value: string, text: string): HTMLOptionElement {
 
 const clone = (v: FormValue): FormValue => ({ attributes: { ...v.attributes }, fields: structuredClone(v.fields ?? {}) });
 
+/** The fields as they are saved: in the definition's order, without what is empty. */
+export const normalizeFields = (fields: Record<string, unknown>, def: Definition): Record<string, unknown> => ordered(prune({ attributes: {}, fields }), def).fields;
+
 /** Puts every group of fields in the order of the definition (the order authors expect), keeping any others after them. */
 function ordered(v: FormValue, def: Definition): FormValue {
   return { attributes: v.attributes, fields: orderFields(v.fields, fieldsOf(def)) };

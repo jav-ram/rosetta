@@ -52,8 +52,8 @@ body { background: var(--bg); color: var(--text); }
 .editor { grid-area: editor; }
 .preview { grid-area: preview; border-right: 0; overflow: hidden; }
 .preview-host { position: relative; flex: 1; min-height: 0; }
-.editor textarea[hidden], .editor-body[hidden] { display: none; }
-.editor textarea { flex: 1; resize: none; border: 0; padding: 16px; background: var(--panel); color: inherit; font: 0.9rem/1.5 ui-monospace, monospace; outline: none; }
+.editor > textarea[hidden], .editor-body[hidden] { display: none; }
+.editor > textarea { flex: 1; resize: none; border: 0; padding: 16px; background: var(--panel); color: inherit; font: 0.9rem/1.5 ui-monospace, monospace; outline: none; }
 
 .error { margin: 16px; color: #b3261e; }
 
@@ -118,6 +118,25 @@ body { background: var(--bg); color: var(--text); }
 .rosetta-component-header { display: none; position: absolute; left: 0; right: 0; bottom: 100%; z-index: 2; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 4px 10px; background: var(--form-panel); border: 1px solid var(--form-line); border-radius: 6px 6px 0 0; color: var(--form-text); font: 0.8rem system-ui, sans-serif; font-style: normal; }
 .rosetta-component-container:hover > .rosetta-component-header, .rosetta-component-header:focus-within { display: flex; }
 .rosetta-component-name { font: 0.75rem ui-monospace, monospace; color: var(--form-muted); }
+
+/* A data component edited in place: the parser's HTML, with a control in place of each value. The controls take the font, color
+   and size of the value they replace, so the component keeps its look; only a dotted underline shows what can be edited. */
+.rosetta-inline-control { font: inherit; letter-spacing: inherit; color: inherit; background: transparent; border: 0; border-bottom: 1px dotted var(--form-line); border-radius: 0; padding: 0; margin: 0 0 -1px; field-sizing: content; min-width: 2ch; max-width: 100%; outline: none; }
+textarea.rosetta-inline-control { display: inline-block; vertical-align: top; resize: none; overflow: hidden; }
+input[type="checkbox"].rosetta-inline-control { field-sizing: auto; min-width: 0; accent-color: var(--form-accent); }
+select.rosetta-inline-control { field-sizing: auto; min-width: 0; }
+.rosetta-inline-control[type="number"] { appearance: textfield; }
+.rosetta-inline-control[type="number"]::-webkit-inner-spin-button, .rosetta-inline-control[type="number"]::-webkit-outer-spin-button { appearance: none; margin: 0; }
+.rosetta-inline-control::placeholder { color: var(--form-muted); font-style: italic; opacity: 0.8; }
+.rosetta-inline-control:focus { border-bottom: 1px solid var(--form-accent); background: color-mix(in srgb, var(--form-accent) 8%, transparent); }
+.rosetta-inline-control.is-missing { border-bottom: 2px solid var(--warn); }
+.rosetta-inline-item { position: relative; }
+.rosetta-inline-remove, .rosetta-inline-add { font: 0.75rem system-ui, sans-serif; color: var(--form-muted); background: var(--form-bg); border: 1px solid var(--form-line); border-radius: 4px; padding: 0 6px; cursor: pointer; }
+.rosetta-inline-remove { position: absolute; top: 0; right: 0; opacity: 0; }
+.rosetta-inline-item:hover > .rosetta-inline-remove, .rosetta-inline-remove:focus-visible { opacity: 1; }
+.rosetta-inline-add { margin-top: 4px; }
+.rosetta-inline-remove:hover, .rosetta-inline-add:hover { background: var(--form-panel); color: var(--form-text); }
+.rosetta-inline-header { display: flex; }
 
 /* Forms generated from component definitions. They are on the page, so they use the page's --form-* colors. */
 .rosetta-form { display: flex; flex-direction: column; gap: 8px; cursor: default; font-size: 0.85rem; color: var(--form-text); }
