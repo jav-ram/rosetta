@@ -7,6 +7,10 @@
     "ComponentDefinition": { "$ref": "component-definition.schema.json" },
     "Warning": { "$ref": "warning.schema.json" },
     "Position": { "$ref": "position.schema.json" },
-    "Theme": { "$ref": "theme.schema.json" }
+    "Theme": { "$ref": "theme.schema.json" },
+    "Manifest": { "$ref": "manifest.schema.json" },
+    "Chapter": { "$ref": "chapter.schema.json" },
+    "AssetRef": { "$ref": "asset-ref.schema.json" },
+    "ProjectSummary": { "$ref": "project-summary.schema.json" }
   }
 }

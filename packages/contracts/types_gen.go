@@ -2,6 +2,30 @@
 
 package contracts
 
+// A reference to a file stored with a project (an image, a font). The store
+// chooses the id when the file is added; the file itself is read with
+// ProjectStore.getAsset. A reference never changes: a stored asset is immutable.
+type AssetRef struct {
+	// Pixel height of an image, when known.
+	Height *int `json:"height,omitempty"`
+
+	// Id corresponds to the JSON schema field "id".
+	Id Id `json:"id"`
+
+	// Lowercase media type, such as image/png. application/octet-stream when unknown.
+	MediaType string `json:"mediaType"`
+
+	// The file's original name, for display. Not unique, and not how the asset is
+	// found.
+	Name *string `json:"name,omitempty"`
+
+	// Size of the original in bytes.
+	Size int `json:"size"`
+
+	// Pixel width of an image, when known.
+	Width *int `json:"width,omitempty"`
+}
+
 type Attribute struct {
 	// Default as the attribute's string form.
 	Default *string `json:"default,omitempty"`
@@ -28,6 +52,27 @@ const AttributeTypeBoolean AttributeType = "boolean"
 const AttributeTypeEnum AttributeType = "enum"
 const AttributeTypeNumber AttributeType = "number"
 const AttributeTypeString AttributeType = "string"
+
+// A chapter as the manifest lists it: its identity and how it starts. The
+// chapter's text (Rosetta Markdown) is not part of this; it is read and written
+// with ProjectStore.loadChapter and saveChapter, by id.
+type Chapter struct {
+	// Chosen when the chapter is added and never changed, so renaming or reordering
+	// keeps the text.
+	Id Id `json:"id"`
+
+	// Every chapter starts on a new page. right-page starts it on a right-hand page.
+	// Absent means next-page.
+	Start *ChapterStart `json:"start,omitempty"`
+
+	// Shown in the chapter list.
+	Title string `json:"title"`
+}
+
+type ChapterStart string
+
+const ChapterStartNextPage ChapterStart = "next-page"
+const ChapterStartRightPage ChapterStart = "right-page"
 
 // Defines a component: its form, kind, attributes, fields and breakable flag (spec
 // sections 4 and 9).
@@ -134,6 +179,42 @@ const FieldTypeList FieldType = "list"
 const FieldTypeNumber FieldType = "number"
 const FieldTypeObject FieldType = "object"
 const FieldTypeString FieldType = "string"
+
+// Letters, digits, - and _, starting with a letter or digit. Safe in a file name
+// and in a URL.
+type Id string
+
+// A project's table of contents and settings: its title, system, theme, the
+// ordered list of chapters and the cover. The order of `chapters` is the order of
+// the book. In a .rosetta file this is manifest.json.
+type Manifest struct {
+	// In book order. Ids are unique within the project (not expressible here;
+	// validateManifest checks it).
+	Chapters []Chapter `json:"chapters"`
+
+	// Cover corresponds to the JSON schema field "cover".
+	Cover *ManifestCover `json:"cover,omitempty"`
+
+	// Spec version the project was written for, for example 0.1.
+	RosettaVersion string `json:"rosettaVersion"`
+
+	// Name of the game-system plugin, such as example.
+	System *string `json:"system,omitempty"`
+
+	// Name of the theme, such as classic.
+	Theme *string `json:"theme,omitempty"`
+
+	// Title corresponds to the JSON schema field "title".
+	Title string `json:"title"`
+}
+
+type ManifestCover struct {
+	// Image corresponds to the JSON schema field "image".
+	Image *AssetRef `json:"image,omitempty"`
+
+	// Text on the cover when it differs from the book's title.
+	Title *string `json:"title,omitempty"`
+}
 
 type Node struct {
 	// table.
@@ -270,6 +351,19 @@ type Position struct {
 
 	// Start corresponds to the JSON schema field "start".
 	Start Point `json:"start"`
+}
+
+// What the projects list shows about a project, without loading it.
+type ProjectSummary struct {
+	// Chosen by the store when the project is created.
+	Id Id `json:"id"`
+
+	// The manifest's title.
+	Title string `json:"title"`
+
+	// UTC time of the last change to the manifest, a chapter or an asset, as an ISO
+	// 8601 string.
+	UpdatedAt string `json:"updatedAt"`
 }
 
 // A theme: design tokens (fonts, colors, borders, spacing, textures, masks, page)

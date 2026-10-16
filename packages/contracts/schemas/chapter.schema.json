@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Chapter",
+  "description": "A chapter as the manifest lists it: its identity and how it starts. The chapter's text (Rosetta Markdown) is not part of this; it is read and written with ProjectStore.loadChapter and saveChapter, by id.",
+  "type": "object",
+  "required": ["id", "title"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "$ref": "asset-ref.schema.json#/$defs/id", "description": "Chosen when the chapter is added and never changed, so renaming or reordering keeps the text." },
+    "title": { "type": "string", "minLength": 1, "description": "Shown in the chapter list." },
+    "start": {
+      "type": "string",
+      "enum": ["next-page", "right-page"],
+      "description": "Every chapter starts on a new page. right-page starts it on a right-hand page. Absent means next-page."
+    }
+  }
+}

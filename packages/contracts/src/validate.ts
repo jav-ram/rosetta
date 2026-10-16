@@ -1,6 +1,6 @@
 import Ajv2020 from "ajv/dist/2020.js";
 import { schemas } from "./schemas";
-import type { ComponentDefinition, Document, Theme, Warning } from "./generated/types";
+import type { AssetRef, Chapter, ComponentDefinition, Document, Manifest, ProjectSummary, Theme, Warning } from "./generated/types";
 
 export interface ValidationResult {
   valid: boolean;
@@ -28,6 +28,10 @@ export const validateComponentDefinition = validator("component-definition.schem
   value: unknown,
 ) => ValidationResult;
 export const validateTheme = validator("theme.schema.json") as (value: unknown) => ValidationResult;
+export const validateAssetRef = validator("asset-ref.schema.json") as (value: unknown) => ValidationResult;
+export const validateChapter = validator("chapter.schema.json") as (value: unknown) => ValidationResult;
+export const validateProjectSummary = validator("project-summary.schema.json") as (value: unknown) => ValidationResult;
+const validateManifestSchema = validator("manifest.schema.json");
 export const validateWarning = validator("warning.schema.json") as (value: unknown) => ValidationResult;
 
 /** Type guards for callers that want narrowing after a successful validation. */
@@ -35,3 +39,20 @@ export const isDocument = (v: unknown): v is Document => validateDocument(v).val
 export const isComponentDefinition = (v: unknown): v is ComponentDefinition => validateComponentDefinition(v).valid;
 export const isWarning = (v: unknown): v is Warning => validateWarning(v).valid;
 export const isTheme = (v: unknown): v is Theme => validateTheme(v).valid;
+export const isAssetRef = (v: unknown): v is AssetRef => validateAssetRef(v).valid;
+export const isChapter = (v: unknown): v is Chapter => validateChapter(v).valid;
+export const isProjectSummary = (v: unknown): v is ProjectSummary => validateProjectSummary(v).valid;
+
+/** The schema, plus the rule it cannot express: chapter ids are unique. */
+export function validateManifest(value: unknown): ValidationResult {
+  const result = validateManifestSchema(value);
+  if (!result.valid) return result;
+  const seen = new Set<string>();
+  const errors: string[] = [];
+  (value as Manifest).chapters.forEach((c, i) => {
+    if (seen.has(c.id)) errors.push(`/chapters/${i}/id duplicate chapter id "${c.id}"`);
+    seen.add(c.id);
+  });
+  return { valid: errors.length === 0, errors };
+}
+export const isManifest = (v: unknown): v is Manifest => validateManifest(v).valid;
