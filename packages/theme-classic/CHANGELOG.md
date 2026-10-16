@@ -1,5 +1,11 @@
 # @rosetta/theme-classic
 
+## 0.4.0
+
+### Minor Changes
+
+- 5752a60: The editor uses the theme's content CSS, so text and components look like the book while editing. The theme's CSS is split into `content.css` (looks) and `pages.css` (pagination); `theme.css` is removed. Container components in the editor carry the same classes and title heading as the parser's HTML.
+
 ## 0.3.0
 
 ### Minor Changes
