@@ -1,6 +1,7 @@
 import { m1Components } from "@rosetta/contracts";
 import { createEditor, createToolbar, fromAst, setDocument, setLayoutWarnings, toMarkdown, type Editor, type LayoutWarning } from "@rosetta/editor";
 import { useEffect, useRef } from "react";
+import { watchEditorZoom } from "../fitEditor";
 import { parser } from "../parser";
 import type { Parsed } from "../useParsed";
 
@@ -66,7 +67,9 @@ export function VisualEditor({ chapterId, markdown, parsed, layoutWarnings, visi
     const toolbar = createToolbar(editor);
     toolbarHost.current!.append(toolbar.element);
     editorRef.current = editor;
+    const stopFitting = watchEditorZoom(editorHost.current!);
     return () => {
+      stopFitting();
       if (pending.current) save();
       editorRef.current = null;
       toolbar.destroy();
