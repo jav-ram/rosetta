@@ -25,6 +25,6 @@ export function App({ openStore }: Props) {
       </main>
     );
   }
-  if (project) return <Workspace title={project.title} onBack={() => setProject(null)} />;
+  if (project) return <Workspace store={store.store} project={project} onBack={() => setProject(null)} />;
   return <ProjectsScreen store={store.store} onOpen={setProject} />;
 }

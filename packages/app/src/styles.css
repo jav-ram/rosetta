@@ -46,6 +46,9 @@ body { background: var(--bg); color: var(--text); }
 .projects-confirm { display: flex; align-items: center; gap: 8px; flex: 1; }
 .projects-confirm > span { flex: 1; }
 .topbar .link { color: var(--accent); }
+.save-status { margin-left: auto; font-size: 0.8rem; color: var(--muted); }
+.save-status[data-state="error"] { color: var(--warn); }
+.empty-project { padding: 24px; }
 
 /* Desktop layout: chapters | editor | preview. */
 .shell {
@@ -60,9 +63,26 @@ body { background: var(--bg); color: var(--text); }
 .hint { color: var(--muted); font-size: 0.8rem; }
 
 .sidebar { grid-area: side; border-right: 1px solid var(--line); background: var(--panel); overflow: auto; padding: 12px 8px; }
+.sidebar-head { display: flex; align-items: center; justify-content: space-between; padding: 0 8px 8px; }
+.sidebar-head h2 { padding: 0; }
 .sidebar h2, .pane > header h2 { margin: 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
 .sidebar h2 { padding: 0 8px 8px; }
 .sidebar ol { list-style: none; margin: 0; padding: 0; }
+.sidebar li { display: flex; align-items: center; border-radius: 6px; border-top: 2px solid transparent; }
+.sidebar li.drop-target { border-top-color: var(--accent); }
+.sidebar li[draggable="true"] { cursor: grab; }
+.sidebar .chapter-open { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar .chapter-actions { display: none; flex: none; gap: 2px; }
+.sidebar li:hover .chapter-actions, .sidebar li:focus-within .chapter-actions { display: flex; }
+.sidebar .chapter-actions button, .sidebar .chapter-add { width: auto; padding: 2px 6px; border: 1px solid var(--line); background: var(--panel); font-size: 0.75rem; line-height: 1; }
+.sidebar .chapter-actions button:disabled { opacity: 0.3; cursor: default; }
+.sidebar .chapter-rename { flex: 1; }
+.sidebar .chapter-rename input { width: 100%; font: inherit; padding: 6px 8px; border: 1px solid var(--accent); border-radius: 6px; background: var(--panel); color: inherit; }
+.sidebar .chapter-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 4px 8px; font-size: 0.8rem; }
+.sidebar .chapter-confirm span { flex-basis: 100%; }
+.sidebar .chapter-confirm button { width: auto; padding: 2px 8px; border: 1px solid var(--line); background: var(--panel); font-size: 0.75rem; }
+.sidebar .chapter-confirm .danger { border-color: var(--warn); color: var(--warn); }
+.sidebar .hint { padding: 0 8px; }
 .sidebar button { width: 100%; text-align: left; padding: 8px; border: 0; border-radius: 6px; background: none; color: inherit; font: inherit; cursor: pointer; }
 .sidebar button:hover { background: var(--bg); }
 .sidebar button[aria-current="true"] { background: var(--bg); color: var(--accent); font-weight: 600; }

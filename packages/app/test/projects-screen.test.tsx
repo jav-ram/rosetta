@@ -10,9 +10,9 @@ import "./dom-setup";
 // The projects screen with the real LocalStore (in an in-memory IndexedDB), through the whole App.
 
 vi.mock("../src/Workspace", () => ({
-  Workspace: ({ title, onBack }: { title?: string; onBack?: () => void }) => (
+  Workspace: ({ project, onBack }: { project: { title: string }; onBack?: () => void }) => (
     <div data-testid="workspace">
-      <span>{title}</span>
+      <span>{project.title}</span>
       <button type="button" onClick={onBack}>
         ← Projects
       </button>
