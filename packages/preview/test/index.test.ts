@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { buildDocument, createPreview, defaultResolveImage, MESSAGE_TYPE, OVERSIZED_SCRIPT, TABLE_HEADER_SCRIPT } from "../src/index";
+import { buildDocument, createPreview, defaultResolveImage, FILL_COLUMNS_SCRIPT, MESSAGE_TYPE, OVERSIZED_SCRIPT, TABLE_HEADER_SCRIPT } from "../src/index";
 
 const pagedUrl = "/paged.polyfill.js";
 // jsdom has no layout; scrolling does nothing there.
@@ -319,5 +319,32 @@ describe("what the preview reports", () => {
     expect(await done).toEqual({ pages: 3, layoutMs: 9, oversized });
     preview.destroy();
     host.remove();
+  });
+});
+
+describe("filling columns in order", () => {
+  const fill = new Function(`${FILL_COLUMNS_SCRIPT}; return fillColumns;`)() as (doc: Document) => void;
+  const doc = (pages: string[]) => {
+    const d = document.implementation.createHTMLDocument("t");
+    d.body.innerHTML = pages.map((p) => `<div class="pagedjs_page">${p}</div>`).join("");
+    return d;
+  };
+
+  test("every page is marked, so the theme can fill its columns left to right", () => {
+    const d = doc(["<p>a</p>", '<div data-component="statblock"></div>']);
+    fill(d);
+    expect([...d.querySelectorAll(".pagedjs_page")].map((p) => p.classList.contains("rosetta-filled"))).toEqual([true, true]);
+  });
+
+  test("a page with an oversized component stays balanced, because that component runs past the bottom of the page", () => {
+    const d = doc(['<div data-layout-warning="too tall"></div>', "<p>b</p>"]);
+    fill(d);
+    expect([...d.querySelectorAll(".pagedjs_page")].map((p) => p.classList.contains("rosetta-filled"))).toEqual([false, true]);
+  });
+
+  test("it runs after the oversize check, and Paged.js lays the pages out before either", () => {
+    const html = buildDocument({ html: "<p>x</p>", css: "" }, { pagedUrl: "paged.js", id: "t" });
+    expect(html.indexOf("findOversized(document)")).toBeGreaterThan(html.indexOf("preview().then"));
+    expect(html.indexOf("fillColumns(document)")).toBeGreaterThan(html.indexOf("findOversized(document)"));
   });
 });

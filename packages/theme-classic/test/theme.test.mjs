@@ -97,11 +97,24 @@ test("flow: unbreakable components, images and rows never split, headings stay w
   assert.equal(theme.tokens["page.widows"], "2");
 });
 
+test("columns fill one after the other once the preview has laid the pages out", () => {
+  const plain = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const filled = /\.pagedjs_page\.rosetta-filled \.rosetta-document\s*\{([^}]*)\}/.exec(plain)?.[1] ?? "";
+  assert.match(filled, /column-fill:\s*auto/);
+  assert.match(filled, /height:\s*100%/);
+  // not on the base rule: Paged.js can only lay pages out with balanced columns (see packages/preview)
+  const base = /(^|\n)\.rosetta-document\s*\{([^}]*column-count[^}]*)\}/.exec(plain)?.[2] ?? "";
+  assert.doesNotMatch(base, /column-fill|height/);
+});
+
 test("the flow test chapter has every case the flow rules are about", () => {
   const md = read("test-pages/flow.md");
   assert.match(md, /^\| d100 \|/m); // a table, with a header
   assert.ok((md.match(/^\|\s*\d+ \|/gm) ?? []).length >= 50); // long enough to split
   assert.ok((md.match(/^:::statblock/gm) ?? []).length >= 3);
+  assert.match(md, /^## Statblocks fill the left column first$/m);
+  const run = md.slice(md.indexOf("## Statblocks fill the left column first"));
+  assert.ok((run.match(/^:::statblock/gm) ?? []).length >= 6, "six or more statblocks in a row");
   assert.ok((md.match(/^!\[/gm) ?? []).length >= 3);
   assert.match(md, /^:::readaloud/m);
   assert.match(md, /^:::sidebar/m);
