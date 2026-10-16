@@ -1,5 +1,21 @@
 # @rosetta/app
 
+## 0.10.0
+
+### Minor Changes
+
+- ab06f42: `::layout{template="one-column"|"two-column"}`: a new leaf component definition with `scope: "following"` (a component that applies to all content after it; the renderer wraps that content in its element), data attributes on leaf elements, `component.misplaced` warning, spec section 9.2, and conformance cases. The Classic theme has a named page for each template, and the editor shows the layout as a page divider with a template select.
+
+### Patch Changes
+
+- Updated dependencies [ab06f42]
+  - @rosetta/contracts@0.7.0
+  - @rosetta/theme-classic@0.3.0
+  - @rosetta/editor@0.6.1
+  - @rosetta/parser-wasm@0.2.3
+  - @rosetta/preview@0.3.1
+  - @rosetta/theme-engine@0.2.1
+
 ## 0.9.0
 
 ### Minor Changes
