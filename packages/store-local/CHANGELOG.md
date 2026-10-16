@@ -1,5 +1,11 @@
 # @rosetta/store-local
 
+## 0.1.0
+
+### Minor Changes
+
+- 945a491: `LocalStore`: the `ProjectStore` in IndexedDB (`openLocalStore`). Passes the `ProjectStore` conformance suite, including after reopening the database.
+
 ## 0.0.8
 
 ### Patch Changes
