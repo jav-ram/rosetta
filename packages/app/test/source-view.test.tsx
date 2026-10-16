@@ -37,11 +37,11 @@ afterEach(async () => {
 const settle = (ms = 400) => act(async () => void (await new Promise((r) => setTimeout(r, ms))));
 
 async function start() {
-  const { App } = await import("../src/App");
+  const { Workspace } = await import("../src/Workspace");
   const host = document.body.appendChild(document.createElement("div"));
   const root = createRoot(host);
   roots.push({ root, host });
-  await act(async () => root.render(<App />));
+  await act(async () => root.render(<Workspace />));
   await settle();
 }
 
