@@ -1,5 +1,11 @@
 # @rosetta/app
 
+## 0.11.2
+
+### Patch Changes
+
+- b4883c2: Component forms are readable in dark mode (they take their colors from the theme's page, not the app), and the visual editor's page is scaled to fill the pane.
+
 ## 0.11.1
 
 ### Patch Changes
