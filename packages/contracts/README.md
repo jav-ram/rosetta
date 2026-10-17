@@ -12,7 +12,7 @@ The language-neutral contracts between Rosetta packages. Everything starts from 
 | `position.schema.json` | `Position`: a source range. |
 | `theme.schema.json` | `Theme`: a name, design `tokens` (font, color, border, spacing, texture, mask, page) and optional per-component overrides. |
 | `manifest.schema.json` | `Manifest`: a project's `title`, `system`, `theme`, `cover` and the ordered list of `chapters`. In a `.rosetta` file this is `manifest.json`. |
-| `chapter.schema.json` | `Chapter`: a manifest entry, with `id` (never changes), `title` and `start` (`next-page`, or `right-page`). The chapter's text is not part of it. |
+| `chapter.schema.json` | `Chapter`: a manifest entry, with `id` (never changes), `title`, `start` (`next-page`, or `right-page`) and, from its last layout, `pages` (its page count) and `stale` (an earlier chapter changed since, so its page numbers may be out of date). The chapter's text is not part of it. |
 | `asset-ref.schema.json` | `AssetRef`: `id`, `mediaType`, `size` and, when known, `name`, `width`, `height`. |
 | `project-summary.schema.json` | `ProjectSummary`: `id`, `title` and `updatedAt`, what the projects list shows. |
 | `index.schema.json` | Entry point listing all of the above, used for code generation. |
@@ -41,7 +41,7 @@ Both validators use the same schemas (the Go module embeds them).
 
 ## Project storage
 
-`ProjectStore` (in `src/store.ts`) is the interface all app code uses to read and write projects: `listProjects`, `createProject`, `deleteProject`, `loadManifest`, `saveManifest`, `loadChapter`, `saveChapter`, `putAsset`, `getAsset`. The rules every store follows are written on the interface. The main ones:
+`ProjectStore` (in `src/store.ts`) is the interface all app code uses to read and write projects: `listProjects`, `createProject`, `deleteProject`, `loadManifest`, `saveManifest`, `loadChapter`, `saveChapter`, `putAsset` (optionally under a chosen id, which importing a project needs), `listAssets` and `getAsset`. The rules every store follows are written on the interface. The main ones:
 
 - A project is a manifest, the Markdown of each chapter the manifest lists, and assets. The manifest is the list of what exists: a chapter dropped from it loses its text, and renaming or reordering keeps it, because chapter ids never change.
 - Stores return copies, and a save is complete when its promise resolves.

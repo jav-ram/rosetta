@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { buildDocument, createPreview, defaultResolveImage, FILL_COLUMNS_SCRIPT, MESSAGE_TYPE, OVERSIZED_SCRIPT, TABLE_HEADER_SCRIPT } from "../src/index";
+import { buildDocument, createPreview, defaultResolveImage, FILL_COLUMNS_SCRIPT, MESSAGE_TYPE, OVERSIZED_SCRIPT, PARITY_PAGE_SCRIPT, TABLE_HEADER_SCRIPT } from "../src/index";
 
 const pagedUrl = "/paged.polyfill.js";
 // jsdom has no layout; scrolling does nothing there.
@@ -12,7 +12,7 @@ describe("buildDocument", () => {
 
   test("has the HTML inside .rosetta-document, the CSS, and Paged.js", () => {
     const doc = build();
-    expect(doc).toContain('<div class="rosetta-document"><h1>Title</h1><p>Text</p></div>');
+    expect(doc).toContain('<div class="rosetta-document"><div class="rosetta-chapter-start"></div><h1>Title</h1><p>Text</p></div>');
     expect(doc).toContain(".rosetta-document { color: red; }");
     expect(doc).toContain('<script src="/paged.polyfill.js"></script>');
     expect(doc).toContain("window.PagedConfig = { auto: false }");
@@ -346,5 +346,69 @@ describe("filling columns in order", () => {
     const html = buildDocument({ html: "<p>x</p>", css: "" }, { pagedUrl: "paged.js", id: "t" });
     expect(html.indexOf("findOversized(document)")).toBeGreaterThan(html.indexOf("preview().then"));
     expect(html.indexOf("fillColumns(document)")).toBeGreaterThan(html.indexOf("findOversized(document)"));
+  });
+});
+
+describe("chapter starts", () => {
+  const doc = (input: Partial<Parameters<typeof buildDocument>[0]> = {}) =>
+    buildDocument({ html: "<p>x</p>", css: "", ...input }, { pagedUrl: "paged.js", id: "t" });
+  const css = (html: string) => /<style>([^<]*rosetta-chapter-start[^<]*)<\/style>/.exec(html)![1]!;
+
+  test("a chapter on the first page needs nothing: no spare page, no blank page, numbering from 1", () => {
+    const html = doc();
+    expect(html).not.toContain('class="rosetta-parity-page"');
+    expect(html).toContain('<div class="rosetta-chapter-start"></div>');
+    expect(css(html)).toContain("counter-reset: page 1;");
+  });
+
+  test("a chapter that starts on a right-hand (odd) page is numbered from there, with no spare page", () => {
+    const html = doc({ startPage: 7, startOn: "right-page" });
+    expect(html).not.toContain('class="rosetta-parity-page"');
+    expect(html).toContain('class="rosetta-chapter-start rosetta-start-right"');
+    expect(css(html)).toContain("counter-reset: page 7;");
+  });
+
+  test("a chapter that starts on a left-hand (even) page gets a spare first page, so Paged.js sees the right sides", () => {
+    const html = doc({ startPage: 8 });
+    expect(html.indexOf('class="rosetta-parity-page"')).toBeLessThan(html.indexOf('class="rosetta-chapter-start'));
+    expect(css(html)).toContain("counter-reset: page 8;"); // no blank page: the chapter's first page is page 8
+  });
+
+  test("a right-page chapter that would start on a left-hand page has a blank page before it, so it is numbered one later", () => {
+    const html = doc({ startPage: 8, startOn: "right-page" });
+    expect(html).toContain('class="rosetta-chapter-start rosetta-start-right"');
+    expect(css(html)).toContain("counter-reset: page 9;");
+  });
+
+  test("a start page that is not a whole number of at least 1 counts as 1", () => {
+    for (const startPage of [0, -3, 2.5, Number.NaN]) {
+      const html = doc({ startPage });
+      expect(html, String(startPage)).not.toContain('class="rosetta-parity-page"');
+      expect(css(html), String(startPage)).toContain("counter-reset: page 1;");
+    }
+  });
+
+  test("the break rules are on the page, not in the theme: a zero-height element each", () => {
+    const rules = css(doc());
+    expect(rules).toMatch(/\.rosetta-parity-page \{[^}]*break-after: page/);
+    expect(rules).toMatch(/\.rosetta-chapter-start\.rosetta-start-right \{[^}]*break-before: right/);
+  });
+
+  describe("hiding the spare page", () => {
+    const hide = new Function(`${PARITY_PAGE_SCRIPT}; return hideParityPage;`)() as (d: Document) => number;
+    test("only the page with the spare element is hidden, and counted", () => {
+      const d = document.implementation.createHTMLDocument("t");
+      d.body.innerHTML = '<div class="pagedjs_page"><div class="rosetta-parity-page"></div></div><div class="pagedjs_page"><p>a</p></div><div class="pagedjs_page"><p>b</p></div>';
+      expect(hide(d)).toBe(1);
+      expect([...d.querySelectorAll<HTMLElement>(".pagedjs_page")].map((p) => p.style.display)).toEqual(["none", "", ""]);
+    });
+    test("with no spare element nothing is hidden", () => {
+      const d = document.implementation.createHTMLDocument("t");
+      d.body.innerHTML = '<div class="pagedjs_page"><p>a</p></div>';
+      expect(hide(d)).toBe(0);
+    });
+    test("the page count that is reported leaves the spare page out", () => {
+      expect(doc()).toContain("pages: flow.total - parity");
+    });
   });
 });

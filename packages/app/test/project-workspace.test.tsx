@@ -7,6 +7,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 import "./dom-setup";
+import { BackupReminders, type KeyValueStorage } from "../src/backupReminder";
 import { newStore, seed } from "./seed";
 
 // A project in the whole workspace: the chapter list, the editor and autosave, with the real editor, parser and LocalStore.
@@ -38,12 +39,12 @@ const until = async (check: () => unknown, ms = 4000) => {
   if (!check()) throw new Error("timed out");
 };
 
-async function open(store: ProjectStore, project: { id: string; title: string; updatedAt: string }) {
+async function open(store: ProjectStore, project: { id: string; title: string; updatedAt: string }, saveFile?: never, reminders?: BackupReminders) {
   const { Workspace } = await import("../src/Workspace");
   const host = document.body.appendChild(document.createElement("div"));
   const root = createRoot(host);
   roots.push({ root, host });
-  await act(async () => root.render(<Workspace store={store} project={project} />));
+  await act(async () => root.render(<Workspace store={store} project={project} saveFile={saveFile} reminders={reminders} />));
   await until(() => document.querySelector(".visual-editor .ProseMirror") || document.querySelector(".empty-project") || document.querySelector("[role=alert]"));
   await settle();
   return { close: async () => (await act(async () => root.unmount()), host.remove(), void roots.splice(roots.findIndex((r) => r.root === root), 1)) };
@@ -70,6 +71,138 @@ const type = (input: HTMLInputElement, value: string) =>
     input.dispatchEvent(new Event("input", { bubbles: true }));
   });
 const saved = () => until(() => status().includes("Saved"));
+
+describe("export", () => {
+  const exportButton = () => [...document.querySelectorAll<HTMLButtonElement>(".topbar button")].find((b) => /^Export/.test(b.textContent ?? ""))!;
+
+  test("what was just typed is written to the project first, then the file is saved", async () => {
+    const { store, project } = await seed();
+    let storedWhenSaving: string | null = null;
+    const saveFile = vi.fn(async () => {
+      storedWhenSaving = await store.loadChapter(project.id, "intro");
+      return "saved" as const;
+    });
+    await open(store, project, saveFile as never);
+    await showTab("Markdown");
+    await typeSource("# Typed just now\n");
+    await click(exportButton()); // before the autosave has had its turn
+    await until(() => exportButton().textContent === "Exported ✓");
+    expect(saveFile).toHaveBeenCalledWith(store, expect.objectContaining({ id: project.id }));
+    expect(storedWhenSaving).toBe("# Typed just now\n");
+  });
+
+  test("closing the save dialog is not an error", async () => {
+    const { store, project } = await seed();
+    await open(store, project, vi.fn(async () => "cancelled" as const) as never);
+    await click(exportButton());
+    await settle(200);
+    expect(exportButton().textContent).toBe("Export");
+    expect(document.querySelector("[role=alert]")).toBeNull();
+  });
+
+  test("a failure says what happened", async () => {
+    const { store, project } = await seed();
+    await open(store, project, vi.fn(async () => Promise.reject(new Error("the disk is full"))) as never);
+    await click(exportButton());
+    await until(() => document.querySelector("[role=alert]"));
+    expect(document.querySelector("[role=alert]")!.textContent).toContain("the disk is full");
+  });
+});
+
+describe("backup reminder", () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  /** Reminders on a clock and storage the test controls. */
+  function clock(start = Date.UTC(2026, 9, 1)) {
+    const data = new Map<string, string>();
+    const storage: KeyValueStorage = { getItem: (k) => data.get(k) ?? null, setItem: (k, v) => void data.set(k, v) };
+    let now = start;
+    return { storage, reminders: new BackupReminders(storage, () => now), later: (days: number) => void (now += days * DAY) };
+  }
+  const banner = () => document.querySelector<HTMLElement>('[aria-label="Backup reminder"]');
+  const bannerButton = (label: string) => [...banner()!.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === label)!;
+
+  test("a project opened for the first time has no reminder", async () => {
+    const { store, project } = await seed();
+    const { reminders } = clock();
+    await open(store, project, undefined, reminders);
+    expect(banner()).toBeNull();
+    expect(reminders.state(project.id).unbackedSince).toBeDefined(); // but it has started counting
+  });
+
+  test("after a week of changes without a backup the reminder appears, says how long, and can be dismissed", async () => {
+    const { store, project } = await seed();
+    const { reminders, later } = clock();
+    reminders.noteOpened(project.id);
+    later(9);
+    await open(store, project, undefined, reminders);
+    expect(banner()!.textContent).toContain("Back up “Sample project”?");
+    expect(banner()!.textContent).toContain("9 days");
+    expect(banner()!.textContent).toContain("There is no backup yet");
+    await click(bannerButton("Not now"));
+    expect(banner()).toBeNull();
+    expect(reminders.state(project.id).dismissedAt).toBeDefined();
+    expect(reminders.isDue(project.id)).toBe(false);
+  });
+
+  test("a dismissed reminder is still dismissed when the project is opened again, and comes back a week later", async () => {
+    const { store, project } = await seed();
+    const { reminders, later } = clock();
+    reminders.noteOpened(project.id);
+    later(8);
+    const first = await open(store, project, undefined, reminders);
+    await click(bannerButton("Not now"));
+    await first.close();
+    later(3);
+    const second = await open(store, project, undefined, reminders);
+    expect(banner()).toBeNull();
+    await second.close();
+    later(5);
+    await open(store, project, undefined, reminders);
+    expect(banner()).not.toBeNull();
+  });
+
+  test("Export a backup saves the file and the reminder goes away for good", async () => {
+    const { store, project } = await seed();
+    const { reminders, later } = clock();
+    reminders.noteOpened(project.id);
+    later(10);
+    const saveFile = vi.fn(async () => "saved" as const);
+    await open(store, project, saveFile as never, reminders);
+    await click(bannerButton("Export a backup"));
+    await until(() => banner() === null);
+    expect(saveFile).toHaveBeenCalledWith(store, expect.objectContaining({ id: project.id }));
+    expect(reminders.state(project.id)).toEqual({ lastBackupAt: new Date(Date.UTC(2026, 9, 11)).toISOString() });
+  });
+
+  test("closing the save dialog does not count as a backup", async () => {
+    const { store, project } = await seed();
+    const { reminders, later } = clock();
+    reminders.noteOpened(project.id);
+    later(10);
+    await open(store, project, vi.fn(async () => "cancelled" as const) as never, reminders);
+    await click(bannerButton("Export a backup"));
+    await settle(200);
+    expect(banner()).not.toBeNull();
+    expect(reminders.state(project.id).lastBackupAt).toBeUndefined();
+  });
+
+  test("after a backup, the next change starts the count again, and last backup is shown in the reminder", async () => {
+    const { store, project } = await seed();
+    const { reminders, later } = clock();
+    reminders.noteBackup(project.id);
+    later(2);
+    await open(store, project, undefined, reminders);
+    expect(reminders.state(project.id).unbackedSince).toBeUndefined(); // nothing changed yet
+    await showTab("Markdown");
+    await typeSource("# Changed after the backup\n");
+    await saved();
+    expect(reminders.state(project.id).unbackedSince).toBeDefined();
+    later(8);
+    await click(document.querySelector('button[aria-label="Add chapter"]')!); // any later render shows it
+    expect(banner()!.textContent).toContain("Last backup: ");
+    expect(banner()!.textContent).toContain("8 days");
+  });
+});
 
 describe("opening a project", () => {
   test("the chapters of the project are listed, and the first one is open with its text from the store", async () => {
@@ -171,6 +304,20 @@ describe("chapters", () => {
     const manifest = await store.loadManifest(project.id);
     expect(manifest.chapters.map((c) => c.title)).toEqual(["Introduction", "Bestiary", "Empty chapter", "Chapter 4"]);
     expect(await store.loadChapter(project.id, manifest.chapters[3]!.id)).toBe("# New\n");
+  });
+
+  test("a chapter is set to start on a right-hand page, shown with a badge, and saved", async () => {
+    const { store, project } = await seed();
+    await open(store, project);
+    expect(document.querySelectorAll(".chapter-badge")).toHaveLength(0);
+    await click(button("Start Bestiary on a right-hand page"));
+    expect(button("Start Bestiary on a right-hand page").getAttribute("aria-pressed")).toBe("true");
+    expect(document.querySelectorAll(".chapter-badge")).toHaveLength(1);
+    await saved();
+    expect((await store.loadManifest(project.id)).chapters.map((c) => c.start)).toEqual([undefined, "right-page", undefined]);
+    await click(button("Start Bestiary on a right-hand page")); // and off again
+    await saved();
+    expect((await store.loadManifest(project.id)).chapters[1]).not.toHaveProperty("start");
   });
 
   test("a chapter is renamed, and keeps its text", async () => {

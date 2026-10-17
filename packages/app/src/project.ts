@@ -1,4 +1,5 @@
 import type { Chapter, Manifest, ProjectStore } from "@rosetta/contracts";
+import { pageInfo } from "./pageNumbers";
 
 export type SaveStatus = { state: "saved" } | { state: "saving" } | { state: "error"; message: string };
 
@@ -22,6 +23,7 @@ function newChapterId(taken: Set<string>): string {
  */
 export class ProjectSession {
   private listeners = new Set<() => void>();
+  private writtenListeners = new Set<() => void>();
   /** Chapter text that has not been written yet, by chapter id. It is also the newest text of that chapter. */
   private dirty = new Map<string, string>();
   private manifestDirty = false;
@@ -63,6 +65,12 @@ export class ProjectSession {
     return () => void this.listeners.delete(listener);
   }
 
+  /** Calls `listener` after something has been written to the store (not after a save that had nothing to write). Returns the function that stops it. */
+  onWritten(listener: () => void): () => void {
+    this.writtenListeners.add(listener);
+    return () => void this.writtenListeners.delete(listener);
+  }
+
   private emit() {
     for (const l of [...this.listeners]) l();
   }
@@ -100,11 +108,25 @@ export class ProjectSession {
     this.change((chapters) => chapters.map((c) => (c.id === chapterId ? { ...c, title: name } : c)));
   }
 
+  /** Where the chapter starts: on the next page (the default), or on a right-hand page. */
+  setChapterStart(chapterId: string, start: NonNullable<Chapter["start"]>): void {
+    if (!this.has(chapterId)) return;
+    this.change(
+      (chapters) =>
+        chapters.map((c) => {
+          if (c.id !== chapterId) return c;
+          const { start: _old, ...rest } = c;
+          return start === "next-page" ? rest : { ...rest, start }; // the default is not written down
+        }),
+      this.current.chapters.findIndex((c) => c.id === chapterId), // it may or may not need a blank page now: so does everything after it
+    );
+  }
+
   deleteChapter(chapterId: string): void {
     if (!this.has(chapterId)) return;
     this.dirty.delete(chapterId);
     this.added.delete(chapterId);
-    this.change((chapters) => chapters.filter((c) => c.id !== chapterId));
+    this.change((chapters) => chapters.filter((c) => c.id !== chapterId), this.current.chapters.findIndex((c) => c.id === chapterId));
   }
 
   /** Moves a chapter to position `index` (0 is first), counted in the list as it is before the move. */
@@ -118,11 +140,37 @@ export class ProjectSession {
       const [moved] = next.splice(from, 1);
       next.splice(to, 0, moved!);
       return next;
-    });
+    }, Math.min(from, to));
   }
 
-  private change(update: (chapters: Chapter[]) => Chapter[]) {
-    this.current = { ...this.current, chapters: update(this.current.chapters) };
+  /**
+   * Records how many pages a chapter came out at when it was laid out, with `startPage` as its first page number.
+   * Nothing is written when the count is the same as before. When it is not, every chapter after it starts on a different
+   * page now, so they are marked stale until they are laid out again. The chapter itself is stale if the page it was laid
+   * out to start on is not the one it has now (a chapter before it changed in the meantime).
+   */
+  setPageCount(chapterId: string, pages: number, startPage: number): void {
+    const index = this.current.chapters.findIndex((c) => c.id === chapterId);
+    if (index < 0 || !Number.isInteger(pages) || pages < 0) return;
+    const chapter = this.current.chapters[index]!;
+    const stale = startPage !== pageInfo(this.current.chapters)[index]!.start;
+    const changed = (chapter.pages ?? 1) !== pages; // a chapter with no count was counted as one page
+    if (chapter.pages === pages && (chapter.stale === true) === stale) return;
+    this.change((chapters) =>
+      chapters.map((c, i) => {
+        if (i < index) return c;
+        const { stale: _old, ...rest } = c;
+        if (i === index) return stale ? { ...rest, pages, stale: true } : { ...rest, pages };
+        return changed && c.pages !== undefined ? { ...rest, stale: true } : c; // a chapter with no count is already flagged as not laid out
+      }),
+    );
+  }
+
+  /** `staleFrom`: the first chapter whose page numbers can change because of this change; it and every one after it that has a page count are marked stale. */
+  private change(update: (chapters: Chapter[]) => Chapter[], staleFrom?: number) {
+    let chapters = update(this.current.chapters);
+    if (staleFrom !== undefined && staleFrom >= 0) chapters = chapters.map((c, i) => (i >= staleFrom && c.pages !== undefined && !c.stale ? { ...c, stale: true } : c));
+    this.current = { ...this.current, chapters };
     this.manifestDirty = true;
     this.schedule();
     this.emit();
@@ -152,8 +200,10 @@ export class ProjectSession {
     const run = async () => {
       this.running++;
       this.emit();
+      let wrote = false;
       try {
         if (this.manifestDirty) {
+          wrote = true;
           const saved = this.current;
           await this.store.saveManifest(this.projectId, structuredClone(saved));
           if (this.current === saved) this.manifestDirty = false;
@@ -165,6 +215,7 @@ export class ProjectSession {
             continue;
           }
           await this.store.saveChapter(this.projectId, id, text);
+          wrote = true;
           if (this.dirty.get(id) === text) this.dirty.delete(id); // not edited again while it was being written
         }
         this.failure = null;
@@ -174,6 +225,7 @@ export class ProjectSession {
         this.running--;
         this.emit();
       }
+      if (wrote) for (const l of [...this.writtenListeners]) l();
     };
     this.queue = this.queue.then(run);
     return this.queue;

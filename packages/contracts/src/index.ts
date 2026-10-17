@@ -6,6 +6,7 @@ export type { ProjectStore, ProjectStoreErrorCode } from "./store";
 export {
   isAssetRef,
   isChapter,
+  isId,
   isComponentDefinition,
   isDocument,
   isManifest,

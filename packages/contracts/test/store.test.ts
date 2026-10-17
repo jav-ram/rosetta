@@ -64,6 +64,14 @@ describe("manifest", () => {
     }
   });
 
+  test("a chapter can carry its page count and whether it is stale", () => {
+    expect(validateChapter({ id: "a", title: "A", pages: 12, stale: true }).valid).toBe(true);
+    expect(validateChapter({ id: "a", title: "A", pages: 0 }).valid).toBe(true);
+    for (const bad of [{ pages: -1 }, { pages: 1.5 }, { pages: "3" }, { stale: "yes" }]) {
+      expect(validateChapter({ id: "a", title: "A", ...bad }).valid, JSON.stringify(bad)).toBe(false);
+    }
+  });
+
   test("a chapter starts on the next page or the right page", () => {
     expect(validateChapter({ id: "a", title: "A", start: "left-page" }).valid).toBe(false);
     expect(validateChapter({ id: "a", title: "" }).valid).toBe(false);

@@ -274,6 +274,43 @@ export function projectStoreCases(factory: ProjectStoreFactory): ProjectStoreCas
     await rejects(store.getAsset(again.id, ref, "original"), "not-found", "asset of the deleted project");
   });
 
+  test("listAssets gives every asset of the project, in the order they were added, and no one else's", async (store) => {
+    const a = await store.createProject(manifest());
+    const b = await store.createProject(manifest());
+    same(await store.listAssets(a.id), [], "a project with no assets");
+    const first = await store.putAsset(a.id, png(1));
+    const second = await store.putAsset(a.id, new Blob([new Uint8Array([2, 2])], { type: "image/jpeg" }));
+    await store.putAsset(b.id, png(3));
+    same(await store.listAssets(a.id), [first, second], "assets of the first project");
+    same((await store.listAssets(b.id)).length, 1, "assets of the second project");
+    await rejects(store.listAssets("nope"), "not-found", "unknown project");
+  });
+
+  test("an asset can be added under a chosen id (when importing), and is found by it", async (store) => {
+    const { id } = await store.createProject(manifest());
+    const ref = await store.putAsset(id, png(5, 6), { id: "cover-1" });
+    check(ref.id === "cover-1", `id: expected cover-1, got ${ref.id}`);
+    check(validateAssetRef(ref).valid, "the reference validates");
+    same(await bytesOf(await store.getAsset(id, ref, "original")), [5, 6], "bytes");
+    same((await store.listAssets(id)).map((r) => r.id), ["cover-1"], "listAssets");
+  });
+
+  test("a chosen asset id must be valid and not taken", async (store) => {
+    const { id } = await store.createProject(manifest());
+    await store.putAsset(id, png(1), { id: "taken" });
+    await rejects(store.putAsset(id, png(2), { id: "taken" }), "invalid", "an id in use");
+    for (const bad of ["", "a b", "-x", "a/b"]) await rejects(store.putAsset(id, png(2), { id: bad }), "invalid", `id ${JSON.stringify(bad)}`);
+    same((await store.listAssets(id)).length, 1, "nothing was added");
+  });
+
+  test("the same asset id can be used in two projects", async (store) => {
+    const a = await store.createProject(manifest());
+    const b = await store.createProject(manifest());
+    await store.putAsset(a.id, png(1), { id: "shared" });
+    await store.putAsset(b.id, png(2), { id: "shared" });
+    same(await bytesOf(await store.getAsset(b.id, { id: "shared", mediaType: "image/png", size: 1 }, "original")), [2], "the second project's own bytes");
+  });
+
   test("adding an asset moves the project's updatedAt forward", async (store) => {
     const { id, updatedAt } = await store.createProject(manifest());
     await wait(10);
@@ -300,6 +337,7 @@ export function projectStoreCases(factory: ProjectStoreFactory): ProjectStoreCas
       check((await reopened.loadChapter(summary.id, "rules")) === "# Rules ✨\n", "chapter text");
       check((await reopened.loadChapter(summary.id, "intro")) === "", "chapter that was never saved");
       same(await bytesOf(await reopened.getAsset(summary.id, ref, "original")), [9, 8, 7], "asset bytes");
+      same(await reopened.listAssets(summary.id), [ref], "listAssets");
     });
 
     test("after reopening, a deleted project and a removed chapter stay gone", async (store) => {

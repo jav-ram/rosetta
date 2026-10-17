@@ -1,4 +1,4 @@
-import { ProjectStoreError, validateManifest, type AssetRef, type Manifest, type ProjectStore, type ProjectSummary } from "../src/index";
+import { isId, ProjectStoreError, validateManifest, type AssetRef, type Manifest, type ProjectStore, type ProjectSummary } from "../src/index";
 
 interface Project {
   manifest: Manifest;
@@ -86,14 +86,19 @@ export class MemoryStore implements ProjectStore {
     this.touch(p);
   }
 
-  async putAsset(projectId: string, file: Blob) {
+  async putAsset(projectId: string, file: Blob, options?: { id?: string }) {
     const p = this.project(projectId);
-    const ref: AssetRef = { id: `a${this.data.nextId++}`, mediaType: file.type || "application/octet-stream", size: file.size };
+    if (options?.id !== undefined && (!isId(options.id) || p.assets.has(options.id))) throw new ProjectStoreError("invalid", `The asset id "${options.id}" is not valid or is taken`);
+    const ref: AssetRef = { id: options?.id ?? `a${this.data.nextId++}`, mediaType: file.type || "application/octet-stream", size: file.size };
     const name = (file as File).name;
     if (name) ref.name = name;
     p.assets.set(ref.id, { ref, bytes: file.slice() });
     this.touch(p);
     return structuredClone(ref);
+  }
+
+  async listAssets(projectId: string) {
+    return [...this.project(projectId).assets.values()].map((a) => structuredClone(a.ref));
   }
 
   async getAsset(projectId: string, ref: AssetRef, _variant: "preview" | "original") {

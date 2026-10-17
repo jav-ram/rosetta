@@ -56,3 +56,7 @@ export function validateManifest(value: unknown): ValidationResult {
   return { valid: errors.length === 0, errors };
 }
 export const isManifest = (v: unknown): v is Manifest => validateManifest(v).valid;
+
+const idPattern = new RegExp(schemas["asset-ref.schema.json"].$defs.id.pattern);
+/** Whether `value` is a valid id for a project, chapter or asset (the schema's `id`). */
+export const isId = (value: unknown): value is string => typeof value === "string" && idPattern.test(value);

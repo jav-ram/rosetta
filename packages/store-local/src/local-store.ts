@@ -1,4 +1,5 @@
 import {
+  isId,
   ProjectStoreError,
   validateManifest,
   type AssetRef,
@@ -26,6 +27,8 @@ interface AssetRecord {
   projectId: string;
   ref: AssetRef;
   bytes: ArrayBuffer;
+  /** When it was added, so assets list in the order they were added. */
+  seq: number;
 }
 
 export interface LocalStoreOptions {
@@ -174,18 +177,32 @@ export class LocalStore implements ProjectStore {
     });
   }
 
-  async putAsset(projectId: string, file: Blob): Promise<AssetRef> {
+  async putAsset(projectId: string, file: Blob, options?: { id?: string }): Promise<AssetRef> {
+    if (options?.id !== undefined && !isId(options.id)) throw new ProjectStoreError("invalid", `The asset id "${options.id}" is not valid`);
     // Read the bytes first: a transaction closes if it waits for anything but its own requests.
     const bytes = await file.arrayBuffer();
-    const ref: AssetRef = { id: crypto.randomUUID(), mediaType: file.type || "application/octet-stream", size: bytes.byteLength };
+    const ref: AssetRef = { id: options?.id ?? crypto.randomUUID(), mediaType: file.type || "application/octet-stream", size: bytes.byteLength };
     const name = (file as File).name;
     if (name) ref.name = name;
     await this.run([PROJECTS, ASSETS], "readwrite", async (tx) => {
       const project = await this.project(tx, projectId);
-      tx.objectStore(ASSETS).add({ projectId, ref, bytes } satisfies AssetRecord);
+      const assets = tx.objectStore(ASSETS);
+      if (options?.id !== undefined && (await request(assets.count([projectId, ref.id]))) > 0) throw new ProjectStoreError("invalid", `The asset id "${ref.id}" is taken`);
+      // Listed in the order they were added: one more than the highest number there is.
+      const last = (await request(assets.getAll(ofProject(projectId)))) as AssetRecord[];
+      const seq = last.reduce((n, a) => Math.max(n, a.seq ?? 0), 0) + 1;
+      assets.add({ projectId, ref, bytes, seq } satisfies AssetRecord);
       tx.objectStore(PROJECTS).put({ ...project, updatedAt: new Date().toISOString() } satisfies ProjectRecord);
     });
     return ref;
+  }
+
+  async listAssets(projectId: string): Promise<AssetRef[]> {
+    return this.run([PROJECTS, ASSETS], "readonly", async (tx) => {
+      await this.project(tx, projectId);
+      const all = (await request(tx.objectStore(ASSETS).getAll(ofProject(projectId)))) as AssetRecord[];
+      return all.sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0)).map((a) => a.ref); // records from before `seq` was kept sort first
+    });
   }
 
   async getAsset(projectId: string, ref: AssetRef, _variant: "preview" | "original"): Promise<Blob> {

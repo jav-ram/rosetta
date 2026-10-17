@@ -61,6 +61,17 @@ type Chapter struct {
 	// keeps the text.
 	Id Id `json:"id"`
 
+	// How many pages the chapter had when it was last laid out, counting a blank page
+	// before it. The next chapter's first page number is this chapter's first page
+	// number plus this. Absent until the chapter has been laid out.
+	Pages *int `json:"pages,omitempty"`
+
+	// True when something before this chapter has changed since it was laid out (an
+	// earlier chapter got longer or shorter, or chapters were added, removed or
+	// moved), so its first page number, and with it whether it needs a blank page,
+	// may be out of date. Absent means not stale.
+	Stale *bool `json:"stale,omitempty"`
+
 	// Every chapter starts on a new page. right-page starts it on a right-hand page.
 	// Absent means next-page.
 	Start *ChapterStart `json:"start,omitempty"`

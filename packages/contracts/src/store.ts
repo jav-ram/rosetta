@@ -60,8 +60,13 @@ export interface ProjectStore {
   /**
    * Stores a file and returns its reference. The reference records the size and, when the file has a name or a type
    * (a `File`, or a `Blob` with a `type`), the name and media type. Adding the same bytes twice may give two references.
+   * The store chooses the id, unless `options.id` is given (importing a project keeps the ids that text may refer to):
+   * it must be a valid id (`invalid` otherwise) that no asset of the project has (`invalid` if it is taken).
    */
-  putAsset(projectId: string, file: Blob): Promise<AssetRef>;
+  putAsset(projectId: string, file: Blob, options?: { id?: string }): Promise<AssetRef>;
+
+  /** Every asset of the project, in the order they were added. `not-found` if there is no such project. */
+  listAssets(projectId: string): Promise<AssetRef[]>;
 
   /**
    * `original` is exactly the bytes that were added. `preview` is a copy that is cheaper to show: it may be the original, or a smaller image.
