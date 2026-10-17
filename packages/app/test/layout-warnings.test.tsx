@@ -22,6 +22,10 @@ vi.mock("../src/parser", () => ({
 
 /** What the stand-in preview should call too tall: component names. */
 let tooTall: string[] = ["statblock"];
+/** The stand-in preview says the first `page` component and the one after it are two pages of art that do not face each other. */
+let unpaired = false;
+/** What the stand-in preview says it placed: every `figure` in the HTML, as a box of this many CSS pixels wide (and as tall as it is wide). */
+let figureBox: number | null = null;
 vi.mock("../src/preview", () => ({
   createAppPreview: (): Preview => ({
     render: async ({ html }) => {
@@ -32,7 +36,14 @@ vi.mock("../src/preview", () => ({
         const name = el.getAttribute("data-component")!;
         if (tooTall.includes(name)) oversized.push({ index, name, heightMm: 461, columnMm: 253 });
       });
-      return { pages: 3, layoutMs: 1, oversized };
+      const spreads = unpaired ? [...doc.querySelectorAll("[data-component]")].flatMap((el, index) => (el.getAttribute("data-component") === "page" ? [{ index, page: 2, count: 2 }] : [])).slice(0, 1) : [];
+      const images =
+        figureBox === null
+          ? []
+          : [...doc.querySelectorAll("[data-component]")].flatMap((el, index) =>
+              el.getAttribute("data-component") === "figure" ? [{ source: el.querySelector("img")!.getAttribute("data-source") ?? el.querySelector("img")!.getAttribute("src")!, index, page: 2, widthPx: figureBox!, heightPx: figureBox!, naturalWidth: 100, naturalHeight: 100 }] : [],
+            );
+      return { pages: 3, layoutMs: 1, oversized, spreads, images };
     },
     destroy: () => {},
   }),
@@ -47,6 +58,8 @@ beforeAll(async () => {
 const roots: { root: Root; host: HTMLElement }[] = [];
 afterEach(async () => {
   tooTall = ["statblock"];
+  unpaired = false;
+  figureBox = null;
   for (const { root, host } of roots.splice(0)) {
     await act(async () => root.unmount());
     host.remove();
@@ -58,12 +71,13 @@ async function settle(ms = 500) {
   for (let left = ms; left > 0; left -= 100) await act(async () => void (await new Promise((r) => setTimeout(r, Math.min(100, left)))));
 }
 
-async function start() {
+async function start(chapters?: Parameters<typeof seed>[0], setup?: (store: Awaited<ReturnType<typeof seed>>["store"], projectId: string) => Promise<void>) {
   const { Workspace } = await import("../src/Workspace");
   const host = document.body.appendChild(document.createElement("div"));
   const root = createRoot(host);
   roots.push({ root, host });
-  const { store, project } = await seed();
+  const { store, project } = await seed(chapters);
+  await setup?.(store, project.id);
   await act(async () => root.render(<Workspace store={store} project={project} />));
   // The project opens, then its first chapter is read from the store, and only then is there an editor.
   for (let i = 0; i < 50 && !document.querySelector(".visual-editor .ProseMirror"); i++) await act(async () => void (await new Promise((r) => setTimeout(r, 50))));
@@ -141,6 +155,67 @@ describe("an oversized stat block", () => {
     editor().chain().focus("end").insertContent("x").run();
     await settle(1200);
     expect(inEditor()).toEqual([]);
+    expect(inPreview()).toEqual([]);
+  });
+});
+
+describe("pages of art that do not face each other", () => {
+  const spread = '::page{template="art-full" art="a.png"}\n::page{template="art-full" art="b.png"}\n';
+
+  test("are warned about in the preview, with the book's page numbers, and on the first page of art in the editor", async () => {
+    unpaired = true;
+    await start([{ id: "one", title: "One", markdown: `# One\n\n${spread}` }]);
+    await settle(900);
+    expect(inPreview()).toEqual(['Pages 2 and 3 are pages of art in a row, but 2 is a right-hand page, so they do not face each other when the book is printed. Add side="left" to the first one to put it on a left-hand page.']);
+    expect(inEditor()).toEqual(["page"]);
+    expect(document.querySelectorAll(".visual-editor [data-component=\"page\"].has-layout-warning, .visual-editor .has-layout-warning[data-component=\"page\"]").length).toBeGreaterThan(0);
+    expect(document.querySelector(".preview header .hint")!.textContent).toContain("1 layout problem");
+  });
+
+  test("nothing is said when they face each other", async () => {
+    await start([{ id: "one", title: "One", markdown: `# One\n\n${spread}` }]);
+    await settle(900);
+    expect(inPreview()).toEqual([]);
+    expect(inEditor()).toEqual([]);
+  });
+});
+
+// A PNG that is only its header: all the app reads of it is the size.
+const png = (w: number, h: number, name: string) => {
+  const be32 = (n: number) => [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255];
+  return new File([Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, ...be32(13), 0x49, 0x48, 0x44, 0x52, ...be32(w), ...be32(h), 8, 6, 0, 0, 0, 0, 0, 0, 0])], name, { type: "image/png" });
+};
+
+describe("images too small for print", () => {
+  const chapters = [{ id: "one", title: "One", markdown: '# One\n\n::figure{src="small.png"}\n\n::figure{src="big.png"}\n\n::figure{src="elsewhere.png"}\n' }];
+  const assets = async (store: Awaited<ReturnType<typeof seed>>["store"], id: string) => {
+    await store.putAsset(id, png(300, 200, "small.png"));
+    await store.putAsset(id, png(3000, 2000, "big.png"));
+  };
+
+  test("are warned about in the preview, with the book's page, and on the figure in the editor; the others are not", async () => {
+    figureBox = 288; // a 3 inch square: the 300 × 200 pixel image is short of pixels on its height (67 dpi), the big one has plenty
+    await start(chapters, assets);
+    await settle(1200);
+    expect(inPreview()).toEqual(["“small.png” is 300 × 200 pixels, about 67 dpi at the size it has on page 2. Print needs at least 150 dpi (300 is best): use a larger image, or give it less room."]);
+    expect(inEditor()).toEqual(["figure"]);
+    expect(document.querySelector(".preview header .hint")!.textContent).toContain("1 layout problem");
+  });
+
+  test("nothing is said when the images are big enough for the room they have", async () => {
+    figureBox = 96; // an inch: 300 dpi
+    await start(chapters, assets);
+    await settle(1200);
+    expect(inPreview()).toEqual([]);
+    expect(inEditor()).toEqual([]);
+  });
+
+  test("an image that is not one of the project's, or whose file cannot be read, is not judged", async () => {
+    figureBox = 9600;
+    await start([{ id: "one", title: "One", markdown: '# One\n\n::figure{src="elsewhere.png"}\n\n::figure{src="notes.png"}\n' }], async (store, id) => {
+      await store.putAsset(id, new File(["this is not a picture"], "notes.png", { type: "image/png" }));
+    });
+    await settle(1200);
     expect(inPreview()).toEqual([]);
   });
 });

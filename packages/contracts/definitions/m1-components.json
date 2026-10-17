@@ -57,5 +57,29 @@
     "attributes": [
       { "name": "template", "type": "enum", "values": ["one-column", "two-column"], "required": true, "default": "one-column", "description": "The page template, defined by the theme." }
     ]
+  },
+  {
+    "name": "figure",
+    "description": "An image in the text, with an optional caption. One column wide, or spanning all columns. It never splits: it moves whole to the next column or page.",
+    "form": "leaf",
+    "kind": "leaf",
+    "attributes": [
+      { "name": "src", "type": "string", "required": true, "description": "The image: the file name (or id) of an image added to the project." },
+      { "name": "alt", "type": "string", "description": "What the image shows, for people who cannot see it." },
+      { "name": "caption", "type": "string", "description": "Text shown under the image." },
+      { "name": "span", "type": "enum", "values": ["column", "all"], "default": "column", "description": "column: as wide as the column it is in. all: across all the columns of the page." }
+    ]
+  },
+  {
+    "name": "page",
+    "description": "One special page, then the flow returns to the current layout. It always starts a new page.",
+    "form": "leaf",
+    "kind": "leaf",
+    "attributes": [
+      { "name": "template", "type": "enum", "values": ["art-full", "art-top", "art-bottom"], "required": true, "default": "art-full", "description": "art-full: the image fills the whole page, with no header or footer; the page number is drawn over it. art-top, art-bottom: a band of art across the top or the bottom of the page, and the text that follows flows in the rest of it." },
+      { "name": "art", "type": "string", "required": true, "description": "The image: the file name (or id) of an image added to the project." },
+      { "name": "height", "type": "string", "description": "For art-top and art-bottom: how tall the band is, as a length (90mm, 3in) or a percentage of the page height (40%). The theme sets a default." },
+      { "name": "side", "type": "enum", "values": ["left"], "description": "left: the page is a left-hand page, with a blank page before it when it would otherwise be a right-hand one. For two pages of art that face each other, give it to the first." }
+    ]
   }
 ]

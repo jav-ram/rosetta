@@ -11,11 +11,11 @@ export interface EditorOptions extends ComponentOptions {
 }
 
 /** Creates the editor. It is plain Tiptap core: no UI framework. */
-export function createEditor({ element, content = "", onUpdate, components, renderComponent }: EditorOptions): Editor {
+export function createEditor({ element, content = "", onUpdate, components, renderComponent, afterRender }: EditorOptions): Editor {
   return new Editor({
     element,
     content,
-    extensions: standardExtensions({ components, renderComponent }),
+    extensions: standardExtensions({ components, renderComponent, afterRender }),
     editorProps: { attributes: { class: "rosetta-editor rosetta-document", role: "textbox", "aria-multiline": "true", "aria-label": "Chapter text" } },
     onUpdate: ({ editor }) => onUpdate?.(editor),
   });

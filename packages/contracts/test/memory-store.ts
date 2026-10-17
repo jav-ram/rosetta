@@ -4,7 +4,7 @@ interface Project {
   manifest: Manifest;
   updatedAt: string;
   chapters: Map<string, string>;
-  assets: Map<string, { ref: AssetRef; bytes: Blob }>;
+  assets: Map<string, { ref: AssetRef; bytes: Blob; preview?: Blob }>;
 }
 
 /** What a store keeps beyond its own lifetime. Opening a MemoryStore on the same Data is "reopening" it. */
@@ -101,9 +101,15 @@ export class MemoryStore implements ProjectStore {
     return [...this.project(projectId).assets.values()].map((a) => structuredClone(a.ref));
   }
 
-  async getAsset(projectId: string, ref: AssetRef, _variant: "preview" | "original") {
+  async getAsset(projectId: string, ref: AssetRef, variant: "preview" | "original") {
     const asset = this.project(projectId).assets.get(ref.id);
     if (!asset) throw new ProjectStoreError("not-found", `no asset "${ref.id}"`);
-    return asset.bytes.slice();
+    return (variant === "preview" && asset.preview ? asset.preview : asset.bytes).slice();
+  }
+
+  async setAssetPreview(projectId: string, assetId: string, preview: Blob) {
+    const asset = this.project(projectId).assets.get(assetId);
+    if (!asset) throw new ProjectStoreError("not-found", `no asset "${assetId}"`);
+    asset.preview = preview.slice();
   }
 }

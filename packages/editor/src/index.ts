@@ -10,6 +10,7 @@ export { createForm, type Form, type FormValue } from "./components/form";
 export { createInline, skeleton, type Inline, type InlineOptions } from "./components/inline";
 export type { RenderComponent } from "./components/render";
 export type { ComponentOptions } from "./extensions";
+export { redrawComponents } from "./components/views";
 export { setLayoutWarnings, type LayoutWarning } from "./layout-warnings";
 export { toMarkdown, type SaveOptions } from "./save";
 export { yamlMapping } from "./yaml";

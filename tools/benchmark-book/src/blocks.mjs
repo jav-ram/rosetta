@@ -52,6 +52,23 @@ export const components = {
     return { markdown: "::pagebreak", pages: 0.5 }; // on average half a page is left empty
   },
 
+  /**
+   * An illustration as the `figure` component, with a caption; every fourth one spans all columns. Illustrations are numbered
+   * because each refers to its own placeholder asset (see `figure` below, which chooses between this and a Markdown image).
+   */
+  figure(_rng, number = 1) {
+    const id = String(number).padStart(3, "0");
+    const span = number % 4 === 0 ? ' span="all"' : "";
+    return { markdown: `::figure{src="assets/originals/ill-${id}.svg" alt="Placeholder illustration ${id}" caption="Illustration ${id}"${span}}`, pages: span ? 0.5 : 0.4 };
+  },
+
+  /** A page of art, as the `page` component: full-page on every other one, otherwise a band at the top (and the text that follows fills the rest of the page). */
+  page(_rng, number = 1) {
+    const id = String(number).padStart(3, "0");
+    const art = `art="assets/originals/ill-${id}.svg"`;
+    return Math.floor(number / 6) % 2 === 0 ? { markdown: `::page{template="art-full" ${art}}`, pages: 1 } : { markdown: `::page{template="art-top" ${art} height="40%"}`, pages: 0.4 };
+  },
+
   /** Switches the page template for the rest of the chapter, or until the next layout. Always starts a new page. */
   layout(rng) {
     return { markdown: `::layout{template="${rng.pick(["one-column", "two-column"])}"}`, pages: 0.5 };
@@ -84,8 +101,10 @@ export const markdownBlocks = {
   },
 };
 
-/** An illustration, referencing a placeholder asset. */
+/** An illustration, referencing a placeholder asset: a full page of art for every sixth, otherwise a `figure` component on even numbers and a plain Markdown image on odd ones. */
 export function figure(number) {
+  if (number % 6 === 0) return components.page(null, number);
+  if (number % 2 === 0) return components.figure(null, number);
   const id = String(number).padStart(3, "0");
   return { markdown: `![Placeholder illustration ${id}](assets/originals/ill-${id}.svg)`, pages: 0.4 };
 }

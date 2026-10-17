@@ -29,6 +29,8 @@ interface AssetRecord {
   bytes: ArrayBuffer;
   /** When it was added, so assets list in the order they were added. */
   seq: number;
+  /** The copy made for showing (`setAssetPreview`), when there is one. */
+  preview?: { bytes: ArrayBuffer; type: string };
 }
 
 export interface LocalStoreOptions {
@@ -54,7 +56,7 @@ const ofProject = (projectId: string) => IDBKeyRange.bound([projectId, ""], [pro
  * `ProjectStore` in IndexedDB: the projects of this browser. Open it with `openLocalStore`.
  *
  * Each call is one transaction, so a save is all there or not at all, and its promise resolves when the browser has committed it.
- * Assets are stored as their bytes. The preview of an asset is the original until previews are generated (M4).
+ * Assets are stored as their bytes. The preview of an asset is the original until a preview copy is stored (`setAssetPreview`).
  */
 export class LocalStore implements ProjectStore {
   private constructor(private db: IDBDatabase) {}
@@ -205,13 +207,25 @@ export class LocalStore implements ProjectStore {
     });
   }
 
-  async getAsset(projectId: string, ref: AssetRef, _variant: "preview" | "original"): Promise<Blob> {
+  async getAsset(projectId: string, ref: AssetRef, variant: "preview" | "original"): Promise<Blob> {
     const asset = await this.run([PROJECTS, ASSETS], "readonly", async (tx) => {
       await this.project(tx, projectId);
       return (await request(tx.objectStore(ASSETS).get([projectId, ref.id]))) as AssetRecord | undefined;
     });
     if (!asset) throw new ProjectStoreError("not-found", `There is no asset "${ref.id}"`);
+    if (variant === "preview" && asset.preview) return new Blob([asset.preview.bytes], { type: asset.preview.type });
     return new Blob([asset.bytes], { type: asset.ref.mediaType });
+  }
+
+  async setAssetPreview(projectId: string, assetId: string, preview: Blob): Promise<void> {
+    const bytes = await preview.arrayBuffer();
+    await this.run([PROJECTS, ASSETS], "readwrite", async (tx) => {
+      await this.project(tx, projectId);
+      const assets = tx.objectStore(ASSETS);
+      const asset = (await request(assets.get([projectId, assetId]))) as AssetRecord | undefined;
+      if (!asset) throw new ProjectStoreError("not-found", `There is no asset "${assetId}"`);
+      assets.put({ ...asset, preview: { bytes, type: preview.type } } satisfies AssetRecord);
+    });
   }
 }
 

@@ -93,7 +93,7 @@ func TestM1Components(t *testing.T) {
 			t.Errorf("component %q does not satisfy the schema: %v", d.Name, err)
 		}
 	}
-	if !reflect.DeepEqual(names, []string{"statblock", "readaloud", "sidebar", "pagebreak", "layout"}) {
+	if !reflect.DeepEqual(names, []string{"statblock", "readaloud", "sidebar", "pagebreak", "layout", "figure", "page"}) {
 		t.Fatalf("names = %v", names)
 	}
 	if defs[0].Breakable == nil || *defs[0].Breakable || defs[1].Breakable == nil || !*defs[1].Breakable || defs[3].Breakable != nil {

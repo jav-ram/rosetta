@@ -119,7 +119,8 @@ export function checkProject(files) {
       problems.push(`${chapter.file}: listed in the manifest but missing`);
       continue;
     }
-    for (const [, path] of text.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)) {
+    const images = [...text.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g), ...text.matchAll(/^::figure\{src="([^"]+)"/gm), ...text.matchAll(/^::page\{[^}]*art="([^"]+)"/gm)];
+    for (const [, path] of images) {
       if (!files.has(path)) problems.push(`${chapter.file}: image ${path} does not exist`);
       const preview = path.replace("originals/", "previews/");
       if (!files.has(preview)) problems.push(`${chapter.file}: preview ${preview} does not exist`);

@@ -289,7 +289,7 @@ func TestUnknownLeafDirective(t *testing.T) {
 }
 
 func TestReservedNamesAreUnknownUntilDefined(t *testing.T) {
-	for _, name := range []string{"page", "figure", "toc", "spell", "item", "roll"} {
+	for _, name := range []string{"toc", "spell", "item", "roll"} {
 		_, ws := parse(t, "::"+name+"\n")
 		if !reflect.DeepEqual(codes(ws), []string{"component.unknown"}) {
 			t.Errorf("%s: warnings = %v", name, codes(ws))

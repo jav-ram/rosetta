@@ -301,6 +301,8 @@ Built-in Markdown elements have fixed defaults:
 | `sidebar` | block | container | `true` |
 | `pagebreak` | leaf | leaf | n/a |
 | `layout` | leaf | leaf | n/a |
+| `figure` | leaf | leaf | n/a (never splits) |
+| `page` | leaf | leaf | n/a |
 
 #### `statblock`
 
@@ -361,9 +363,35 @@ It was a dark night in Greyhollow when the bells began to ring...
 ## Chapter 1: The Basics
 ```
 
+#### `figure`
+
+- Form: leaf.
+- Attributes: `src` (string; required): the image, as the file name or id of an image added to the project. `alt` (string, optional): what the image shows. `caption` (string, optional): plain text shown under the image. `span` (enum: `column`, `all`; default `column`): `column` is as wide as the column the figure is in; `all` spans every column of the page, at its place in the text.
+- An image never splits (the default for Markdown images, section 9.1), so a `figure` always renders as `data-breakable="false"` although a leaf definition carries no `breakable` flag. One taller than a column is reported like any other unbreakable component (`layout.too-tall`).
+- Renders as `<figure class="rosetta-figure" data-span="column|all">` holding an `<img>` and, with a caption, a `<figcaption>`. The `src` is written as given; it is for the application to find the file.
+- A `figure` with no `src` renders as a warning block (section 8.3) and `attr.missing`; a `span` that is neither value is read as `column` with `attr.enum`.
+- Example: `::figure{src="tavern.jpg" alt="The tavern at night" caption="The Gilded Boar" span="all"}`
+
+#### `page`
+
+- Form: leaf, with no scope.
+- Attributes: `template` (enum: `art-full`, `art-top`, `art-bottom`; required; default when inserted by an editor: `art-full`). `art` (string; required): the image, as the file name or id of an image added to the project. `height` (string, optional; only for `art-top` and `art-bottom`): how tall the band is, as a length (`90mm`, `3in`) or a percentage of the page height (`40%`); the theme sets a default, and a value that is not a length or a percentage is ignored. `side` (enum: `left`; optional): the page is a left-hand page; see below.
+- Makes **one special page** and then the flow returns to the layout in force: it does not change the layout, and it does not use a `layout`'s scope. It always starts a new page.
+- `art-full`: the image fills the whole page. The page has no header or footer, but its page number is shown, over the image, and counts as any other page. What follows the directive starts another page.
+- `art-top`, `art-bottom`: the image is a band across the top or the bottom of the page, the full width of the page. The text that follows flows, in the columns of the layout in force, in the rest of the page, and continues on the next page as usual. A component that does not fit in what is left of the page moves to the next page like any other. A band that would leave too little room for text is made shorter.
+- `side="left"`: the page is a left-hand page of the book. When it would be a right-hand page, a blank page (no header, no page number, still counted) goes before it. This is for two pages of art that face each other (a spread): give it to the first of two `art-full` pages in a row. Without it, the page lands wherever it falls, and an implementation SHOULD warn when two `art-full` pages in a row do not face each other, that is, when the first is a right-hand page. When the chapter begins with a `page` that has `side="left"`, the chapter's first page is that left-hand page (with a blank page before it when the chapter would begin on a right-hand one), whatever the chapter's own start rule says.
+- The HTML is the element with the component's `data-*` attributes and no content: `<div class="rosetta-page" data-template="art-top" data-art="tavern.jpg" data-height="40%">`. The art is drawn by the preview or the exporter, which also find the file.
+- A `page` without `art` or `template` is reported as for any component (`attr.missing`); a `template` that is not one of the values is reported (`attr.enum`) and the page has no art. The preview shows no art for either.
+- Examples: `::page{template="art-full" art="dragon.jpg"}`, `::page{template="art-top" art="tavern.jpg" height="40%"}`, and a spread:
+
+```md
+::page{template="art-full" art="map-left.jpg" side="left"}
+::page{template="art-full" art="map-right.jpg"}
+```
+
 ### 9.3 Reserved names
 
-The names `page`, `figure`, `toc`, `spell`, `item` and `roll` are reserved for later milestones. Until a definition for them is loaded, they are treated as unknown components (section 6).
+The names `toc`, `spell`, `item` and `roll` are reserved for later milestones. Until a definition for them is loaded, they are treated as unknown components (section 6).
 
 ## 10. Conformance
 

@@ -1,6 +1,8 @@
 import type { ProjectStore, ProjectSummary } from "@rosetta/contracts";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { backupReminders, type BackupReminders } from "../backupReminder";
+import { makePreview as defaultMakePreview, type MakePreview } from "../images/previewMaker";
+import { rebuildPreviews } from "../images/rebuildPreviews";
 import { openProjectFile, saveProjectFile } from "../projectFile";
 
 interface Props {
@@ -10,6 +12,8 @@ interface Props {
   saveFile?: typeof saveProjectFile;
   /** Where backups are noted, for the reminder. */
   reminders?: BackupReminders;
+  /** Makes the preview copies of images in an imported file. The real one (a worker) by default; tests give another. */
+  makePreview?: MakePreview;
 }
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -23,7 +27,7 @@ const newManifest = (title: string) => ({
 });
 
 /** List, create, rename and delete projects. They are kept by the store, so they are here after the browser is closed and opened again. */
-export function ProjectsScreen({ store, onOpen, saveFile = saveProjectFile, reminders = backupReminders }: Props) {
+export function ProjectsScreen({ store, onOpen, saveFile = saveProjectFile, reminders = backupReminders, makePreview = defaultMakePreview }: Props) {
   const [projects, setProjects] = useState<ProjectSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [title, setTitle] = useState("");
@@ -82,7 +86,11 @@ export function ProjectsScreen({ store, onOpen, saveFile = saveProjectFile, remi
     if (picker.current) picker.current.value = ""; // so the same file can be chosen again
     if (!file) return;
     // A project that came from a file is, as it stands, in that file: no backup is due.
-    void change(async () => reminders.noteBackup((await openProjectFile(store, file)).id));
+    void change(async () => {
+      const imported = await openProjectFile(store, file);
+      reminders.noteBackup(imported.id);
+      void rebuildPreviews(store, imported.id, makePreview); // the file has only the originals; this goes on in the background
+    });
   };
 
   const remove = (id: string) =>

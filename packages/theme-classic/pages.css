@@ -134,6 +134,95 @@
   break-inside: avoid;
 }
 
+/* A figure with span="all" runs across every column of the page, at its place in the text. */
+.rosetta-document .rosetta-figure[data-span="all"] {
+  column-span: all;
+}
+
+/*
+ * A page of art (the page component). The element is a marker that takes no room: it starts a new page and, for a full page of
+ * art, ends it, so what follows starts another and goes on in the layout in force. The preview's art hook finds the page that
+ * starts at the marker, gives it the class has-<template> and puts the image in a band in the page box, behind everything.
+ */
+.rosetta-document .rosetta-page {
+  break-before: page;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  overflow: hidden;
+}
+
+.rosetta-document .rosetta-page::before {
+  content: none;
+}
+
+.rosetta-document .rosetta-page[data-template="art-full"] {
+  break-after: page;
+}
+
+/* side="left": the page is a left-hand one, with a blank page before it when it would be a right-hand one (Paged.js adds the blank page). */
+.rosetta-document .rosetta-page[data-side="left"] {
+  break-before: left;
+}
+
+.rosetta-art-band {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.rosetta-art-band img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/*
+ * Bands. A band of art across the top or the bottom of a page: the preview's art hook measures it and gives the text area the
+ * rest of the page. The height is a token (as a percentage it is of the page height); the page component's height attribute
+ * replaces it. The running header would sit on the art at the top, so it is left out there; at the bottom the page number is on
+ * the art, in the same backing shape as on a full page.
+ */
+.pagedjs_page.has-art-top .rosetta-art-band {
+  bottom: auto;
+  height: var(--page-art-height);
+}
+
+.pagedjs_page.has-art-bottom .rosetta-art-band {
+  top: auto;
+  height: var(--page-art-height);
+}
+
+.pagedjs_page.has-art-top .pagedjs_margin-top {
+  display: none;
+}
+
+/* A full page of art has no running header, and its page number is on the art, in a backing shape so it reads over any image. */
+.pagedjs_page.has-art-full .pagedjs_margin-top {
+  display: none;
+}
+
+.pagedjs_page.has-art-full .pagedjs_margin-bottom-center .pagedjs_margin-content,
+.pagedjs_page.has-art-bottom .pagedjs_margin-bottom-center .pagedjs_margin-content {
+  position: relative;
+  z-index: 2;
+}
+
+.pagedjs_page.has-art-full .pagedjs_margin-bottom-center .pagedjs_margin-content::after,
+.pagedjs_page.has-art-bottom .pagedjs_margin-bottom-center .pagedjs_margin-content::after {
+  display: inline-block;
+  padding: var(--spacing-cell);
+  border-radius: var(--border-radius-frame);
+  color: var(--color-art-number);
+  background-color: var(--color-art-number-bg);
+}
+
 /* Page break. */
 .rosetta-pagebreak {
   break-after: page;

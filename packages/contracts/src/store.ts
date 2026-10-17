@@ -69,8 +69,15 @@ export interface ProjectStore {
   listAssets(projectId: string): Promise<AssetRef[]>;
 
   /**
-   * `original` is exactly the bytes that were added. `preview` is a copy that is cheaper to show: it may be the original, or a smaller image.
-   * `not-found` if the project has no such asset.
+   * `original` is exactly the bytes that were added. `preview` is a copy that is cheaper to show: the one given to
+   * `setAssetPreview`, or the original if none was. `not-found` if the project has no such asset.
    */
   getAsset(projectId: string, ref: AssetRef, variant: "preview" | "original"): Promise<Blob>;
+
+  /**
+   * Stores the preview copy of an asset (a smaller image made from the original), replacing an earlier one. The original is
+   * not touched, and the project's `updatedAt` does not move: a preview can always be made again. `not-found` if the project
+   * has no such asset.
+   */
+  setAssetPreview(projectId: string, assetId: string, preview: Blob): Promise<void>;
 }

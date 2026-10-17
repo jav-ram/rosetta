@@ -108,6 +108,49 @@
   mask-image: var(--mask-art);
 }
 
+/* Figure: an image with an optional caption, as wide as the column it is in (pages.css lets one span all columns). */
+.rosetta-figure {
+  margin-top: 0;
+  margin-bottom: var(--spacing-block);
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.rosetta-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.rosetta-figure figcaption {
+  margin-top: var(--spacing-field);
+  font-family: var(--font-furniture);
+  font-size: var(--font-size-small);
+  color: var(--color-muted);
+}
+
+/*
+ * Page marker (the page component). In the editor and the preview text it is a labelled bar, so it can be seen and selected;
+ * pages.css turns it into a marker with no size in the book, and the preview draws the art on the page it starts.
+ */
+.rosetta-page {
+  margin-top: 0;
+  margin-bottom: var(--spacing-block);
+  margin-left: 0;
+  margin-right: 0;
+  padding: var(--spacing-frame);
+  border: var(--border-rule);
+  border-radius: var(--border-radius-frame);
+  font-family: var(--font-furniture);
+  font-size: var(--font-size-small);
+  color: var(--color-muted);
+  text-align: center;
+}
+
+[class~="rosetta-page"]::before {
+  content: "Page of art: " attr(data-art);
+}
+
 /* Tables. */
 .rosetta-document table {
   width: 100%;

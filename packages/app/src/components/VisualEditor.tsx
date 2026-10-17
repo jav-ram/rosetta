@@ -1,5 +1,6 @@
 import { m1Components } from "@rosetta/contracts";
-import { createEditor, createToolbar, fromAst, setDocument, setLayoutWarnings, toMarkdown, type Editor, type LayoutWarning } from "@rosetta/editor";
+import { defaultResolveImage, resolveImages } from "@rosetta/preview";
+import { createEditor, createToolbar, fromAst, redrawComponents, setDocument, setLayoutWarnings, toMarkdown, type Editor, type LayoutWarning } from "@rosetta/editor";
 import { useEffect, useRef } from "react";
 import { watchEditorZoom } from "../fitEditor";
 import { parser } from "../parser";
@@ -16,6 +17,9 @@ interface Props {
   layoutWarnings?: LayoutWarning[];
   /** False while the Markdown view is showing: edits still waiting to be saved are then saved at once. */
   visible?: boolean;
+  /** The URL to show for an image in a component, and a key that changes when one becomes available (the components then draw again). */
+  resolveImage?: (src: string) => string;
+  imagesKey?: string;
   onChange: (markdown: string, chapterId: string) => void;
 }
 
@@ -26,7 +30,7 @@ interface Props {
  * back as Markdown a moment after the last keystroke. A parse of Markdown the editor wrote itself is not loaded
  * again (that would move the cursor); a parse of any other Markdown (another chapter, the Markdown tab) is.
  */
-export function VisualEditor({ chapterId, markdown, parsed, layoutWarnings, visible = true, onChange }: Props) {
+export function VisualEditor({ chapterId, markdown, parsed, layoutWarnings, visible = true, resolveImage, imagesKey, onChange }: Props) {
   const toolbarHost = useRef<HTMLDivElement>(null);
   const editorHost = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Editor | null>(null);
@@ -35,6 +39,8 @@ export function VisualEditor({ chapterId, markdown, parsed, layoutWarnings, visi
   const pending = useRef<ReturnType<typeof setTimeout> | null>(null);
   const warningsRef = useRef(layoutWarnings);
   warningsRef.current = layoutWarnings;
+  const resolveRef = useRef(resolveImage);
+  resolveRef.current = resolveImage;
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
@@ -59,6 +65,8 @@ export function VisualEditor({ chapterId, markdown, parsed, layoutWarnings, visi
       // The editor edits these components and asks the parser worker to render them; it has no templates of its own.
       components: m1Components,
       renderComponent: async (markdown) => (await parser.parse(markdown)).html,
+      // The address of an image can change without the component changing: it is looked up each time the component is drawn.
+      afterRender: (html) => resolveImages(html, (src) => (resolveRef.current ?? defaultResolveImage)(src)),
       onUpdate: () => {
         if (pending.current) clearTimeout(pending.current);
         pending.current = setTimeout(save, SAVE_DELAY_MS);
@@ -126,6 +134,11 @@ export function VisualEditor({ chapterId, markdown, parsed, layoutWarnings, visi
   useEffect(() => {
     if (editorRef.current && shown.current.chapterId === chapterId) setLayoutWarnings(editorRef.current, layoutWarnings ?? []);
   }, [layoutWarnings, chapterId]);
+
+  // An image a component shows has become available (or changed): the components that show images draw again.
+  useEffect(() => {
+    if (imagesKey !== undefined && editorHost.current) redrawComponents(editorHost.current, "figure");
+  }, [imagesKey]);
 
   return (
     <>

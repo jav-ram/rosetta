@@ -90,6 +90,7 @@ test("flow: unbreakable components, images and rows never split, headings stay w
   };
   assert.match(rule('.rosetta-document [data-breakable="false"]'), /break-inside:\s*avoid/);
   for (const el of ["img", "figure", "li", "tr"]) assert.match(rule(`.rosetta-document ${el}`), /break-inside:\s*avoid/, el);
+  assert.match(rule('.rosetta-document .rosetta-figure[data-span="all"]'), /column-span:\s*all/);
   assert.match(rule(".rosetta-document h1"), /break-after:\s*avoid/);
   assert.match(rule(".rosetta-document"), /orphans:\s*var\(--page-orphans\)/);
   assert.match(rule(".rosetta-document"), /widows:\s*var\(--page-widows\)/);

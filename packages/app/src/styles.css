@@ -69,7 +69,22 @@ body { background: var(--bg); color: var(--text); }
 .topbar { grid-area: top; display: flex; gap: 12px; align-items: baseline; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
 .hint { color: var(--muted); font-size: 0.8rem; }
 
-.sidebar { grid-area: side; border-right: 1px solid var(--line); background: var(--panel); overflow: auto; padding: 12px 8px; }
+.side { grid-area: side; display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--line); background: var(--panel); }
+.sidebar { flex: 1 1 50%; min-height: 0; background: var(--panel); overflow: auto; padding: 12px 8px; }
+.images { flex: 1 1 40%; min-height: 0; overflow: auto; border-top: 1px solid var(--line); padding: 12px 8px; }
+.images h2 { margin: 0; padding: 0 8px 8px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.images .chapter-add { width: auto; padding: 2px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: inherit; font-size: 0.75rem; line-height: 1; cursor: pointer; }
+.images ul { list-style: none; margin: 0; padding: 0; }
+.images li { display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 8px; padding: 4px 8px; font-size: 0.8rem; }
+.images img, .images .image-placeholder { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; background: var(--bg); }
+.images .image-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.images .image-insert { width: auto; padding: 2px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: inherit; font-size: 0.7rem; cursor: pointer; }
+.images .image-actions { display: flex; gap: 2px; }
+.images .image-size { color: var(--muted); font-size: 0.7rem; }
+.images .hint { padding: 0 8px; }
+.image-problems { padding: 4px 8px; margin: 0 0 8px; border-radius: 6px; background: var(--warn-bg); color: var(--warn); font-size: 0.8rem; }
+.image-problems p { margin: 0 0 4px; }
+.drop-overlay { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.45); color: #fff; font-size: 1.2rem; pointer-events: none; }
 .sidebar-head { display: flex; align-items: center; justify-content: space-between; padding: 0 8px 8px; }
 .sidebar-head h2 { padding: 0; }
 .sidebar h2, .pane > header h2 { margin: 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }

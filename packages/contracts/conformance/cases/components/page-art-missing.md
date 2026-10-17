@@ -1,0 +1,1 @@
+::page{template="art-full"}
