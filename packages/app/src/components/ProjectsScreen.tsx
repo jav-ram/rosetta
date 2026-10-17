@@ -1,9 +1,15 @@
 import type { ProjectStore, ProjectSummary } from "@rosetta/contracts";
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { backupReminders, type BackupReminders } from "../backupReminder";
+import { openProjectFile, saveProjectFile } from "../projectFile";
 
 interface Props {
   store: ProjectStore;
   onOpen: (project: ProjectSummary) => void;
+  /** Saves a project as a file. The real one by default; tests give another. */
+  saveFile?: typeof saveProjectFile;
+  /** Where backups are noted, for the reminder. */
+  reminders?: BackupReminders;
 }
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -17,12 +23,14 @@ const newManifest = (title: string) => ({
 });
 
 /** List, create, rename and delete projects. They are kept by the store, so they are here after the browser is closed and opened again. */
-export function ProjectsScreen({ store, onOpen }: Props) {
+export function ProjectsScreen({ store, onOpen, saveFile = saveProjectFile, reminders = backupReminders }: Props) {
   const [projects, setProjects] = useState<ProjectSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [exported, setExported] = useState<string | null>(null);
+  const picker = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => setProjects(await store.listProjects()), [store]);
   /** Runs a change, then shows the list again. A failure is shown and nothing else changes. */
@@ -62,9 +70,25 @@ export function ProjectsScreen({ store, onOpen }: Props) {
     });
   };
 
+  const exportFile = (p: ProjectSummary) =>
+    change(async () => {
+      const outcome = await saveFile(store, p);
+      if (outcome === "saved") reminders.noteBackup(p.id);
+      setExported(outcome === "saved" ? p.id : null);
+    });
+
+  const importFile = (files: FileList | null) => {
+    const file = files?.[0];
+    if (picker.current) picker.current.value = ""; // so the same file can be chosen again
+    if (!file) return;
+    // A project that came from a file is, as it stands, in that file: no backup is due.
+    void change(async () => reminders.noteBackup((await openProjectFile(store, file)).id));
+  };
+
   const remove = (id: string) =>
     change(async () => {
       await store.deleteProject(id);
+      reminders.forget(id);
       setDeleting(null);
     });
 
@@ -76,6 +100,10 @@ export function ProjectsScreen({ store, onOpen }: Props) {
         <button type="submit" disabled={!title.trim()}>
           Create project
         </button>
+        <button type="button" onClick={() => picker.current?.click()}>
+          Import…
+        </button>
+        <input ref={picker} type="file" accept=".rosetta,application/zip" hidden aria-label="Import a .rosetta file" onChange={(e) => importFile(e.target.files)} />
       </form>
       {error && (
         <p role="alert" className="projects-error">
@@ -125,6 +153,9 @@ export function ProjectsScreen({ store, onOpen }: Props) {
                   <button type="button" className="projects-open" onClick={() => onOpen(p)}>
                     <strong>{p.title}</strong>
                     <span className="hint">Changed {new Date(p.updatedAt).toLocaleString()}</span>
+                  </button>
+                  <button type="button" onClick={() => void exportFile(p)} aria-label={`Export ${p.title}`} title="Save a copy as a .rosetta file">
+                    {exported === p.id ? "Exported ✓" : "Export"}
                   </button>
                   <button type="button" onClick={() => setRenaming({ id: p.id, value: p.title })} aria-label={`Rename ${p.title}`}>
                     Rename

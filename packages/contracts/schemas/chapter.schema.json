@@ -8,6 +8,15 @@
   "properties": {
     "id": { "$ref": "asset-ref.schema.json#/$defs/id", "description": "Chosen when the chapter is added and never changed, so renaming or reordering keeps the text." },
     "title": { "type": "string", "minLength": 1, "description": "Shown in the chapter list." },
+    "pages": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "How many pages the chapter had when it was last laid out, counting a blank page before it. The next chapter's first page number is this chapter's first page number plus this. Absent until the chapter has been laid out."
+    },
+    "stale": {
+      "type": "boolean",
+      "description": "True when something before this chapter has changed since it was laid out (an earlier chapter got longer or shorter, or chapters were added, removed or moved), so its first page number, and with it whether it needs a blank page, may be out of date. Absent means not stale."
+    },
     "start": {
       "type": "string",
       "enum": ["next-page", "right-page"],

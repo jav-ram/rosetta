@@ -107,6 +107,14 @@ test("columns fill one after the other once the preview has laid the pages out",
   assert.doesNotMatch(base, /column-fill|height/);
 });
 
+test("a blank page has no running header and no page number", () => {
+  const plain = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const blank = /@page :blank\s*\{([\s\S]*?)\n\}/.exec(plain)?.[1] ?? "";
+  assert.match(blank, /@top-center\s*\{[^}]*content:\s*none/);
+  assert.match(blank, /@top-center\s*\{[^}]*border-bottom:\s*none/);
+  assert.match(blank, /@bottom-center\s*\{[^}]*content:\s*none/);
+});
+
 test("the flow test chapter has every case the flow rules are about", () => {
   const md = read("test-pages/flow.md");
   assert.match(md, /^\| d100 \|/m); // a table, with a header

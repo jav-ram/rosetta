@@ -144,6 +144,27 @@ describe("chapters", () => {
     for (const c of saved.chapters) expect(await base.loadChapter(id, c.id)).toBe(`text of ${c.id}`);
   });
 
+  test("a chapter can start on a right-hand page, and back on the next page; the default is not written down", async () => {
+    const { session, base, id } = await open(3);
+    session.setChapterStart("c2", "right-page");
+    await session.flush();
+    expect((await base.loadManifest(id)).chapters.map((c) => c.start)).toEqual([undefined, "right-page", undefined]);
+    session.setChapterStart("c2", "next-page");
+    await session.flush();
+    const saved = await base.loadManifest(id);
+    expect(saved.chapters[1]).toEqual({ id: "c2", title: "Chapter 2" }); // no `start` key (and no page counts to go stale: none was laid out)
+    session.setChapterStart("nope", "right-page"); // ignored
+    expect(session.hasUnsaved).toBe(false);
+  });
+
+  test("renaming and moving keep a chapter's start setting", async () => {
+    const { session } = await open(3);
+    session.setChapterStart("c2", "right-page");
+    session.renameChapter("c2", "Two");
+    session.moveChapter("c2", 0);
+    expect(session.manifest.chapters[0]).toMatchObject({ id: "c2", title: "Two", start: "right-page" });
+  });
+
   test("an empty name is not accepted, and a move is clamped", async () => {
     const { session } = await open(3);
     session.renameChapter("c1", "   ");
@@ -172,6 +193,100 @@ describe("chapters", () => {
     session.renameChapter("c1", "X");
     expect(session.manifest).not.toBe(before);
     expect(before.chapters[0]!.title).toBe("Chapter 1"); // the old one is untouched
+  });
+});
+
+describe("page counts", () => {
+  const stateOf = (session: ProjectSession) => session.manifest.chapters.map((c) => `${c.pages ?? "-"}${c.stale ? "!" : ""}`);
+
+  test("a layout stores the chapter's page count, and a different count marks the chapters after it stale", async () => {
+    const { session } = await open(4, 10_000);
+    session.setPageCount("c1", 3, 1);
+    expect(stateOf(session)).toEqual(["3", "-", "-", "-"]); // the others had no count: nothing to mark
+    session.setPageCount("c2", 5, 4);
+    session.setPageCount("c3", 2, 9);
+    session.setPageCount("c4", 1, 11);
+    expect(stateOf(session)).toEqual(["3", "5", "2", "1"]);
+    session.setPageCount("c1", 4, 1); // chapter 1 got longer
+    expect(stateOf(session)).toEqual(["4", "5!", "2!", "1!"]);
+  });
+
+  test("the same count again changes nothing and writes nothing", async () => {
+    const { session } = await open(3, 10_000);
+    session.setPageCount("c1", 3, 1);
+    await session.flush();
+    const before = session.manifest;
+    session.setPageCount("c1", 3, 1);
+    expect(session.manifest).toBe(before);
+    expect(session.hasUnsaved).toBe(false);
+  });
+
+  test("laying a chapter out again with the page it now starts on makes it fresh, and leaves the ones after it stale", async () => {
+    const { session } = await open(3, 10_000);
+    session.setPageCount("c1", 3, 1);
+    session.setPageCount("c2", 2, 4);
+    session.setPageCount("c3", 2, 6);
+    session.setPageCount("c1", 5, 1);
+    expect(stateOf(session)).toEqual(["5", "2!", "2!"]);
+    session.setPageCount("c2", 2, 6); // now starts on page 6
+    expect(stateOf(session)).toEqual(["5", "2", "2!"]); // same count: chapter 3 stays as it was
+    session.setPageCount("c2", 3, 6);
+    expect(stateOf(session)).toEqual(["5", "3", "2!"]);
+  });
+
+  test("a chapter laid out for a page it no longer starts on stays stale", async () => {
+    const { session } = await open(2, 10_000);
+    session.setPageCount("c1", 3, 1);
+    session.setPageCount("c2", 2, 4);
+    session.setPageCount("c1", 6, 1); // meanwhile chapter 1 changed: chapter 2 now starts on page 7
+    session.setPageCount("c2", 2, 4); // a layout that started before that arrives
+    expect(stateOf(session)).toEqual(["6", "2!"]);
+  });
+
+  test("reordering, deleting and the right-page setting mark what comes after as stale", async () => {
+    const { session } = await open(5, 10_000);
+    for (const [i, id] of ["c1", "c2", "c3", "c4", "c5"].entries()) session.setPageCount(id, 2, 1 + 2 * i);
+    expect(stateOf(session)).toEqual(["2", "2", "2", "2", "2"]);
+    session.moveChapter("c4", 2); // c1 c2 c4 c3 c5
+    expect(stateOf(session)).toEqual(["2", "2", "2!", "2!", "2!"]);
+    session.setPageCount("c4", 2, 5); // now the third chapter: starts on page 5
+    session.setPageCount("c3", 2, 7);
+    session.setPageCount("c5", 2, 9);
+    expect(stateOf(session)).toEqual(["2", "2", "2", "2", "2"]); // laid out in their new places: fresh again
+    for (const [i, c] of session.manifest.chapters.entries()) session.setPageCount(c.id, 2, 1 + 2 * i); // all laid out again
+    expect(stateOf(session)).toEqual(["2", "2", "2", "2", "2"]);
+    session.deleteChapter("c2");
+    expect(stateOf(session)).toEqual(["2", "2!", "2!", "2!"]); // c1 is not affected
+    for (const [i, c] of session.manifest.chapters.entries()) session.setPageCount(c.id, 2, 1 + 2 * i);
+    session.setChapterStart("c1", "right-page");
+    expect(stateOf(session)).toEqual(["2!", "2!", "2!", "2!"]); // c1 itself may now need a blank page
+  });
+
+  test("a chapter that is added has no count, and renaming changes nothing", async () => {
+    const { session } = await open(2, 10_000);
+    session.setPageCount("c1", 3, 1);
+    session.setPageCount("c2", 2, 4);
+    session.addChapter("New");
+    session.renameChapter("c1", "One");
+    expect(stateOf(session)).toEqual(["3", "2", "-"]);
+  });
+
+  test("counts and flags are written with the manifest, and read back", async () => {
+    const { session, base, id } = await open(3);
+    session.setPageCount("c1", 3, 1);
+    session.setPageCount("c2", 2, 4);
+    session.setPageCount("c1", 4, 1);
+    await session.flush();
+    expect((await base.loadManifest(id)).chapters.map((c) => [c.pages, c.stale])).toEqual([[4, undefined], [2, true], [undefined, undefined]]);
+    expect(stateOf(await ProjectSession.open(base, id))).toEqual(["4", "2!", "-"]);
+  });
+
+  test("a count that is not a whole number of pages is ignored", async () => {
+    const { session } = await open(1, 10_000);
+    session.setPageCount("c1", -1, 1);
+    session.setPageCount("c1", 2.5, 1);
+    session.setPageCount("nope", 2, 1);
+    expect(stateOf(session)).toEqual(["-"]);
   });
 });
 

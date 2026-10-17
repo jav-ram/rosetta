@@ -158,3 +158,21 @@ func TestAssetRefAndSummary(t *testing.T) {
 		t.Error("a time that is not ISO should be rejected")
 	}
 }
+
+func TestChapterPageCountAndStale(t *testing.T) {
+	m, err := ValidateManifest([]byte(`{"rosettaVersion":"0.1","title":"T","chapters":[{"id":"a","title":"A","pages":12,"stale":true},{"id":"b","title":"B","start":"right-page"}]}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.Chapters[0].Pages == nil || *m.Chapters[0].Pages != 12 || m.Chapters[0].Stale == nil || !*m.Chapters[0].Stale {
+		t.Fatalf("pages and stale not decoded: %+v", m.Chapters[0])
+	}
+	if m.Chapters[1].Pages != nil || m.Chapters[1].Stale != nil {
+		t.Fatalf("absent means absent: %+v", m.Chapters[1])
+	}
+	for _, bad := range []string{`"pages":-1`, `"pages":1.5`, `"pages":"3"`, `"stale":"yes"`} {
+		if _, err := ValidateManifest([]byte(`{"rosettaVersion":"0.1","title":"T","chapters":[{"id":"a","title":"A",` + bad + `}]}`)); err == nil {
+			t.Errorf("%s should be rejected", bad)
+		}
+	}
+}

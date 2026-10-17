@@ -25,6 +25,16 @@ export interface PreviewInput {
   html: string;
   /** The theme's CSS, with `@page` variables already written in. */
   css: string;
+  /**
+   * The book's page number of this chapter's first page (default 1). Page numbers count from it, and whether that page is a
+   * left or a right page (even or odd) decides whether `startOn: "right-page"` needs a blank page first.
+   */
+  startPage?: number;
+  /**
+   * How the chapter starts. Every chapter starts on a new page (its own first page); `"right-page"` also makes it start on a
+   * right-hand (odd) page, with a blank page before it when it would otherwise start on a left-hand one. Default `"next-page"`.
+   */
+  startOn?: "next-page" | "right-page";
 }
 
 /** An unbreakable component that is taller than a column, so it cannot fit on any page. */
@@ -64,6 +74,33 @@ body { margin: 0; }
 [data-layout-warning] { outline: 2px solid #c0392b; outline-offset: 2px; position: relative; }
 [data-layout-warning]::before { content: "\\26A0  " attr(data-layout-warning); position: absolute; top: 0; right: 0; z-index: 10; max-width: 90%; padding: 2px 6px; background: #c0392b; color: #fff; font: 11px/1.3 system-ui, sans-serif; }
 `;
+
+/**
+ * Chapter starts. A chapter is laid out alone, but its pages belong to a book: its first page is book page `startPage`.
+ *
+ * - Left and right: Paged.js decides whether a page is a left or a right page from its position in the document, as if the
+ *   document began on page 1, a right page. When the chapter begins on an even (left) page, a zero-height element with
+ *   `break-after: page` is put first, so the chapter's first page is the document's second page, a left one. That first
+ *   page is not part of the chapter: it is hidden after layout, and not counted.
+ * - `right-page`: the chapter's zero-height first element has `break-before: right`. Paged.js then inserts a blank page
+ *   (`pagedjs_blank_page`, which the theme styles with `@page :blank`) when the chapter would start on a left page.
+ * - Page numbers: the same first element has `counter-reset: page N`, which Paged.js applies to the page it is on, so the
+ *   chapter's first page is numbered N and the pages after it count on. (Paged.js takes `counter-reset` out of the style
+ *   sheet and applies it itself, so it cannot be put on `.pagedjs_pages`.) The blank page, if there is one, shows no number.
+ */
+const chapterStartCss = (firstNumber: number) => `
+.rosetta-parity-page { break-after: page; height: 0; margin: 0; padding: 0; }
+.rosetta-chapter-start { height: 0; margin: 0; padding: 0; counter-reset: page ${firstNumber}; }
+.rosetta-chapter-start.rosetta-start-right { break-before: right; }
+`;
+
+/** Whether the chapter's first page is a left-hand page: an even page number. */
+const startsLeft = (input: PreviewInput) => firstPage(input) % 2 === 0;
+/** Whether a blank page goes before the chapter: it wants a right-hand page and would get a left-hand one. */
+const needsBlank = (input: PreviewInput) => input.startOn === "right-page" && startsLeft(input);
+
+/** The page number a chapter's first page has, as a whole number of at least 1. */
+const firstPage = (input: PreviewInput) => (Number.isInteger(input.startPage) && input.startPage! >= 1 ? input.startPage! : 1);
 
 /**
  * Paged.js lays out one page per animation frame and idle callback. Browsers stop or slow those down for a frame that is not
@@ -161,6 +198,18 @@ export const FILL_COLUMNS_SCRIPT = `function fillColumns(doc) {
   });
 }`;
 
+/**
+ * After layout: hides the page that only keeps the left/right parity (see `chapterStartCss`) and says how many pages the
+ * chapter has without it. Runs in the preview document. Exported as source.
+ */
+export const PARITY_PAGE_SCRIPT = `function hideParityPage(doc) {
+  var hidden = 0;
+  doc.querySelectorAll(".pagedjs_page").forEach(function (page) {
+    if (page.querySelector(".rosetta-parity-page")) { page.style.display = "none"; page.setAttribute("data-parity-page", ""); hidden += 1; }
+  });
+  return hidden;
+}`;
+
 const PLACEHOLDER =
   "data:image/svg+xml;utf8," +
   encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="250"><rect width="400" height="250" fill="#d9d9d9"/></svg>');
@@ -186,14 +235,14 @@ export function buildDocument(input: PreviewInput, options: { pagedUrl: string; 
 <html>
 <head>
 <meta charset="utf-8">
-<style>${SCREEN_CSS}</style>
+<style>${SCREEN_CSS}${chapterStartCss(firstPage(input) + (needsBlank(input) ? 1 : 0))}</style>
 <style>${safeInStyle(input.css)}</style>
 <script>${SCHEDULER}</script>
 <script>window.PagedConfig = { auto: false };</script>
 <script src="${options.pagedUrl.replace(/"/g, "&quot;")}"></script>
 </head>
 <body>
-<div class="rosetta-document">${html}</div>
+<div class="rosetta-document">${startsLeft(input) ? '<div class="rosetta-parity-page"></div>' : ""}<div class="rosetta-chapter-start${input.startOn === "right-page" ? " rosetta-start-right" : ""}"></div>${html}</div>
 <script>
 (function () {
   var id = ${id};
@@ -202,6 +251,7 @@ export function buildDocument(input: PreviewInput, options: { pagedUrl: string; 
   ${OVERSIZED_SCRIPT}
   ${TABLE_HEADER_SCRIPT}
   ${FILL_COLUMNS_SCRIPT}
+  ${PARITY_PAGE_SCRIPT}
   try { installTableHeaderRepeat(window.PagedPolyfill.chunker.hooks); } catch (e) { /* the pages are laid out without repeated headers */ }
   numberBlocks(document);
   var start = performance.now();
@@ -211,7 +261,9 @@ export function buildDocument(input: PreviewInput, options: { pagedUrl: string; 
       var oversized = [];
       try { oversized = findOversized(document); } catch (e) { /* the pages are shown without the check */ }
       try { fillColumns(document); } catch (e) { /* the columns stay balanced */ }
-      send({ pages: flow.total, layoutMs: layoutMs, oversized: oversized });
+      var parity = 0;
+      try { parity = hideParityPage(document); } catch (e) { /* the page stays */ }
+      send({ pages: flow.total - parity, layoutMs: layoutMs, oversized: oversized });
     },
     function (e) { send({ error: String((e && e.message) || e) }); }
   );

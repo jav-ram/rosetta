@@ -32,6 +32,21 @@
 }
 
 /*
+ * A blank page, inserted so that a chapter that starts on a right-hand page does. It carries no running header and no page
+ * number, but it still counts: the next page is numbered after it.
+ */
+@page :blank {
+  @top-center {
+    content: none;
+    border-bottom: none;
+  }
+
+  @bottom-center {
+    content: none;
+  }
+}
+
+/*
  * Page templates. Each one is a named page: `@page <name>` for the page (margins, furniture) and, for its columns, a rule on
  * `.rosetta-document` inside pages of that name (Paged.js puts a copy of it on every page, and gives each page the class
  * `pagedjs_<name>_page`). The `layout` directive's element selects a template with the `page` property; everything inside it,

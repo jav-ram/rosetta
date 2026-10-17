@@ -10,8 +10,13 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 interface Props {
   parsed: Parsed;
-  /** Called after each layout with the text that was laid out and the components that do not fit in a column. */
-  onLayout?: (markdown: string, oversized: OversizedBlock[]) => void;
+  /** Called after each layout with the text that was laid out, the components that do not fit in a column, and how many pages it came to (with the first page number it was laid out with). */
+  onLayout?: (markdown: string, oversized: OversizedBlock[], result: { pages: number; startPage: number }) => void;
+  /** The book's page number of this chapter's first page (default 1), and how the chapter starts. See `PreviewInput`. */
+  startPage?: number;
+  startOn?: "next-page" | "right-page";
+  /** The page numbers may be out of date: a chapter before this one changed since they were worked out. */
+  stale?: boolean;
   createPreview?: (host: HTMLElement) => Preview;
 }
 
@@ -23,7 +28,7 @@ export const oversizedMessage = (b: OversizedBlock) =>
  * The chapter as pages (Paged.js, in an iframe). It is drawn again whenever the parser gives new HTML, which already waits
  * until typing stops; the pages on screen stay until the new ones are ready.
  */
-export function PreviewPane({ parsed, onLayout, createPreview = createAppPreview }: Props) {
+export function PreviewPane({ parsed, onLayout, startPage, startOn, stale, createPreview = createAppPreview }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const preview = useRef<Preview | null>(null);
   const onLayoutRef = useRef(onLayout);
@@ -42,15 +47,15 @@ export function PreviewPane({ parsed, onLayout, createPreview = createAppPreview
     if (parsed.state !== "ready" || !preview.current) return;
     const started = performance.now();
     setLayout({ state: "working" });
-    preview.current.render({ html: parsed.html, css: bookCss }).then(
+    preview.current.render({ html: parsed.html, css: bookCss, startPage, startOn }).then(
       (r) => {
         if (!r) return;
         setLayout({ state: "done", pages: r.pages, ms: Math.round(performance.now() - started), oversized: r.oversized });
-        onLayoutRef.current?.(parsed.markdown, r.oversized);
+        onLayoutRef.current?.(parsed.markdown, r.oversized, { pages: r.pages, startPage: startPage ?? 1 });
       },
       (e: Error) => setLayout({ state: "error", message: e.message }),
     );
-  }, [parsed]);
+  }, [parsed, startPage, startOn]);
 
   const warnings = parsed.state === "ready" ? plural(parsed.warnings.length, "warning") : "";
   const oversized = layout.state === "done" ? layout.oversized : [];
@@ -62,11 +67,16 @@ export function PreviewPane({ parsed, onLayout, createPreview = createAppPreview
           {parsed.state === "loading" && "loading the parser…"}
           {parsed.state === "error" && "parser error"}
           {parsed.state === "ready" && layout.state === "working" && "laying out the pages…"}
-          {parsed.state === "ready" && layout.state === "done" && `${plural(layout.pages, "page")} · ${layout.ms} ms · ${warnings}${oversized.length ? ` · ${plural(oversized.length, "layout problem")}` : ""}`}
+          {parsed.state === "ready" && layout.state === "done" && `${plural(layout.pages, "page")}${startPage && startPage > 1 ? ` (from page ${startPage})` : ""} · ${layout.ms} ms · ${warnings}${oversized.length ? ` · ${plural(oversized.length, "layout problem")}` : ""}`}
           {parsed.state === "ready" && layout.state === "error" && "preview error"}
           {parsed.state === "ready" && layout.state === "idle" && warnings}
         </span>
       </header>
+      {stale && (
+        <p className="stale-pages" role="note">
+          ⚠ Page numbers may be out of date: a chapter before this one changed, or has not been laid out yet. Open the chapters before it to update them.
+        </p>
+      )}
       {parsed.state === "error" && <p className="error">{parsed.message}</p>}
       {layout.state === "error" && <p className="error">{layout.message}</p>}
       {oversized.length > 0 && (
