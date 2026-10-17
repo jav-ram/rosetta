@@ -1,5 +1,13 @@
 # @rosetta/theme-engine
 
+## 0.2.3
+
+### Patch Changes
+
+- Updated dependencies [ab33ba8]
+- Updated dependencies [ab33ba8]
+  - @rosetta/contracts@0.9.0
+
 ## 0.2.2
 
 ### Patch Changes

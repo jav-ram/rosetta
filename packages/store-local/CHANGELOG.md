@@ -1,5 +1,17 @@
 # @rosetta/store-local
 
+## 0.2.0
+
+### Minor Changes
+
+- ab33ba8: `.rosetta` import and export: a whole project in one zip (`exportProject`, `importProject`, with `fflate`), saved with the File System Access API where available (otherwise downloaded) and imported from a file input. `ProjectStore` gains `listAssets` and `putAsset(..., { id })`. The projects screen has Export and Import; the editor has Export.
+
+### Patch Changes
+
+- Updated dependencies [ab33ba8]
+- Updated dependencies [ab33ba8]
+  - @rosetta/contracts@0.9.0
+
 ## 0.1.0
 
 ### Minor Changes
