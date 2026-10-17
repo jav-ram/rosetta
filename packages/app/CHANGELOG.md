@@ -1,5 +1,27 @@
 # @rosetta/app
 
+## 0.14.0
+
+### Minor Changes
+
+- ab33ba8: Backup reminder: a banner in the editor asks to export a `.rosetta` backup after 7 days of changes without one. It can be dismissed (it returns after another 7 days) and goes away when a backup is exported or the project was imported from a file.
+- ab33ba8: Chapter start rules: `render({ startPage, startOn })` in the preview. A chapter that starts on a right-hand page gets a blank page before it when it would start on a left-hand one, and page numbers count from the chapter's first book page. The theme styles blank pages (`@page :blank`: no header, no page number). Chapters get a "start on a right-hand page" toggle (manifest `start`).
+- ab33ba8: Page numbers across chapters: a chapter's page count from its last layout (`pages`) and whether it may be out of date (`stale`) are stored in the manifest. The preview numbers a chapter from the pages of the ones before it, and the chapter list shows each chapter's pages, flagged when they may be out of date.
+- ab33ba8: `.rosetta` import and export: a whole project in one zip (`exportProject`, `importProject`, with `fflate`), saved with the File System Access API where available (otherwise downloaded) and imported from a file input. `ProjectStore` gains `listAssets` and `putAsset(..., { id })`. The projects screen has Export and Import; the editor has Export.
+
+### Patch Changes
+
+- Updated dependencies [ab33ba8]
+- Updated dependencies [ab33ba8]
+- Updated dependencies [ab33ba8]
+  - @rosetta/preview@0.4.0
+  - @rosetta/theme-classic@0.4.2
+  - @rosetta/contracts@0.9.0
+  - @rosetta/store-local@0.2.0
+  - @rosetta/editor@0.8.1
+  - @rosetta/parser-wasm@0.2.5
+  - @rosetta/theme-engine@0.2.3
+
 ## 0.13.0
 
 ### Minor Changes

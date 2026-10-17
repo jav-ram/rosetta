@@ -1,5 +1,17 @@
 # @rosetta/preview
 
+## 0.4.0
+
+### Minor Changes
+
+- ab33ba8: Chapter start rules: `render({ startPage, startOn })` in the preview. A chapter that starts on a right-hand page gets a blank page before it when it would start on a left-hand one, and page numbers count from the chapter's first book page. The theme styles blank pages (`@page :blank`: no header, no page number). Chapters get a "start on a right-hand page" toggle (manifest `start`).
+
+### Patch Changes
+
+- Updated dependencies [ab33ba8]
+- Updated dependencies [ab33ba8]
+  - @rosetta/contracts@0.9.0
+
 ## 0.3.3
 
 ### Patch Changes
