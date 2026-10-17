@@ -1,5 +1,16 @@
 # @rosetta/exporter-browser
 
+## 0.0.10
+
+### Patch Changes
+
+- Updated dependencies [079a5da]
+- Updated dependencies [079a5da]
+- Updated dependencies [079a5da]
+- Updated dependencies [079a5da]
+- Updated dependencies [079a5da]
+  - @rosetta/contracts@0.10.0
+
 ## 0.0.9
 
 ### Patch Changes

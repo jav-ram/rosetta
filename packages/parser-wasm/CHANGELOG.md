@@ -1,5 +1,21 @@
 # @rosetta/parser-wasm
 
+## 0.3.0
+
+### Minor Changes
+
+- 079a5da: `figure` component: an image with an optional caption, one column wide or spanning all columns (`span="all"`). It is written `::figure{src="name.png" caption="…"}`, where `src` is the file name or id of an image added to the project. The editor can draw components through `afterRender` and again with `redrawComponents`, and the preview exports `resolveImages` and `imageSources`.
+- 079a5da: `page` component with the `art-full` template: `::page{template="art-full" art="name.png"}` makes one page filled with the image, with no running header and the page number drawn over the art in a backing pill; the layout in force carries on after it. The preview draws the art with a hook on Paged.js. Fixes page numbers: every page after a chapter's first repeated the first page's number (1, 1, 2, 3); the pages are now numbered from the chapter's first page, also with a blank page before it.
+
+### Patch Changes
+
+- Updated dependencies [079a5da]
+- Updated dependencies [079a5da]
+- Updated dependencies [079a5da]
+- Updated dependencies [079a5da]
+- Updated dependencies [079a5da]
+  - @rosetta/contracts@0.10.0
+
 ## 0.2.5
 
 ### Patch Changes
