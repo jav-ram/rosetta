@@ -1,5 +1,20 @@
 # @rosetta/store-local
 
+## 0.3.0
+
+### Minor Changes
+
+- 079a5da: Images: add them with a button or by dropping files, and the editor makes a smaller preview copy of each in a worker. `ProjectStore` gets `setAssetPreview`, and the preview of an asset is its original until one is set.
+
+### Patch Changes
+
+- Updated dependencies [079a5da]
+- Updated dependencies [079a5da]
+- Updated dependencies [079a5da]
+- Updated dependencies [079a5da]
+- Updated dependencies [079a5da]
+  - @rosetta/contracts@0.10.0
+
 ## 0.2.0
 
 ### Minor Changes

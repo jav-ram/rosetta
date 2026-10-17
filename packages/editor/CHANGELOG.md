@@ -1,5 +1,20 @@
 # @rosetta/editor
 
+## 0.9.0
+
+### Minor Changes
+
+- 079a5da: `figure` component: an image with an optional caption, one column wide or spanning all columns (`span="all"`). It is written `::figure{src="name.png" caption="…"}`, where `src` is the file name or id of an image added to the project. The editor can draw components through `afterRender` and again with `redrawComponents`, and the preview exports `resolveImages` and `imageSources`.
+
+### Patch Changes
+
+- Updated dependencies [079a5da]
+- Updated dependencies [079a5da]
+- Updated dependencies [079a5da]
+- Updated dependencies [079a5da]
+- Updated dependencies [079a5da]
+  - @rosetta/contracts@0.10.0
+
 ## 0.8.1
 
 ### Patch Changes

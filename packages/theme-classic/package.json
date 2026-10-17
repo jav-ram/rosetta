@@ -1,6 +1,6 @@
 {
   "name": "@rosetta/theme-classic",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "description": "The built-in v1 theme (tokens, CSS, assets).",
   "type": "module",
   "files": [

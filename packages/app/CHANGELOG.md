@@ -1,5 +1,31 @@
 # @rosetta/app
 
+## 0.15.0
+
+### Minor Changes
+
+- 079a5da: `figure` component: an image with an optional caption, one column wide or spanning all columns (`span="all"`). It is written `::figure{src="name.png" caption="…"}`, where `src` is the file name or id of an image added to the project. The editor can draw components through `afterRender` and again with `redrawComponents`, and the preview exports `resolveImages` and `imageSources`.
+- 079a5da: Images: add them with a button or by dropping files, and the editor makes a smaller preview copy of each in a worker. `ProjectStore` gets `setAssetPreview`, and the preview of an asset is its original until one is set.
+- 079a5da: Low-resolution warning: images that would have fewer than 150 dots per inch at the size they are placed (figures, pages of art, Markdown images) are listed with the layout problems and marked on their component in the editor. The preview reports every image's placed size after layout (`PreviewResult.images`); the app reads the pixel size of each original from the start of its file.
+- 079a5da: `page` component with the `art-full` template: `::page{template="art-full" art="name.png"}` makes one page filled with the image, with no running header and the page number drawn over the art in a backing pill; the layout in force carries on after it. The preview draws the art with a hook on Paged.js. Fixes page numbers: every page after a chapter's first repeated the first page's number (1, 1, 2, 3); the pages are now numbered from the chapter's first page, also with a blank page before it.
+- 079a5da: Two-page spreads: `side="left"` on a `page` makes it a left-hand page, with a blank page before it when needed (also at the start of a chapter). The preview reports two or more pages of full art in a row whose first page is a right-hand page, so they do not face each other; the app lists the warning with the book's page numbers and marks the page in the editor.
+
+### Patch Changes
+
+- Updated dependencies [079a5da]
+- Updated dependencies [079a5da]
+- Updated dependencies [079a5da]
+- Updated dependencies [079a5da]
+- Updated dependencies [079a5da]
+- Updated dependencies [079a5da]
+  - @rosetta/contracts@0.10.0
+  - @rosetta/parser-wasm@0.3.0
+  - @rosetta/theme-classic@0.5.0
+  - @rosetta/preview@0.5.0
+  - @rosetta/editor@0.9.0
+  - @rosetta/store-local@0.3.0
+  - @rosetta/theme-engine@0.2.4
+
 ## 0.14.0
 
 ### Minor Changes
