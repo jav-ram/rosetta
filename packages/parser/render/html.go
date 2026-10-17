@@ -173,6 +173,10 @@ func (r *htmlRenderer) renderDirective(w util.BufWriter, source []byte, n ast.No
 		if !entering {
 			return ast.WalkContinue, nil
 		}
+		if d.Name == figureName {
+			r.figure(w, source, d, validAttrs)
+			return ast.WalkSkipChildren, nil
+		}
 		// A component with scope "following" (at the top level) holds the content after it: its element stays open
 		// until the next such component or the end of the document.
 		def := r.cfg.defs[d.Name]
@@ -189,6 +193,39 @@ func (r *htmlRenderer) renderDirective(w util.BufWriter, source []byte, n ast.No
 		}
 		return ast.WalkSkipChildren, nil
 	}
+}
+
+// figureName is the one leaf component that shows something itself: an image with an optional caption.
+const figureName = "figure"
+
+// figure writes `::figure{src="…" alt="…" caption="…" span="all"}` as a <figure>. An image never splits, so it is always
+// data-breakable="false" (a leaf definition does not carry the flag). data-span says whether it is as wide as its column or
+// spans all of them; the theme does the rest. The source of the image is written as it is: the app finds the file.
+func (r *htmlRenderer) figure(w util.BufWriter, source []byte, d *directive.Directive, attrs map[string]string) {
+	src := strings.TrimSpace(attrs["src"])
+	if src == "" {
+		r.warningBlock(w, source, d, "A figure needs an image: write src=\"…\"")
+		return
+	}
+	span := "column"
+	if attrs["span"] == "all" {
+		span = "all"
+	}
+	classes := "rosetta-figure"
+	if c := attrs["class"]; c != "" {
+		classes += " " + c
+	}
+	_, _ = w.WriteString(`<figure class="` + esc(classes) + `" data-component="figure" data-kind="leaf" data-breakable="false" data-span="` + span + `"`)
+	if id := attrs["id"]; id != "" {
+		_, _ = w.WriteString(` id="` + esc(id) + `"`)
+	}
+	_, _ = w.WriteString(">\n")
+	_, _ = w.WriteString(`<img src="` + esc(src) + `" alt="` + esc(attrs["alt"]) + `">` + "\n")
+	if caption := strings.TrimSpace(attrs["caption"]); caption != "" {
+		_, _ = w.WriteString("<figcaption>" + esc(caption) + "</figcaption>\n")
+	}
+	r.warnings(w, d.Warnings)
+	_, _ = w.WriteString("</figure>\n")
 }
 
 func (r *htmlRenderer) fields(w util.BufWriter, fields []Field) {

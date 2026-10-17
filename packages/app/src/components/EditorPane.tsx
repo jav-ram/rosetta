@@ -9,6 +9,9 @@ interface Props {
   parsed: Parsed;
   /** Problems the preview found with components, shown on them in the visual editor. */
   layoutWarnings?: LayoutWarning[];
+  /** The URL to show for an image in a component, and a key that changes when one becomes available. */
+  resolveImage?: (src: string) => string;
+  imagesKey?: string;
   /** Gets the new Markdown and the chapter it belongs to (the chapter can change while a save is pending). */
   onChange: (markdown: string, chapterId?: string) => void;
 }
@@ -17,7 +20,7 @@ interface Props {
  * Two views of the same chapter: "Visual" (Tiptap) and "Markdown" (a text box). Edits in either are saved to the
  * chapter's Markdown, which the other view and the preview then show.
  */
-export function EditorPane({ chapterId, markdown, parsed, layoutWarnings, onChange }: Props) {
+export function EditorPane({ chapterId, markdown, parsed, layoutWarnings, resolveImage, imagesKey, onChange }: Props) {
   const [view, setView] = useState<"visual" | "markdown">("visual");
   return (
     <section className="pane editor" aria-label="Editor">
@@ -35,7 +38,7 @@ export function EditorPane({ chapterId, markdown, parsed, layoutWarnings, onChan
       </header>
       {/* Both stay mounted so switching tabs keeps the editor's content and undo history. */}
       <div className="editor-body" hidden={view !== "visual"}>
-        <VisualEditor visible={view === "visual"} chapterId={chapterId} markdown={markdown} parsed={parsed} layoutWarnings={layoutWarnings} onChange={onChange} />
+        <VisualEditor visible={view === "visual"} chapterId={chapterId} markdown={markdown} parsed={parsed} layoutWarnings={layoutWarnings} resolveImage={resolveImage} imagesKey={imagesKey} onChange={onChange} />
       </div>
       <textarea hidden={view !== "markdown"} value={markdown} onChange={(e) => onChange(e.target.value, chapterId)} spellCheck={false} aria-label="Chapter text" />
     </section>

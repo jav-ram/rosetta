@@ -13,7 +13,7 @@ const ready = { state: "ready" as const, markdown: "# A", html: "<h1>A</h1>", as
 /** A preview that records what it is asked to render. */
 function recorder() {
   const inputs: PreviewInput[] = [];
-  const preview: Preview = { render: async (input) => (inputs.push(input), { pages: 1, layoutMs: 1, oversized: [] }), destroy() {} };
+  const preview: Preview = { render: async (input) => (inputs.push(input), { pages: 1, layoutMs: 1, oversized: [], spreads: [], images: [] }), destroy() {} };
   return { inputs, createPreview: () => preview };
 }
 

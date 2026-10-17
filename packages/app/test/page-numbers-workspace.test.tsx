@@ -26,7 +26,7 @@ vi.mock("../src/preview", () => ({
       asked.push(input);
       const headings = (input.html.match(/<h1/g) ?? []).length;
       const blank = input.startOn === "right-page" && (input.startPage ?? 1) % 2 === 0 ? 1 : 0;
-      return { pages: Math.max(1, headings) + blank, layoutMs: 1, oversized: [] };
+      return { pages: Math.max(1, headings) + blank, layoutMs: 1, oversized: [], spreads: [], images: [] };
     },
     destroy: () => {},
   }),

@@ -1,7 +1,7 @@
 import type { ComponentDefinition } from "@rosetta/contracts";
 import type { Editor } from "@tiptap/core";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { componentsOf, createEditor, createToolbar, setDocument, toMarkdown } from "../src/index";
+import { componentsOf, createEditor, createToolbar, redrawComponents, setDocument, toMarkdown } from "../src/index";
 
 // One dummy component of each kind. Nothing in the editor knows these names: they are data.
 const data: ComponentDefinition = {
@@ -200,6 +200,33 @@ describe("data component: rendered output, or a form while selected", () => {
     editor.commands.setTextSelection(1);
     expect(document.querySelector(".rosetta-form")).toBeNull();
     expect(document.querySelector<HTMLElement>(".rosetta-component-rendered")!.hidden).toBe(false);
+  });
+});
+
+describe("redrawing components", () => {
+  test("draws the components with that name again, with the current result of afterRender, and does not render again", async () => {
+    let address = "one";
+    const render = vi.fn(async (md: string) => `<p>${md.includes("dummy-mark") ? "mark" : "data"} {address}</p>`);
+    const host = document.createElement("div");
+    document.body.append(host);
+    const editor = createEditor({ element: host, components: [data, box, mark], renderComponent: render, afterRender: (html) => html.replace("{address}", address) });
+    open.push(() => (editor.destroy(), host.remove()));
+    editor.commands.insertComponent("dummy-mark");
+    editor.commands.insertComponent("dummy-data");
+    editor.commands.setTextSelection(1); // nothing selected: a component that is being edited is not drawn
+    await wait();
+    const text = (name: string) => host.querySelector(`[data-component="${name}"] .rosetta-component-rendered`)!.textContent;
+    expect([text("dummy-mark"), text("dummy-data")]).toEqual(["mark one", "data one"]);
+    const asked = render.mock.calls.length;
+
+    address = "two";
+    redrawComponents(host, "dummy-mark");
+    await wait();
+    expect([text("dummy-mark"), text("dummy-data")]).toEqual(["mark two", "data one"]);
+    redrawComponents(host);
+    await wait();
+    expect(text("dummy-data")).toBe("data two");
+    expect(render.mock.calls.length).toBe(asked); // the rendering was remembered
   });
 });
 

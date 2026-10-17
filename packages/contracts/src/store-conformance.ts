@@ -258,6 +258,32 @@ export function projectStoreCases(factory: ProjectStoreFactory): ProjectStoreCas
     check(typeof preview.arrayBuffer === "function" && preview.size > 0, "preview is a Blob with content");
   });
 
+  test("without a preview copy, the preview is the original", async (store) => {
+    const { id } = await store.createProject(manifest());
+    const ref = await store.putAsset(id, png(5, 6, 7));
+    same(await bytesOf(await store.getAsset(id, ref, "preview")), [5, 6, 7], "preview bytes");
+  });
+
+  test("a preview copy is given back as the preview, and the original is untouched", async (store) => {
+    const { id } = await store.createProject(manifest());
+    const ref = await store.putAsset(id, png(1, 2, 3, 4));
+    await store.setAssetPreview(id, ref.id, new Blob([new Uint8Array([9, 9])], { type: "image/webp" }));
+    same(await bytesOf(await store.getAsset(id, ref, "preview")), [9, 9], "preview bytes");
+    same(await bytesOf(await store.getAsset(id, ref, "original")), [1, 2, 3, 4], "original bytes");
+    same(await store.listAssets(id), [ref], "the reference does not change");
+    await store.setAssetPreview(id, ref.id, new Blob([new Uint8Array([8])]));
+    same(await bytesOf(await store.getAsset(id, ref, "preview")), [8], "a second preview replaces the first");
+  });
+
+  test("a preview copy needs an asset of that project", async (store) => {
+    const a = await store.createProject(manifest());
+    const b = await store.createProject(manifest());
+    const ref = await store.putAsset(a.id, png(1));
+    await rejects(store.setAssetPreview(a.id, "nope", new Blob([new Uint8Array([1])])), "not-found", "unknown asset");
+    await rejects(store.setAssetPreview(b.id, ref.id, new Blob([new Uint8Array([1])])), "not-found", "asset of another project");
+    await rejects(store.setAssetPreview("nope", ref.id, new Blob([new Uint8Array([1])])), "not-found", "unknown project");
+  });
+
   test("an asset is found by its id, and only in its own project", async (store) => {
     const a = await store.createProject(manifest());
     const b = await store.createProject(manifest());
@@ -338,6 +364,8 @@ export function projectStoreCases(factory: ProjectStoreFactory): ProjectStoreCas
       check((await reopened.loadChapter(summary.id, "intro")) === "", "chapter that was never saved");
       same(await bytesOf(await reopened.getAsset(summary.id, ref, "original")), [9, 8, 7], "asset bytes");
       same(await reopened.listAssets(summary.id), [ref], "listAssets");
+      await reopened.setAssetPreview(summary.id, ref.id, new Blob([new Uint8Array([4])]));
+      same(await bytesOf(await (await reopen(reopened)).getAsset(summary.id, ref, "preview")), [4], "preview bytes");
     });
 
     test("after reopening, a deleted project and a removed chapter stay gone", async (store) => {

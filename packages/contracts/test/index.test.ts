@@ -57,9 +57,32 @@ describe("M1 component definitions", () => {
     for (const def of m1Components) expect(validateComponentDefinition(def), def.name).toEqual({ valid: true, errors: [] });
   });
 
-  test("covers statblock, readaloud, sidebar, pagebreak and layout, with breakable on block components", () => {
-    expect(m1Components.map((d) => d.name)).toEqual(["statblock", "readaloud", "sidebar", "pagebreak", "layout"]);
-    expect(m1Components.map((d) => d.breakable)).toEqual([false, true, true, undefined, undefined]);
+  test("covers statblock, readaloud, sidebar, pagebreak, layout, figure and page, with breakable on block components", () => {
+    expect(m1Components.map((d) => d.name)).toEqual(["statblock", "readaloud", "sidebar", "pagebreak", "layout", "figure", "page"]);
+    expect(m1Components.map((d) => d.breakable)).toEqual([false, true, true, undefined, undefined, undefined, undefined]);
+  });
+
+  test("figure is a leaf with a required src and a span of column or all", () => {
+    const figure = m1Components.find((d) => d.name === "figure")!;
+    expect(figure.kind).toBe("leaf");
+    expect(figure.attributes).toEqual([
+      expect.objectContaining({ name: "src", type: "string", required: true }),
+      expect.objectContaining({ name: "alt" }),
+      expect.objectContaining({ name: "caption" }),
+      expect.objectContaining({ name: "span", type: "enum", values: ["column", "all"], default: "column" }),
+    ]);
+  });
+
+  test("page is a leaf with a required template (art-full, art-top, art-bottom), a required art, and an optional height and side", () => {
+    const page = m1Components.find((d) => d.name === "page")!;
+    expect(page.kind).toBe("leaf");
+    expect(page.scope).toBeUndefined(); // one page, then the layout in force goes on
+    expect(page.attributes).toEqual([
+      expect.objectContaining({ name: "template", type: "enum", values: ["art-full", "art-top", "art-bottom"], required: true, default: "art-full" }),
+      expect.objectContaining({ name: "art", type: "string", required: true }),
+      expect.objectContaining({ name: "height", type: "string" }),
+      expect.objectContaining({ name: "side", type: "enum", values: ["left"] }),
+    ]);
   });
 
   test("layout is a leaf that holds the content after it, with a required template", () => {

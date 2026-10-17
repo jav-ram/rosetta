@@ -106,7 +106,12 @@ describe("ProjectStore conformance suite", () => {
       dataOf.set(store, data);
       return store;
     },
-    reopen: async (store) => new MemoryStore(dataOf.get(store)),
+    reopen: async (store) => {
+      const data = dataOf.get(store);
+      const reopened = new MemoryStore(data);
+      dataOf.set(reopened, data!); // a store that was reopened can be reopened again
+      return reopened;
+    },
   };
 
   describe("the in-memory store passes", () => {

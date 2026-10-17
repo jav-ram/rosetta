@@ -48,12 +48,42 @@ export interface OversizedBlock {
   columnMm: number;
 }
 
+/** Two or more pages of full art in a row whose first page is a right-hand page, so they do not face each other in print. */
+export interface UnpairedSpread {
+  /** The `page` component that makes the first of them, among all components in the chapter in document order (as for `OversizedBlock`). */
+  index: number;
+  /** Which page of the chapter the first of them is, counting from 1 (a blank page counts). */
+  page: number;
+  /** How many pages of art there are in the row. */
+  count: number;
+}
+
+/** An image as it was placed on a page, for judging its resolution (the pixel size of the original is the app's to know). */
+export interface PlacedImage {
+  /** The image's `src` (or a page's `art`) as written in the chapter, before it was resolved to a file. */
+  source: string;
+  /** The component that shows it, among all components in the chapter in document order (as for `OversizedBlock`); null for a Markdown image. */
+  index: number | null;
+  /** Which page of the chapter it is on, counting from 1 (a blank page counts). */
+  page: number;
+  /** The size of the box it fills, in CSS pixels (96 to the inch). */
+  widthPx: number;
+  heightPx: number;
+  /** The size of the image the preview loaded (it can be a smaller copy of the original; the shape is the original's, turned the right way up). */
+  naturalWidth: number;
+  naturalHeight: number;
+}
+
 export interface PreviewResult {
   pages: number;
   /** Time Paged.js took to lay out the pages. */
   layoutMs: number;
   /** Unbreakable components that do not fit in a column. */
   oversized: OversizedBlock[];
+  /** Pages of art that were meant to be a spread (two in a row) but do not face each other. Empty when there are none. */
+  spreads: UnpairedSpread[];
+  /** Every image on the pages (not the spare page), as placed. */
+  images: PlacedImage[];
 }
 
 export interface Preview {
@@ -84,20 +114,40 @@ body { margin: 0; }
  *   page is not part of the chapter: it is hidden after layout, and not counted.
  * - `right-page`: the chapter's zero-height first element has `break-before: right`. Paged.js then inserts a blank page
  *   (`pagedjs_blank_page`, which the theme styles with `@page :blank`) when the chapter would start on a left page.
- * - Page numbers: the same first element has `counter-reset: page N`, which Paged.js applies to the page it is on, so the
- *   chapter's first page is numbered N and the pages after it count on. (Paged.js takes `counter-reset` out of the style
- *   sheet and applies it itself, so it cannot be put on `.pagedjs_pages`.) The blank page, if there is one, shows no number.
+ * - A chapter that begins with a page of art that must be a left-hand page (`side="left"`) starts on a left-hand page whatever its
+ *   own start rule says. Paged.js does not break before the very first page, so when the chapter would start on a right-hand
+ *   page a zero-height element with `break-after: page` makes a blank first page of its own (`BLANK_PAGE_SCRIPT` gives it the
+ *   class Paged.js gives its blank pages, so the theme's `@page :blank` applies). When the chapter starts on a left-hand page
+ *   it already has the spare page above, and its first page is a left-hand one.
+ * - Page numbers: see `PAGE_NUMBERS_SCRIPT`. The blank page, if there is one, shows no number but counts.
+ *   (A `counter-reset: page N` on the first element does not work: Paged.js turns it into a reset on the first page alone,
+ *   and the second page then shows the same number again.)
  */
-const chapterStartCss = (firstNumber: number) => `
-.rosetta-parity-page { break-after: page; height: 0; margin: 0; padding: 0; }
-.rosetta-chapter-start { height: 0; margin: 0; padding: 0; counter-reset: page ${firstNumber}; }
+const chapterStartCss = () => `
+.rosetta-parity-page, .rosetta-blank-page { break-after: page; height: 0; margin: 0; padding: 0; }
+.rosetta-chapter-start { height: 0; margin: 0; padding: 0; }
 .rosetta-chapter-start.rosetta-start-right { break-before: right; }
+`;
+
+/**
+ * Written after the theme's CSS: Paged.js applies break rules in the order it reads them, not by specificity, so a rule that
+ * has to win over the theme's goes last. A page marker (the page component) that is first in the chapter is the chapter's first
+ * page, not a page after it, so it has no break before it.
+ */
+const chapterStartLateCss = `
+.rosetta-document > .rosetta-chapter-start + .rosetta-page { break-before: auto; }
 `;
 
 /** Whether the chapter's first page is a left-hand page: an even page number. */
 const startsLeft = (input: PreviewInput) => firstPage(input) % 2 === 0;
-/** Whether a blank page goes before the chapter: it wants a right-hand page and would get a left-hand one. */
-const needsBlank = (input: PreviewInput) => input.startOn === "right-page" && startsLeft(input);
+
+/** Whether the chapter begins with a page of art that must be a left-hand page (`side="left"`), looking inside layouts' elements. */
+function startsWithLeftArt(html: string): boolean {
+  if (!html.includes("data-side=")) return false;
+  const doc = new DOMParser().parseFromString(`<body>${html}</body>`, "text/html");
+  const first = [...doc.body.querySelectorAll("*")].find((e) => !e.firstElementChild);
+  return !!first && first.classList.contains("rosetta-page") && first.getAttribute("data-side") === "left" && !!first.getAttribute("data-template");
+}
 
 /** The page number a chapter's first page has, as a whole number of at least 1. */
 const firstPage = (input: PreviewInput) => (Number.isInteger(input.startPage) && input.startPage! >= 1 ? input.startPage! : 1);
@@ -141,6 +191,71 @@ export const TABLE_HEADER_SCRIPT = `function installTableHeaderRepeat(hooks) {
     copy.removeAttribute("data-ref");
     copy.querySelectorAll("[data-ref]").forEach(function (e) { e.removeAttribute("data-ref"); });
     table.insertBefore(copy, table.firstChild);
+  });
+}`;
+
+/**
+ * Art on a page (the `page` component). The marker is an empty element that starts a page; this hook looks at where each page
+ * starts and, when that is a marker, gives the page what the marker says: the class `has-<template>` (the theme styles it: a
+ * full-page band, no header, the page number over the art), and a band element holding the image (`data-art-src`, the address
+ * `resolveImages` wrote) in the page box, behind the text. It knows no template names: the theme's CSS puts the band where it
+ * goes and gives it a default height, and a `data-height` (a length or a percentage of the page) replaces that height. A band
+ * that does not cover the page then pushes the page's margin on its side (top if it is at the top, otherwise bottom) to its own
+ * height, so the text area is the rest of the page: Paged.js measures it after this hook runs. The margin is set through
+ * `--pagedjs-margin-top` and `--pagedjs-margin-bottom`, which are Paged.js's own variables (pinned version; a test fails if a
+ * band stops shrinking the text area).
+ *
+ * Where a page starts: pages after the first start at the break token's node (the marker, or what holds it). The first page
+ * has no break token, so it starts at the first element of the content that is not a chapter-start spacer, and the spare
+ * page that keeps left/right parity (see `chapterStartCss`) starts nothing. A page that begins at a chapter-start spacer (after a
+ * blank page) starts at what follows it. Installed on the layout hooks; exported as source.
+ */
+export const PAGE_ART_SCRIPT = `function installPageArt(hooks) {
+  function isSpare(el) { return el.classList.contains("rosetta-parity-page") || el.classList.contains("rosetta-blank-page"); }
+  function isSpacer(el) { return el.classList.contains("rosetta-chapter-start") || isSpare(el); }
+  function firstOf(content) {
+    if (!content || !content.querySelectorAll) return null; // a blank page has no content
+    var all = content.querySelectorAll("*");
+    for (var i = 0; i < all.length; i++) {
+      var el = all[i];
+      if (isSpare(el)) return null;
+      if (isSpacer(el) || el.firstElementChild) continue;
+      return el;
+    }
+    return null;
+  }
+  hooks.beforePageLayout.register(function (page, content, breakToken) {
+    var start = breakToken && breakToken.node ? breakToken.node : firstOf(content);
+    while (start && start.nodeType === 1 && start.classList.contains("rosetta-chapter-start") && start.nextElementSibling) start = start.nextElementSibling;
+    while (start && start.nodeType === 1 && !start.classList.contains("rosetta-page") && start.firstElementChild) start = start.firstElementChild;
+    if (!start || start.nodeType !== 1 || !start.classList.contains("rosetta-page")) return;
+    var template = start.getAttribute("data-template");
+    if (!template) return;
+    page.element.classList.add("has-" + template);
+    var band = document.createElement("div");
+    band.className = "rosetta-art-band";
+    var art = start.getAttribute("data-art-src");
+    if (start.hasAttribute("data-block")) band.setAttribute("data-block", start.getAttribute("data-block"));
+    if (art) {
+      var img = document.createElement("img");
+      img.alt = "";
+      img.src = art;
+      img.setAttribute("data-source", start.getAttribute("data-art") || "");
+      band.appendChild(img);
+    }
+    var height = (start.getAttribute("data-height") || "").trim();
+    if (/^\\d+(\\.\\d+)?(%|mm|cm|in|pt|px)$/.test(height)) band.style.height = height;
+    page.pagebox.appendChild(band);
+    // A band that does not cover the page takes its room from the text: the margin on its side grows to the band's height, which
+    // Paged.js sees when it measures the page's text area just after this hook. A band that would leave no room is made shorter.
+    var box = page.pagebox.getBoundingClientRect();
+    var rect = band.getBoundingClientRect();
+    if (rect.height > 0 && rect.height < box.height - 1) {
+      var most = box.height * 0.8;
+      if (rect.height > most) { band.style.height = most + "px"; rect = band.getBoundingClientRect(); }
+      var side = rect.top - box.top < 1 ? "top" : "bottom";
+      page.element.style.setProperty("--pagedjs-margin-" + side, rect.height + "px");
+    }
   });
 }`;
 
@@ -210,6 +325,85 @@ export const PARITY_PAGE_SCRIPT = `function hideParityPage(doc) {
   return hidden;
 }`;
 
+/**
+ * After layout: numbers the pages from `first`. Paged.js counts pages with a CSS counter that starts at 0 on `.pagedjs_pages`, so
+ * the counter is started at `first - 1` there (the pages show the counter, and a hidden page does not count). Runs in the preview
+ * document. Exported as source.
+ */
+export const PAGE_NUMBERS_SCRIPT = `function startPageNumbers(doc, first) {
+  var pages = doc.querySelector(".pagedjs_pages");
+  if (!pages) return;
+  var current = doc.defaultView.getComputedStyle(pages).counterReset;
+  var start = "page " + (first - 1);
+  pages.style.counterReset = /(^|\\s)page\\s+-?\\d+/.test(current) ? current.replace(/(^|\\s)page\\s+-?\\d+/, "$1" + start) : (current === "none" ? "" : current + " ") + start;
+}`;
+
+/**
+ * After layout: gives the chapter's own blank first page (see `chapterStartCss`) the class Paged.js gives the blank pages it
+ * inserts, so the theme's `@page :blank` (no running header, no page number) applies to it as well. Exported as source.
+ */
+export const BLANK_PAGE_SCRIPT = `function markBlankPages(doc) {
+  doc.querySelectorAll(".pagedjs_page").forEach(function (page) {
+    if (page.querySelector(".rosetta-blank-page")) page.classList.add("pagedjs_blank_page");
+  });
+}`;
+
+/**
+ * After layout: finds pages of full art that are meant to be a spread. Two or more such pages in a row make a spread only if the
+ * first is a left-hand page (so that the second, a right-hand page, faces it). A row that starts on a right-hand page is
+ * reported once, at its first page: `side="left"` on that page makes the row start on a left-hand one. Left and right are
+ * Paged.js's own classes, which follow the book because the chapter's spare page keeps them in step (see `chapterStartCss`).
+ * The spare page itself is not a page of the chapter. Runs in the preview document, after the layout. Exported as source.
+ */
+export const SPREADS_SCRIPT = `function findUnpairedSpreads(doc) {
+  var pages = [].slice.call(doc.querySelectorAll(".pagedjs_page")).filter(function (p) { return !p.querySelector(".rosetta-parity-page"); });
+  var found = [];
+  var i = 0;
+  while (i < pages.length) {
+    if (!pages[i].classList.contains("has-art-full")) { i += 1; continue; }
+    var j = i;
+    while (j + 1 < pages.length && pages[j + 1].classList.contains("has-art-full")) j += 1;
+    var marker = pages[i].querySelector('[data-block][data-component="page"]');
+    if (j > i && pages[i].classList.contains("pagedjs_right_page") && marker) found.push({ index: Number(marker.getAttribute("data-block")), page: i + 1, count: j - i + 1 });
+    i = j + 1;
+  }
+  return found;
+}`;
+
+/**
+ * After layout: lists every image on the pages with the size of the box it fills (see `PlacedImage`), so the app can say which are
+ * too small for print. Images (and the art bands, which load after layout) are given a moment to load, because the shape of the
+ * image says which way up it is. Resolves with the list. Runs in the preview document. Exported as source.
+ */
+export const PLACED_IMAGES_SCRIPT = `function findPlacedImages(doc, waitMs) {
+  var imgs = [].slice.call(doc.querySelectorAll(".pagedjs_page img[data-source]"));
+  var loaded = Promise.all(imgs.map(function (img) {
+    return img.complete ? 0 : new Promise(function (done) { img.addEventListener("load", done); img.addEventListener("error", done); });
+  }));
+  var limit = new Promise(function (done) { setTimeout(done, waitMs); });
+  return Promise.race([loaded, limit]).then(function () {
+    var pages = [].slice.call(doc.querySelectorAll(".pagedjs_page")).filter(function (p) { return !p.querySelector(".rosetta-parity-page"); });
+    var found = [];
+    imgs.forEach(function (img) {
+      var page = img.closest(".pagedjs_page");
+      var at = pages.indexOf(page);
+      var rect = img.getBoundingClientRect();
+      if (at < 0 || !img.naturalWidth || rect.width <= 0 || rect.height <= 0) return;
+      var owner = img.closest("[data-block]");
+      found.push({
+        source: img.getAttribute("data-source") || "",
+        index: owner ? Number(owner.getAttribute("data-block")) : null,
+        page: at + 1,
+        widthPx: rect.width,
+        heightPx: rect.height,
+        naturalWidth: img.naturalWidth,
+        naturalHeight: img.naturalHeight
+      });
+    });
+    return found;
+  });
+}`;
+
 const PLACEHOLDER =
   "data:image/svg+xml;utf8," +
   encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="250"><rect width="400" height="250" fill="#d9d9d9"/></svg>');
@@ -217,11 +411,25 @@ const PLACEHOLDER =
 const isLoadable = (src: string) => /^(https?:|data:|blob:)/i.test(src.trim());
 export const defaultResolveImage = (src: string) => (isLoadable(src) ? src : PLACEHOLDER);
 
-function mapImages(html: string, resolve: (src: string) => string): string {
-  if (!html.includes("<img")) return html;
+/** The URL to load for each image in the HTML (see `PreviewOptions.resolveImage`). The editor shows components the same way. */
+export function resolveImages(html: string, resolve: (src: string) => string): string {
+  if (!html.includes("<img") && !html.includes("data-art=")) return html;
   const doc = new DOMParser().parseFromString(`<body>${html}</body>`, "text/html");
-  for (const img of doc.querySelectorAll("img")) img.setAttribute("src", resolve(img.getAttribute("src") ?? ""));
+  for (const img of doc.querySelectorAll("img")) {
+    const source = img.getAttribute("src") ?? "";
+    img.setAttribute("data-source", source); // what the chapter says, for the checks after layout
+    img.setAttribute("src", resolve(source));
+  }
+  // The art of a `page` component is its `data-art`; the address to load goes next to it, which keeps the name for showing.
+  for (const el of doc.querySelectorAll("[data-art]")) el.setAttribute("data-art-src", resolve(el.getAttribute("data-art") ?? ""));
   return doc.body.innerHTML;
+}
+
+/** The `src` of every image in the HTML, and the `data-art` of every page's art, as written (in the order they appear, repeats included). */
+export function imageSources(html: string): string[] {
+  if (!html.includes("<img") && !html.includes("data-art=")) return [];
+  const doc = new DOMParser().parseFromString(`<body>${html}</body>`, "text/html");
+  return [...doc.querySelectorAll("img, [data-art]")].map((el) => (el.nodeName === "IMG" ? el.getAttribute("src") : el.getAttribute("data-art")) ?? "");
 }
 
 /** The text of a `<style>` or `<script>` cannot contain a closing tag. */
@@ -229,20 +437,24 @@ const safeInStyle = (css: string) => css.replace(/<\/(style)/gi, "<\\/$1");
 
 /** The document that goes in the iframe. Paged.js runs when it has loaded. */
 export function buildDocument(input: PreviewInput, options: { pagedUrl: string; id: string; resolveImage?: (src: string) => string }): string {
-  const html = mapImages(input.html, options.resolveImage ?? defaultResolveImage);
+  const html = resolveImages(input.html, options.resolveImage ?? defaultResolveImage);
   const id = JSON.stringify(options.id);
+  const leftArt = startsWithLeftArt(input.html);
+  const spare = startsLeft(input) ? '<div class="rosetta-parity-page"></div>' : leftArt ? '<div class="rosetta-blank-page"></div>' : "";
+  const right = input.startOn === "right-page" && !leftArt;
   return `<!doctype html>
 <html>
 <head>
 <meta charset="utf-8">
-<style>${SCREEN_CSS}${chapterStartCss(firstPage(input) + (needsBlank(input) ? 1 : 0))}</style>
+<style>${SCREEN_CSS}${chapterStartCss()}</style>
 <style>${safeInStyle(input.css)}</style>
+<style>${chapterStartLateCss}</style>
 <script>${SCHEDULER}</script>
 <script>window.PagedConfig = { auto: false };</script>
 <script src="${options.pagedUrl.replace(/"/g, "&quot;")}"></script>
 </head>
 <body>
-<div class="rosetta-document">${startsLeft(input) ? '<div class="rosetta-parity-page"></div>' : ""}<div class="rosetta-chapter-start${input.startOn === "right-page" ? " rosetta-start-right" : ""}"></div>${html}</div>
+<div class="rosetta-document">${spare}<div class="rosetta-chapter-start${right ? " rosetta-start-right" : ""}"></div>${html}</div>
 <script>
 (function () {
   var id = ${id};
@@ -250,9 +462,15 @@ export function buildDocument(input: PreviewInput, options: { pagedUrl: string; 
   if (!window.PagedPolyfill) { send({ error: "Paged.js did not load" }); return; }
   ${OVERSIZED_SCRIPT}
   ${TABLE_HEADER_SCRIPT}
+  ${PAGE_ART_SCRIPT}
   ${FILL_COLUMNS_SCRIPT}
   ${PARITY_PAGE_SCRIPT}
+  ${PAGE_NUMBERS_SCRIPT}
+  ${BLANK_PAGE_SCRIPT}
+  ${SPREADS_SCRIPT}
+  ${PLACED_IMAGES_SCRIPT}
   try { installTableHeaderRepeat(window.PagedPolyfill.chunker.hooks); } catch (e) { /* the pages are laid out without repeated headers */ }
+  try { installPageArt(window.PagedPolyfill.chunker.hooks); } catch (e) { /* the pages are laid out without art */ }
   numberBlocks(document);
   var start = performance.now();
   window.PagedPolyfill.preview().then(
@@ -263,7 +481,14 @@ export function buildDocument(input: PreviewInput, options: { pagedUrl: string; 
       try { fillColumns(document); } catch (e) { /* the columns stay balanced */ }
       var parity = 0;
       try { parity = hideParityPage(document); } catch (e) { /* the page stays */ }
-      send({ pages: flow.total - parity, layoutMs: layoutMs, oversized: oversized });
+      try { markBlankPages(document); } catch (e) { /* the page shows its header */ }
+      try { startPageNumbers(document, ${firstPage(input)}); } catch (e) { /* the pages are numbered from 1 */ }
+      var spreads = [];
+      try { spreads = findUnpairedSpreads(document); } catch (e) { /* the pages are shown without the check */ }
+      var report = function (images) { send({ pages: flow.total - parity, layoutMs: layoutMs, oversized: oversized, spreads: spreads, images: images }); };
+      var found = null;
+      try { found = findPlacedImages(document, 3000); } catch (e) { /* the pages are shown without the check */ }
+      if (found) found.then(report, function () { report([]); }); else report([]);
     },
     function (e) { send({ error: String((e && e.message) || e) }); }
   );
@@ -323,7 +548,7 @@ export function createPreview(host: HTMLElement, options: PreviewOptions): Previ
       const drop = () => finish(() => (iframe.remove(), resolve(null)));
 
       function onMessage(e: MessageEvent) {
-        const data = e.data as { type?: string; id?: string; pages?: number; layoutMs?: number; oversized?: OversizedBlock[]; error?: string } | null;
+        const data = e.data as { type?: string; id?: string; pages?: number; layoutMs?: number; oversized?: OversizedBlock[]; spreads?: UnpairedSpread[]; images?: PlacedImage[]; error?: string } | null;
         if (!data || data.type !== MESSAGE_TYPE || data.id !== id || e.source !== iframe.contentWindow) return;
         if (data.error !== undefined) return finish(() => (iframe.remove(), reject(new Error(data.error))));
         finish(() => {
@@ -337,7 +562,7 @@ export function createPreview(host: HTMLElement, options: PreviewOptions): Previ
           iframe.contentWindow?.scrollTo(0, scroll);
           shown?.remove();
           shown = iframe;
-          resolve({ pages: data.pages ?? 0, layoutMs: data.layoutMs ?? 0, oversized: data.oversized ?? [] });
+          resolve({ pages: data.pages ?? 0, layoutMs: data.layoutMs ?? 0, oversized: data.oversized ?? [], spreads: data.spreads ?? [], images: data.images ?? [] });
         });
       }
 

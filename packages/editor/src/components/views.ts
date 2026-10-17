@@ -10,6 +10,17 @@ export interface ViewOptions {
   registry: Registry;
   /** Without it, components show their data as plain text. */
   render?: RenderComponent;
+  /** Changes the rendered HTML each time it is drawn (see `ComponentOptions.afterRender`). */
+  afterRender?: (html: string) => string;
+}
+
+/** Sent to a component's element to make it render again. */
+const REDRAW_EVENT = "rosetta-redraw";
+
+/** Makes the components with the given name (all data, leaf and unknown components when none is given) render again, as the parser shows them. Names are lowercase letters, digits and `-`. */
+export function redrawComponents(root: HTMLElement, name?: string) {
+  const selector = name ? `.rosetta-component-atom[data-component="${name}"]` : ".rosetta-component-atom";
+  for (const el of root.querySelectorAll(selector)) el.dispatchEvent(new Event(REDRAW_EVENT));
 }
 
 type NodeView = ReturnType<NonNullable<ReturnType<typeof Object>>> & Record<string, unknown>;
@@ -157,7 +168,7 @@ export function atomView(options: ViewOptions) {
       options.render(source).then(
         (html) => {
           // A newer render may have been asked for in the meantime.
-          if (mine === version) rendered.innerHTML = html;
+          if (mine === version) rendered.innerHTML = options.afterRender ? options.afterRender(html) : html;
         },
         (e: Error) => {
           if (mine === version) rendered.textContent = `Could not render ${node.attrs.name}: ${e.message}`;
@@ -246,6 +257,8 @@ export function atomView(options: ViewOptions) {
     }
 
     draw();
+    // `redrawComponents` asks for the rendering again, for example when an image it shows has become available.
+    dom.addEventListener(REDRAW_EVENT, () => draw());
 
     const view = {
       dom,

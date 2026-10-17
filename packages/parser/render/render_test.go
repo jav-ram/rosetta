@@ -585,3 +585,55 @@ func TestTheRendererCanBeUsedTwice(t *testing.T) {
 		t.Fatalf("second render:\n%s", second.HTML)
 	}
 }
+
+// --- figure (the leaf component that shows an image) ---
+
+func TestFigureIsAnImageWithACaption(t *testing.T) {
+	r := convert(t, "::figure{src=\"map.png\" alt=\"The old road\" caption=\"Map of <the> road & inn\"}\n")
+	wantHTML(t, r.HTML, `<figure class="rosetta-figure" data-component="figure" data-kind="leaf" data-breakable="false" data-span="column">
+<img src="map.png" alt="The old road">
+<figcaption>Map of &lt;the&gt; road &amp; inn</figcaption>
+</figure>
+`)
+	if len(r.Warnings) != 0 {
+		t.Fatalf("warnings = %v", codes(r.Warnings))
+	}
+}
+
+func TestFigureSpansAllColumnsWhenToldTo(t *testing.T) {
+	r := convert(t, "::figure{src=\"a.png\" span=\"all\"}\n")
+	wantHTML(t, r.HTML, `<figure class="rosetta-figure" data-component="figure" data-kind="leaf" data-breakable="false" data-span="all">
+<img src="a.png" alt="">
+</figure>
+`)
+}
+
+func TestFigureWithAnUnknownSpanIsOneColumnWide(t *testing.T) {
+	r := convert(t, "::figure{src=\"a.png\" span=\"wide\"}\n")
+	if !strings.Contains(r.HTML, `data-span="column"`) {
+		t.Fatalf("html = %s", r.HTML)
+	}
+	if len(r.Warnings) == 0 {
+		t.Fatal("a span that is not column or all should be reported")
+	}
+}
+
+func TestFigureWithoutAnImageShowsItsSourceAndAWarning(t *testing.T) {
+	r := convert(t, "::figure{caption=\"Nothing to show\"}\n")
+	if !strings.Contains(r.HTML, `rosetta-warning-block`) || strings.Contains(r.HTML, "<img") {
+		t.Fatalf("html = %s", r.HTML)
+	}
+	if len(r.Warnings) == 0 {
+		t.Fatal("a missing src should be reported")
+	}
+}
+
+func TestFigureStaysInsideALayoutSectionAndAmongText(t *testing.T) {
+	r := convert(t, "before\n\n::figure{src=\"a.png\"}\n\nafter\n")
+	wantHTML(t, r.HTML, `<p>before</p>
+<figure class="rosetta-figure" data-component="figure" data-kind="leaf" data-breakable="false" data-span="column">
+<img src="a.png" alt="">
+</figure>
+<p>after</p>
+`)
+}

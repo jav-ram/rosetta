@@ -42,10 +42,15 @@ export interface ComponentOptions {
   components?: Definition[];
   /** Renders one component's Markdown to HTML. Give it the parser worker; see `RenderComponent`. */
   renderComponent?: RenderComponent;
+  /**
+   * Changes the HTML each time a component is drawn, after the (remembered) rendering: for what can change without the
+   * component changing, such as the address of an image. `redrawComponents` draws again with the current result.
+   */
+  afterRender?: (html: string) => string;
 }
 
-export function standardExtensions({ components = [], renderComponent }: ComponentOptions = {}) {
-  const options = { registry: createRegistry(components), ...(renderComponent ? { render: cachedRenderer(renderComponent) } : {}) };
+export function standardExtensions({ components = [], renderComponent, afterRender }: ComponentOptions = {}) {
+  const options = { registry: createRegistry(components), ...(renderComponent ? { render: cachedRenderer(renderComponent) } : {}), ...(afterRender ? { afterRender } : {}) };
   return [
     StarterKit.configure({
       underline: false, // Markdown has no underline

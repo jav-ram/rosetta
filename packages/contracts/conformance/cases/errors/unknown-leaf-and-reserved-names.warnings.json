@@ -5,9 +5,10 @@
     "component": "mystery"
   },
   {
-    "code": "component.unknown",
+    "code": "attr.missing",
     "line": 3,
-    "component": "page"
+    "component": "page",
+    "field": "art"
   },
   {
     "code": "component.unknown",
