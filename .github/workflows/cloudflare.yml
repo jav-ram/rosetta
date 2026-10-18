@@ -1,11 +1,10 @@
 name: Cloudflare
 # Publishes the app to Cloudflare (Workers with static assets) when the "Version packages" pull request is merged, so the site
 # changes only on a release. It can also be started by hand to publish again, or to publish an earlier version (give a tag or a
-# commit). Each pull request from this repository is uploaded as a preview version, with its own address, without going live.
+# commit). It does not run on pull requests.
 on:
   push:
     branches: [main]
-  pull_request:
   workflow_dispatch:
     inputs:
       ref:
@@ -16,17 +15,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: cloudflare-${{ github.event_name == 'pull_request' && github.ref || 'live' }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: cloudflare
+  cancel-in-progress: false
 
 jobs:
   publish:
-    # Live: the merge commit of the release PR is titled "Version packages (#N)", or someone started it by hand.
-    # Preview: only for pull requests from this repository, because the secrets are not given to forks.
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'Version packages')) ||
-      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    # The merge commit of the release PR is titled "Version packages (#N)"; or someone started it by hand.
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, 'Version packages')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -49,5 +44,4 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: packages/app
-          # A pull request is only uploaded as a version (a preview address); the others go live.
-          command: ${{ github.event_name == 'pull_request' && 'versions upload' || 'deploy' }}
+          command: deploy

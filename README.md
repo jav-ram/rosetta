@@ -88,7 +88,7 @@ The app is a static site: the built `packages/app/dist`. It is hosted on **Cloud
 **Automatically** (`.github/workflows/cloudflare.yml`):
 
 - Merging the "Version packages" pull request publishes the site, so it changes only on a release.
-- Every pull request from this repository is uploaded as a preview version (`wrangler versions upload`), which does not go live; its address is in the job's log. The first time ever, the site has to be published once (by hand or from the workflow) before previews can be uploaded.
+- It does not run on pull requests. To try a change first, use `pnpm cf:preview` on your computer.
 - **Actions, Cloudflare, Run workflow** publishes again by hand. Put a tag or a commit in `ref` to publish an earlier version, which brings it back (only versions that contain this setup can be published this way).
 - The repository secrets are `CLOUDFLARE_API_TOKEN` (permission to edit Workers) and `CLOUDFLARE_ACCOUNT_ID`.
 
