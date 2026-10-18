@@ -1,5 +1,12 @@
 # @rosetta/theme-classic
 
+## 0.6.0
+
+### Minor Changes
+
+- 7ec5430: Front cover in the PDF export: the first page, with the book's title (or the one set for the cover) over a picture chosen from the project's images, or on a plain color, followed by a blank page so that the first chapter is page 1 on a right-hand page. Neither is numbered or counted. Set it with Cover… in the editor's top bar. The book layout accepts a `cover`, and the exporter reads it from the manifest.
+- 7ec5430: `toc` component: `::toc{title="Contents" depth=2}` stands for a table of contents of the whole book, made from the headings of every chapter with the page number of each when the book is exported as a PDF. In the editor and a chapter's preview it is a labelled marker. The preview's book layout gets `addContents` and fills the page numbers after layout.
+
 ## 0.5.0
 
 ### Minor Changes
