@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import { m1Components } from "../src/definitions";
-import { isDocument, validateComponentDefinition, validateDocument, validateTheme, type Document } from "../src/index";
+import { ExportError, findAsset, isDocument, validateComponentDefinition, validateDocument, validateTheme, type AssetRef, type Document } from "../src/index";
 
 const example = (name: string) => JSON.parse(readFileSync(new URL(`../examples/${name}`, import.meta.url), "utf8"));
 
@@ -57,9 +57,9 @@ describe("M1 component definitions", () => {
     for (const def of m1Components) expect(validateComponentDefinition(def), def.name).toEqual({ valid: true, errors: [] });
   });
 
-  test("covers statblock, readaloud, sidebar, pagebreak, layout, figure and page, with breakable on block components", () => {
-    expect(m1Components.map((d) => d.name)).toEqual(["statblock", "readaloud", "sidebar", "pagebreak", "layout", "figure", "page"]);
-    expect(m1Components.map((d) => d.breakable)).toEqual([false, true, true, undefined, undefined, undefined, undefined]);
+  test("covers statblock, readaloud, sidebar, pagebreak, layout, figure, page and toc, with breakable on block components", () => {
+    expect(m1Components.map((d) => d.name)).toEqual(["statblock", "readaloud", "sidebar", "pagebreak", "layout", "figure", "page", "toc"]);
+    expect(m1Components.map((d) => d.breakable)).toEqual([false, true, true, undefined, undefined, undefined, undefined, undefined]);
   });
 
   test("figure is a leaf with a required src and a span of column or all", () => {
@@ -82,6 +82,15 @@ describe("M1 component definitions", () => {
       expect.objectContaining({ name: "art", type: "string", required: true }),
       expect.objectContaining({ name: "height", type: "string" }),
       expect.objectContaining({ name: "side", type: "enum", values: ["left"] }),
+    ]);
+  });
+
+  test("toc is a leaf with an optional title and a depth of 1, 2 or 3", () => {
+    const toc = m1Components.find((d) => d.name === "toc")!;
+    expect(toc.kind).toBe("leaf");
+    expect(toc.attributes).toEqual([
+      expect.objectContaining({ name: "title", type: "string", default: "Contents" }),
+      expect.objectContaining({ name: "depth", type: "enum", values: ["1", "2", "3"], default: "2" }),
     ]);
   });
 
@@ -128,5 +137,34 @@ describe("theme", () => {
     const t = sample();
     t.components = { "Read Aloud": { "color.text": "red" } };
     expect(validateTheme(t).valid).toBe(false);
+  });
+});
+
+describe("finding the asset a chapter refers to", () => {
+  const asset = (id: string, name?: string): AssetRef => ({ id, name, mediaType: "image/png", size: 1 });
+  const assets = [asset("id-1", "tavern.jpg"), asset("id-2", "map.png"), asset("id-3", "map.png"), asset("id-4", "Dragon Lair.png")];
+
+  test("by id, or by file name, with assets/ in front, spaces around, or URL-encoded", () => {
+    expect(findAsset(assets, "id-1")?.id).toBe("id-1");
+    expect(findAsset(assets, "tavern.jpg")?.id).toBe("id-1");
+    expect(findAsset(assets, " assets/tavern.jpg ")?.id).toBe("id-1");
+    expect(findAsset(assets, "Dragon%20Lair.png")?.id).toBe("id-4");
+  });
+  test("an id wins over a name, and a name two assets have is the one added first", () => {
+    expect(findAsset([asset("a", "b"), asset("b", "c")], "b")?.id).toBe("b");
+    expect(findAsset(assets, "map.png")?.id).toBe("id-2");
+  });
+  test("nothing matches, or the name is not valid URL encoding", () => {
+    expect(findAsset(assets, "nope.png")).toBeUndefined();
+    expect(findAsset([asset("x", "100%.png")], "100%.png")?.id).toBe("x");
+  });
+});
+
+describe("ExportError", () => {
+  test("has a code, so a caller can tell a cancel from a failure", () => {
+    const e = new ExportError("cancelled", "stopped");
+    expect(e).toBeInstanceOf(Error);
+    expect(e.code).toBe("cancelled");
+    expect(e.name).toBe("ExportError");
   });
 });

@@ -585,3 +585,360 @@ export function createPreview(host: HTMLElement, options: PreviewOptions): Previ
     },
   };
 }
+
+// ---------------------------------------------------------------------------------------------------------------------------
+// The whole book, for printing.
+//
+// The preview lays a chapter out alone and works out where it sits in the book (`startPage`, a spare page to keep left and right
+// in step). Printing needs one document for the whole book, and then Paged.js does all of that itself: chapters follow each other,
+// pages are numbered from 1, and left and right are the real ones. What is left for the book is where each chapter starts.
+
+/** A chapter of the book: the parser's HTML, and how it starts. */
+export interface BookChapter {
+  html: string;
+  /** `right-page` starts the chapter on a right-hand page, with a blank page before it when needed. Default `next-page`. */
+  startOn?: "next-page" | "right-page";
+}
+
+/** The front cover: the first page of the book. */
+export interface BookCover {
+  /** The title, printed over the cover. */
+  title: string;
+  /** The picture that fills the cover, as a chapter would name an image (a file name or an id). Without one the cover is a plain color. */
+  art?: string;
+}
+
+export interface BookInput {
+  /** The front cover, as the first page of the book, followed by a blank page so that the first chapter starts on page 1, a right-hand page, as in print. */
+  cover?: BookCover;
+  chapters: BookChapter[];
+  /** The theme's CSS, with `@page` variables already written in. */
+  css: string;
+}
+
+export interface BookResult {
+  /** Pages in the book, a blank page counted. */
+  pages: number;
+  /** Time Paged.js took to lay out the pages. */
+  layoutMs: number;
+  /** Unbreakable components that do not fit in a column (they print as they are). */
+  oversized: OversizedBlock[];
+}
+
+export interface BookRenderOptions {
+  /** Gives the URL to load for an image in the book (the original, not a preview copy); undefined for one it does not know, which is then handled as the preview does by default. */
+  resolveImage?: (src: string) => string | undefined;
+  /** Called while the pages are being laid out, with how many there are so far. */
+  onPage?: (pages: number) => void;
+  /** Called once the layout is done, while the images are loading, with how many images are loaded of how many. */
+  onImages?: (loaded: number, total: number) => void;
+  /** Stops the layout: the promise rejects. */
+  signal?: AbortSignal;
+}
+
+export interface BookLayout {
+  /** Lays the whole book out in a frame that is not seen. Resolves when the pages are ready and every image has loaded. */
+  render(input: BookInput, options?: BookRenderOptions): Promise<BookResult>;
+  /** Opens the print dialog for the book that was laid out. Resolves when the dialog is closed (printed or not). */
+  print(): Promise<void>;
+  /** Removes the frame. */
+  destroy(): void;
+}
+
+export interface BookLayoutOptions {
+  /** URL of Paged.js's `paged.polyfill.js`. */
+  pagedUrl: string;
+  /** Milliseconds before the layout is given up (default 15 minutes: a book of hundreds of pages takes a while). */
+  timeoutMs?: number;
+  /** Milliseconds to wait for the images once the pages are laid out (default 2 minutes). */
+  imageTimeoutMs?: number;
+}
+
+/**
+ * Where each chapter starts, in the one document. Every chapter starts on a new page (`break-before: page`; none for the very first,
+ * which is on page 1). `right-page` and a first page of art with `side="left"` ask for a right or a left page, and Paged.js inserts
+ * a blank page when the chapter would otherwise start on the other side. A blank page that Paged.js cannot make (before the very
+ * first page) is made by the chapter's own `rosetta-blank-page`, as in the preview.
+ *
+ * A cover is two pages before the book: the cover, and a blank page behind it, so that the first chapter is the third page, a
+ * right-hand page, and the pages keep the sides they have in the editor's preview (chapter 1 starts on a right-hand page 1). The
+ * pages of the book are numbered from the first chapter, so the cover and its blank page have no number and are not counted:
+ * `startPageNumbers` starts the counter two pages early, and the table of contents subtracts them. The cover is a page of art for
+ * the art hook (the template `cover`: the picture fills the page, the theme styles the rest).
+ */
+const bookCss = `
+.rosetta-chapter-start { height: 0; margin: 0; padding: 0; break-before: page; }
+.rosetta-chapter-start.rosetta-start-first { break-before: auto; }
+.rosetta-chapter-start.rosetta-start-right { break-before: right; }
+.rosetta-chapter-start.rosetta-start-left { break-before: left; }
+.rosetta-blank-page { break-after: page; height: 0; margin: 0; padding: 0; }
+.rosetta-cover { break-after: page; }
+.rosetta-cover .rosetta-page { height: 0; margin: 0; padding: 0; border: none; overflow: hidden; }
+/* What is on the screen is on the paper: the dialog's "background graphics" setting does not turn off the boxes and art. */
+html, body { margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+* { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+`;
+
+/**
+ * After layout: waits for every image on the pages to load, so that none is missing from the paper. `report(loaded, total)` is
+ * called as they come in. Resolves with the number of images that did not load. Runs in the book document. Exported as source.
+ */
+/**
+ * After layout: gives each entry of a table of contents the number of the page its heading is on (`data-page`, which the theme
+ * shows). Read from the laid-out pages once, not asked of Paged.js's `target-counter`, which looks every entry up on every page
+ * (its cost grows with entries times pages: 1.8 times the whole layout time at 188 entries over 209 pages). The number is the page's
+ * own (Paged.js numbers pages from 1, a blank page counted), which is what the page shows; `before` is how many pages at the start
+ * are not counted (a cover and the blank page behind it). Returns how many entries were filled. Runs in the book document. Exported as source.
+ */
+export const FILL_CONTENTS_SCRIPT = `function fillContents(doc, before) {
+  var pageOf = {};
+  doc.querySelectorAll(".pagedjs_page").forEach(function (page) {
+    var number = String(Number(page.getAttribute("data-page-number")) - (before || 0));
+    page.querySelectorAll('[id^="rosetta-h"]').forEach(function (heading) { if (!pageOf[heading.id]) pageOf[heading.id] = number; });
+  });
+  var filled = 0;
+  doc.querySelectorAll(".rosetta-contents a").forEach(function (link) {
+    var number = pageOf[(link.getAttribute("href") || "").slice(1)];
+    if (number) { link.setAttribute("data-page", number); filled += 1; }
+  });
+  return filled;
+}`;
+
+export const WAIT_FOR_IMAGES_SCRIPT = `function waitForImages(doc, waitMs, report) {
+  var imgs = [].slice.call(doc.querySelectorAll("img"));
+  var loaded = 0;
+  var failed = 0;
+  report(0, imgs.length);
+  var each = imgs.map(function (img) {
+    if (img.complete) { loaded += 1; if (!img.naturalWidth) failed += 1; return 0; }
+    return new Promise(function (done) {
+      function finish(ok) { loaded += 1; if (!ok) failed += 1; report(loaded, imgs.length); done(); }
+      img.addEventListener("load", function () { finish(true); });
+      img.addEventListener("error", function () { finish(false); });
+    });
+  });
+  report(loaded, imgs.length);
+  var limit = new Promise(function (done) { setTimeout(done, waitMs); });
+  return Promise.race([Promise.all(each), limit]).then(function () { return failed + (imgs.length - loaded); });
+}`;
+
+/** One line of the table of contents: a heading of the book. */
+export interface ContentsEntry {
+  /** 1 for a `#` heading, 2 for `##`, 3 for `###`. */
+  level: number;
+  text: string;
+  /** The id given to the heading, so that the entry can link to it and ask for its page. */
+  id: string;
+}
+
+/**
+ * Makes the tables of contents of a book. Every heading of the chapters (`#` to `###`, not those inside a component such as a
+ * sidebar) gets an id; each `toc` component (`::toc`, an empty marker in the parser's HTML) is then replaced by the list of the
+ * headings it asks for (`depth`, default 2) under its `title` (default "Contents"). Each entry is a link to its heading; the theme
+ * shows the page of that heading with `target-counter`, which Paged.js works out once the pages are laid out. Returns the chapters'
+ * HTML, changed only when the book has a `toc`.
+ */
+export function addContents(chapters: readonly string[]): { html: string[]; entries: ContentsEntry[] } {
+  if (!chapters.some((html) => html.includes('data-component="toc"'))) return { html: [...chapters], entries: [] };
+  const docs = chapters.map((html) => new DOMParser().parseFromString(`<body>${html}</body>`, "text/html"));
+  const entries: ContentsEntry[] = [];
+  for (const doc of docs) {
+    for (const heading of doc.querySelectorAll("h1, h2, h3")) {
+      const owner = heading.closest("[data-component]");
+      if (owner && owner.getAttribute("data-component") !== "layout") continue; // a sidebar's title is not a section of the book
+      const text = (heading.textContent ?? "").trim();
+      if (!text) continue;
+      const id = `rosetta-h${entries.length}`;
+      heading.setAttribute("id", id);
+      entries.push({ level: Number(heading.tagName[1]), text, id });
+    }
+  }
+  for (const doc of docs) {
+    for (const marker of doc.querySelectorAll('[data-component="toc"]')) {
+      const asked = Number(marker.getAttribute("data-depth"));
+      const depth = asked === 1 || asked === 2 || asked === 3 ? asked : 2;
+      const nav = doc.createElement("nav");
+      nav.className = "rosetta-contents";
+      nav.setAttribute("data-component", "toc");
+      nav.setAttribute("data-kind", "leaf");
+      const title = doc.createElement("h2");
+      title.className = "rosetta-contents-title";
+      title.textContent = marker.getAttribute("data-title")?.trim() || "Contents";
+      const list = doc.createElement("ol");
+      for (const entry of entries.filter((e) => e.level <= depth)) {
+        const item = doc.createElement("li");
+        item.setAttribute("data-level", String(entry.level));
+        const link = doc.createElement("a");
+        link.setAttribute("href", `#${entry.id}`);
+        const text = doc.createElement("span");
+        text.className = "rosetta-contents-text";
+        text.textContent = entry.text;
+        const dots = doc.createElement("span");
+        dots.className = "rosetta-contents-dots";
+        link.append(text, dots);
+        item.append(link);
+        list.append(item);
+      }
+      nav.append(title, list);
+      marker.replaceWith(nav);
+    }
+  }
+  return { html: docs.map((doc) => doc.body.innerHTML), entries };
+}
+
+/** The cover page and the blank page behind it. */
+function coverHtml(cover: BookCover, resolve: (src: string) => string): string {
+  const art = cover.art ? ` data-art="${escapeAttribute(cover.art)}"` : "";
+  const marker = `<div class="rosetta-page" data-component="page" data-kind="leaf" data-template="cover"${art}></div>`;
+  const title = `<div class="rosetta-cover-title">${escapeText(cover.title)}</div>`;
+  // `resolveImages` finds the picture the same way it finds a page's art.
+  return `${resolveImages(`<div class="rosetta-cover">${marker}${title}</div>`, resolve)}<div class="rosetta-blank-page"></div>`;
+}
+
+const escapeText = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const escapeAttribute = (text: string) => escapeText(text).replace(/"/g, "&quot;");
+
+/** The document that holds the whole book. Paged.js runs when it has loaded. */
+export function buildBookDocument(input: BookInput, options: { pagedUrl: string; id: string; resolveImage?: (src: string) => string | undefined; imageTimeoutMs?: number }): string {
+  const resolve = (src: string) => options.resolveImage?.(src) ?? defaultResolveImage(src);
+  const id = JSON.stringify(options.id);
+  const first = input.chapters[0];
+  const cover = input.cover;
+  // With a cover, the first chapter does not start the document, so Paged.js can break before it like any other chapter.
+  const blank = !cover && first && startsWithLeftArt(first.html) ? '<div class="rosetta-blank-page"></div>' : "";
+  const withContents = addContents(input.chapters.map((c) => c.html)).html;
+  const body = input.chapters
+    .map((chapter, i) => {
+      const left = startsWithLeftArt(chapter.html);
+      const classes = ["rosetta-chapter-start", i === 0 && !cover ? "rosetta-start-first" : "", left ? "rosetta-start-left" : chapter.startOn === "right-page" ? "rosetta-start-right" : ""].filter(Boolean).join(" ");
+      return `<div class="${classes}"></div>${resolveImages(withContents[i]!, resolve)}`;
+    })
+    .join("\n");
+  return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>${bookCss}</style>
+<style>${safeInStyle(input.css)}</style>
+<style>${chapterStartLateCss}</style>
+<script>${SCHEDULER}</script>
+<script>window.PagedConfig = { auto: false };</script>
+<script src="${options.pagedUrl.replace(/"/g, "&quot;")}"></script>
+</head>
+<body>
+<div class="rosetta-document">${cover ? coverHtml(cover, resolve) : ""}${blank}${body}</div>
+<script>
+(function () {
+  var id = ${id};
+  function send(message) { message.type = ${JSON.stringify(BOOK_MESSAGE_TYPE)}; message.id = id; parent.postMessage(message, "*"); }
+  if (!window.PagedPolyfill) { send({ error: "Paged.js did not load" }); return; }
+  ${OVERSIZED_SCRIPT}
+  ${TABLE_HEADER_SCRIPT}
+  ${PAGE_ART_SCRIPT}
+  ${FILL_COLUMNS_SCRIPT}
+  ${BLANK_PAGE_SCRIPT}
+  ${FILL_CONTENTS_SCRIPT}
+  ${PAGE_NUMBERS_SCRIPT}
+  ${WAIT_FOR_IMAGES_SCRIPT}
+  var hooks = window.PagedPolyfill.chunker.hooks;
+  try { installTableHeaderRepeat(hooks); } catch (e) { /* laid out without repeated headers */ }
+  try { installPageArt(hooks); } catch (e) { /* laid out without art */ }
+  var pages = 0;
+  hooks.afterPageLayout.register(function () { pages += 1; if (pages % 5 === 0) send({ progress: pages }); });
+  numberBlocks(document);
+  var start = performance.now();
+  window.PagedPolyfill.preview().then(
+    function (flow) {
+      var layoutMs = performance.now() - start;
+      var oversized = [];
+      try { oversized = findOversized(document); } catch (e) { /* no check */ }
+      try { fillColumns(document); } catch (e) { /* the columns stay balanced */ }
+      try { markBlankPages(document); } catch (e) { /* the blank page shows its header */ }
+${cover ? "      try { startPageNumbers(document, -1); } catch (e) { /* the cover would be numbered */ }\n" : ""}      try { fillContents(document, ${cover ? 2 : 0}); } catch (e) { /* the contents show no page numbers */ }
+      send({ progress: flow.total });
+      waitForImages(document, ${options.imageTimeoutMs ?? 120_000}, function (loaded, total) { send({ images: { loaded: loaded, total: total } }); }).then(
+        function (missing) { send({ done: true, pages: flow.total, layoutMs: layoutMs, oversized: oversized, missingImages: missing }); },
+        function (e) { send({ error: String((e && e.message) || e) }); }
+      );
+    },
+    function (e) { send({ error: String((e && e.message) || e) }); }
+  );
+})();
+</script>
+</body>
+</html>`;
+}
+
+export const BOOK_MESSAGE_TYPE = "rosetta-book";
+
+/** The book's layout, in a frame that is not seen, and printing it. */
+export function createBookLayout(host: HTMLElement, options: BookLayoutOptions): BookLayout {
+  let frame: HTMLIFrameElement | null = null;
+  let counter = 0;
+  let cancelRender: (() => void) | null = null;
+
+  const remove = () => {
+    cancelRender?.();
+    frame?.remove();
+    frame = null;
+  };
+
+  function render(input: BookInput, renderOptions: BookRenderOptions = {}): Promise<BookResult> {
+    remove();
+    const id = `book${++counter}`;
+    const iframe = document.createElement("iframe");
+    iframe.className = "rosetta-book-frame";
+    iframe.title = "Book";
+    // Laid out at full size, away from the screen, so that Paged.js measures the real page area and the browser can print it. Not
+    // `display: none` or `visibility: hidden`: a frame that is hidden that way can print as blank pages in some browsers.
+    iframe.style.cssText = "position:fixed;left:-10000px;top:0;width:1100px;height:900px;border:0";
+    frame = iframe;
+
+    return new Promise<BookResult>((resolve, reject) => {
+      let finished = false;
+      const finish = (action: () => void) => {
+        if (finished) return;
+        finished = true;
+        window.removeEventListener("message", onMessage);
+        clearTimeout(timer);
+        renderOptions.signal?.removeEventListener("abort", onAbort);
+        cancelRender = null;
+        action();
+      };
+      const fail = (error: Error) => finish(() => (iframe.remove(), frame === iframe && (frame = null), reject(error)));
+      const onAbort = () => fail(new DOMException("The export was cancelled", "AbortError"));
+
+      function onMessage(e: MessageEvent) {
+        const data = e.data as { type?: string; id?: string; error?: string; progress?: number; images?: { loaded: number; total: number }; done?: boolean; pages?: number; layoutMs?: number; oversized?: OversizedBlock[]; missingImages?: number } | null;
+        if (!data || data.type !== BOOK_MESSAGE_TYPE || data.id !== id || e.source !== iframe.contentWindow) return;
+        if (data.error !== undefined) return fail(new Error(data.error));
+        if (data.progress !== undefined) renderOptions.onPage?.(data.progress);
+        if (data.images) renderOptions.onImages?.(data.images.loaded, data.images.total);
+        if (data.done) {
+          if (data.missingImages) return fail(new Error(`${data.missingImages} image${data.missingImages === 1 ? "" : "s"} could not be loaded, so the book would print with gaps`));
+          finish(() => resolve({ pages: data.pages ?? 0, layoutMs: data.layoutMs ?? 0, oversized: data.oversized ?? [] }));
+        }
+      }
+
+      const timer = setTimeout(() => fail(new Error(`laying out the book took more than ${Math.round((options.timeoutMs ?? 900_000) / 60_000)} minutes`)), options.timeoutMs ?? 900_000);
+      cancelRender = () => finish(() => (iframe.remove(), reject(new DOMException("The export was cancelled", "AbortError"))));
+      if (renderOptions.signal?.aborted) return onAbort();
+      renderOptions.signal?.addEventListener("abort", onAbort);
+      window.addEventListener("message", onMessage);
+      iframe.srcdoc = buildBookDocument(input, { pagedUrl: options.pagedUrl, id, resolveImage: renderOptions.resolveImage, imageTimeoutMs: options.imageTimeoutMs });
+      host.append(iframe);
+    });
+  }
+
+  function print(): Promise<void> {
+    const win = frame?.contentWindow;
+    if (!win) return Promise.reject(new Error("There is no book to print: lay it out first"));
+    return new Promise<void>((resolve) => {
+      win.addEventListener("afterprint", () => resolve(), { once: true });
+      win.focus();
+      win.print(); // Chrome waits here until the dialog is closed; the event says it was
+    });
+  }
+
+  return { render, print, destroy: remove };
+}

@@ -7,10 +7,14 @@
   "scripts": {
     "generate": "node src/cli.mjs",
     "pretest": "pnpm --filter @rosetta/parser-wasm run build:wasm",
-    "test": "vitest run --passWithNoTests=false"
+    "test": "vitest run --passWithNoTests=false",
+    "export-benchmark": "node src/export-benchmark.mjs"
   },
   "devDependencies": {
     "@rosetta/contracts": "workspace:^",
     "@rosetta/parser-wasm": "workspace:^"
+  },
+  "dependencies": {
+    "fflate": "^0.8.2"
   }
 }

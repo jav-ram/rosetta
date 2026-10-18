@@ -14,6 +14,9 @@ import { imageSources } from "@rosetta/preview";
 import { imageResolver, referenceFor } from "./images/resolveImage";
 import { pageInfo } from "./pageNumbers";
 import { saveProjectFile } from "./projectFile";
+import { BookExportDialog, useBookExport } from "./bookExport";
+import { CoverSettings } from "./components/CoverSettings";
+import type { Exporter } from "@rosetta/contracts";
 import { ProjectSession, type SaveStatus } from "./project";
 import { useParsed } from "./useParsed";
 
@@ -28,13 +31,15 @@ interface Props {
   reminders?: BackupReminders;
   /** Makes the smaller copies of added images. The real one (a worker) by default; tests give another. */
   makePreview?: MakePreview;
+  /** Makes the exporter that prints the book. The real one by default; tests give another. */
+  createExporter?: (store: ProjectStore) => Exporter;
 }
 
 const NO_IMAGES: PlacedImage[] = [];
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /** The editor for one project: it opens the project, and shows the chapter list, editor and preview once it is open. */
-export function Workspace({ store, project, onBack, saveFile, reminders = backupReminders, makePreview }: Props) {
+export function Workspace({ store, project, onBack, saveFile, reminders = backupReminders, makePreview, createExporter }: Props) {
   const [session, setSession] = useState<ProjectSession | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,7 +74,7 @@ export function Workspace({ store, project, onBack, saveFile, reminders = backup
     );
   }
   if (!session) return <main className="projects"><p className="hint">Opening {project.title}…</p></main>;
-  return <ProjectEditor session={session} store={store} project={project} onBack={onBack} saveFile={saveFile ?? saveProjectFile} reminders={reminders} makePreview={makePreview} />;
+  return <ProjectEditor session={session} store={store} project={project} onBack={onBack} saveFile={saveFile ?? saveProjectFile} reminders={reminders} makePreview={makePreview} createExporter={createExporter} />;
 }
 
 function SaveIndicator({ status, onRetry }: { status: SaveStatus; onRetry: () => void }) {
@@ -89,7 +94,7 @@ function SaveIndicator({ status, onRetry }: { status: SaveStatus; onRetry: () =>
   );
 }
 
-function ProjectEditor({ session, store, project, onBack, saveFile, reminders, makePreview }: { session: ProjectSession; store: ProjectStore; project: ProjectSummary; onBack?: () => void; saveFile: typeof saveProjectFile; reminders: BackupReminders; makePreview?: MakePreview }) {
+function ProjectEditor({ session, store, project, onBack, saveFile, reminders, makePreview, createExporter }: { session: ProjectSession; store: ProjectStore; project: ProjectSummary; onBack?: () => void; saveFile: typeof saveProjectFile; reminders: BackupReminders; makePreview?: MakePreview; createExporter?: (store: ProjectStore) => Exporter }) {
   const title = project.title;
   const [exporting, setExporting] = useState<"idle" | "working" | "done" | string>("idle");
   /** Writes what is waiting to the store, then saves a copy as a file: the file is what is on screen. */
@@ -105,6 +110,8 @@ function ProjectEditor({ session, store, project, onBack, saveFile, reminders, m
       setExporting(`error:${message(e)}`);
     }
   };
+  const bookExport = useBookExport(store, createExporter);
+  const [coverOpen, setCoverOpen] = useState(false);
   const [, update] = useReducer((n: number) => n + 1, 0);
   useEffect(() => session.subscribe(update), [session]);
   // The backup reminder counts from the first change that is in no backup.
@@ -263,12 +270,26 @@ function ProjectEditor({ session, store, project, onBack, saveFile, reminders, m
         <button type="button" className="link" onClick={() => void exportFile()} disabled={exporting === "working"} title="Save a copy as a .rosetta file">
           {exporting === "working" ? "Exporting…" : exporting === "done" ? "Exported ✓" : "Export"}
         </button>
+        <button type="button" className="link" onClick={() => setCoverOpen(true)} title="The front cover of the PDF">
+          Cover…
+        </button>
+        <button
+          type="button"
+          className="link"
+          onClick={() => void bookExport.start(project.id, title, () => session.flush())}
+          disabled={bookExport.status.state === "working"}
+          title="Lay out the whole book and print it: choose Save as PDF in the print dialog"
+        >
+          Export PDF
+        </button>
         {exporting.startsWith("error:") && (
           <span role="alert" className="save-status" data-state="error">
             Could not export: {exporting.slice(6)}
           </span>
         )}
       </header>
+      <BookExportDialog status={bookExport.status} onCancel={bookExport.cancel} onClose={bookExport.close} />
+      {coverOpen && <CoverSettings cover={session.manifest.cover} bookTitle={session.manifest.title} images={images.assets} onChange={(cover) => session.setCover(cover)} onClose={() => setCoverOpen(false)} />}
       {reminders.isDue(project.id) && (
         <BackupBanner
           title={title}

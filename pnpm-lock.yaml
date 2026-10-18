@@ -29,6 +29,9 @@ importers:
       '@rosetta/editor':
         specifier: workspace:^
         version: link:../editor
+      '@rosetta/exporter-browser':
+        specifier: workspace:^
+        version: link:../exporter-browser
       '@rosetta/parser-wasm':
         specifier: workspace:^
         version: link:../parser-wasm
@@ -177,6 +180,10 @@ importers:
         version: link:../contracts
 
   tools/benchmark-book:
+    dependencies:
+      fflate:
+        specifier: ^0.8.2
+        version: 0.8.3
     devDependencies:
       '@rosetta/contracts':
         specifier: workspace:^

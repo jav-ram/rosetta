@@ -62,6 +62,11 @@ export const components = {
     return { markdown: `::figure{src="assets/originals/ill-${id}.svg" alt="Placeholder illustration ${id}" caption="Illustration ${id}"${span}}`, pages: span ? 0.5 : 0.4 };
   },
 
+  /** The table of contents: two levels of headings, which takes about a page and a half. */
+  toc() {
+    return { markdown: "::toc{depth=2}", pages: 1.5 };
+  },
+
   /** A page of art, as the `page` component: full-page on every other one, otherwise a band at the top (and the text that follows fills the rest of the page). */
   page(_rng, number = 1) {
     const id = String(number).padStart(3, "0");

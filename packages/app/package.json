@@ -24,6 +24,7 @@
   "dependencies": {
     "@rosetta/contracts": "workspace:^",
     "@rosetta/editor": "workspace:^",
+    "@rosetta/exporter-browser": "workspace:^",
     "@rosetta/parser-wasm": "workspace:^",
     "@rosetta/preview": "workspace:^",
     "@rosetta/store-local": "workspace:^",
