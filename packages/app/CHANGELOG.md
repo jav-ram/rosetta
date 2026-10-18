@@ -1,5 +1,26 @@
 # @rosetta/app
 
+## 0.17.0
+
+### Minor Changes
+
+- 7ec5430: Export the whole book as a PDF through the browser's print dialog. `contracts` gets the `Exporter` interface, `ExportError` and `findAsset`; `preview` gets `buildBookDocument` and `createBookLayout` (the whole book as one Paged.js document, with the same art, table and column steps as the preview); `exporter-browser` gets `BrowserPrintExporter` (original-resolution images, progress, cancel); the app gets "Export PDF" in the editor and "PDF" on the projects list, with a window that shows what is happening.
+- 7ec5430: Front cover in the PDF export: the first page, with the book's title (or the one set for the cover) over a picture chosen from the project's images, or on a plain color, followed by a blank page so that the first chapter is page 1 on a right-hand page. Neither is numbered or counted. Set it with Cover… in the editor's top bar. The book layout accepts a `cover`, and the exporter reads it from the manifest.
+
+### Patch Changes
+
+- Updated dependencies [7ec5430]
+- Updated dependencies [7ec5430]
+- Updated dependencies [7ec5430]
+  - @rosetta/contracts@0.11.0
+  - @rosetta/preview@0.6.0
+  - @rosetta/exporter-browser@0.1.0
+  - @rosetta/theme-classic@0.6.0
+  - @rosetta/editor@0.9.1
+  - @rosetta/parser-wasm@0.3.1
+  - @rosetta/store-local@0.3.1
+  - @rosetta/theme-engine@0.2.5
+
 ## 0.16.0
 
 ### Minor Changes

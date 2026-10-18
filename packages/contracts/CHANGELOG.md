@@ -1,5 +1,12 @@
 # @rosetta/contracts
 
+## 0.11.0
+
+### Minor Changes
+
+- 7ec5430: Export the whole book as a PDF through the browser's print dialog. `contracts` gets the `Exporter` interface, `ExportError` and `findAsset`; `preview` gets `buildBookDocument` and `createBookLayout` (the whole book as one Paged.js document, with the same art, table and column steps as the preview); `exporter-browser` gets `BrowserPrintExporter` (original-resolution images, progress, cancel); the app gets "Export PDF" in the editor and "PDF" on the projects list, with a window that shows what is happening.
+- 7ec5430: `toc` component: `::toc{title="Contents" depth=2}` stands for a table of contents of the whole book, made from the headings of every chapter with the page number of each when the book is exported as a PDF. In the editor and a chapter's preview it is a labelled marker. The preview's book layout gets `addContents` and fills the page numbers after layout.
+
 ## 0.10.0
 
 ### Minor Changes

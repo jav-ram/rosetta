@@ -1,5 +1,13 @@
 # @rosetta/parser-wasm
 
+## 0.3.1
+
+### Patch Changes
+
+- Updated dependencies [7ec5430]
+- Updated dependencies [7ec5430]
+  - @rosetta/contracts@0.11.0
+
 ## 0.3.0
 
 ### Minor Changes
