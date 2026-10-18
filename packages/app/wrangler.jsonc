@@ -1,0 +1,12 @@
+// Cloudflare Workers with static assets: the built app (dist/) is the whole site. There is no Worker code.
+// Build first (`pnpm --filter @rosetta/app build`), then `wrangler deploy` (live) or `wrangler dev` (on this computer).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "rosetta",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist"
+  },
+  // The site's address. The domain's DNS has to be on Cloudflare, in the account the deploy token belongs to.
+  "routes": [{ "pattern": "wildbloom-studio.dev", "custom_domain": true }]
+}

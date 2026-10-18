@@ -7,3 +7,4 @@ coverage/
 PR_DESCRIPTION.md
 
 tools/benchmark-book/out/
+.wrangler/

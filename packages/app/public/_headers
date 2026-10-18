@@ -1,0 +1,16 @@
+# Response headers on Cloudflare (Workers static assets read this file from the root of the built site).
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+
+# Every file in /assets/ has a hash in its name (the parser's .wasm included), so a changed file has a new name and an old one never changes.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# The page that names those files is looked at again each time, so a release is seen at the next load.
+/
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache

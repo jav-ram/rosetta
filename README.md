@@ -75,6 +75,35 @@ Useful commands:
 | `pnpm --filter @rosetta/benchmark-book generate` | Writes the 100- and 300-page test books to `tools/benchmark-book/out/` |
 | `pnpm changeset` | Describes a change for the next release |
 
+## Deploying
+
+The app is a static site: the built `packages/app/dist`. It is hosted on **Cloudflare Workers (static assets)** at <https://wildbloom-studio.dev>; there is no server code. The build needs Go (it compiles the parser to WebAssembly).
+
+| What | Command (from the repository root) |
+|---|---|
+| Build | `pnpm cf:build` (the same as `pnpm --filter @rosetta/app build`; the result is `packages/app/dist`) |
+| Try it on this computer, as Cloudflare serves it (headers included) | `pnpm cf:preview`, then open <http://localhost:8787> |
+| Publish by hand | `pnpm cf:deploy` (needs `wrangler login`, or `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` in the environment) |
+
+**Automatically** (`.github/workflows/cloudflare.yml`):
+
+- Merging the "Version packages" pull request publishes the site, so it changes only on a release.
+- It does not run on pull requests. To try a change first, use `pnpm cf:preview` on your computer.
+- **Actions, Cloudflare, Run workflow** publishes again by hand. Put a tag or a commit in `ref` to publish an earlier version, which brings it back (only versions that contain this setup can be published this way).
+- The repository secrets are `CLOUDFLARE_API_TOKEN` (permission to edit Workers) and `CLOUDFLARE_ACCOUNT_ID`.
+
+**Configuration:** `packages/app/wrangler.jsonc` (the site and its address; the domain's DNS has to be on Cloudflare, in the same account) and `packages/app/public/_headers` (caching: files in `/assets/` have a hash in their name and are kept for a year, `index.html` is looked at each time; and the security headers). There is deliberately no `Content-Security-Policy`: the preview is an iframe built from a string, which inherits the page's policy and runs inline scripts and `blob:` images, so a strict one breaks it. If one is added, start it as `Content-Security-Policy-Report-Only`.
+
+**Check a deploy** (the `.wasm` file must be `application/wasm` and compressed):
+
+```bash
+curl -sI https://wildbloom-studio.dev/ | grep -i "cache-control\|x-frame-options\|x-content-type"      # no-cache, DENY, nosniff
+# the parser: its file name is the one ending in .wasm in the browser's Network tab (assets/rosetta-<hash>.wasm)
+curl -sI -H 'Accept-Encoding: br' https://wildbloom-studio.dev/assets/rosetta-<hash>.wasm | grep -i "content-type\|content-encoding\|cache-control"
+```
+
+**Projects are stored in the browser, separately for each address.** Moving to a new address starts with no projects: use **Export** on the old address and **Import…** on the new one. The old GitHub Pages build (`pages.yml`, until it is switched off) shows a note saying so on its projects screen (`VITE_MOVED_TO`).
+
 ## License
 
 [MIT](LICENSE). You can use, modify and distribute Rosetta however you like, as long as you keep the copyright notice and license text, which is how this project gets credit.
