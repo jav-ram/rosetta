@@ -14,6 +14,8 @@ interface Props {
   reminders?: BackupReminders;
   /** Makes the preview copies of images in an imported file. The real one (a worker) by default; tests give another. */
   makePreview?: MakePreview;
+  /** Where the app has moved to, when this is the old address. A note at the top says projects have to be exported here and imported there. */
+  movedTo?: string;
 }
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -27,7 +29,7 @@ const newManifest = (title: string) => ({
 });
 
 /** List, create, rename and delete projects. They are kept by the store, so they are here after the browser is closed and opened again. */
-export function ProjectsScreen({ store, onOpen, saveFile = saveProjectFile, reminders = backupReminders, makePreview = defaultMakePreview }: Props) {
+export function ProjectsScreen({ store, onOpen, saveFile = saveProjectFile, reminders = backupReminders, makePreview = defaultMakePreview, movedTo = import.meta.env.VITE_MOVED_TO }: Props) {
   const [projects, setProjects] = useState<ProjectSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [title, setTitle] = useState("");
@@ -103,6 +105,11 @@ export function ProjectsScreen({ store, onOpen, saveFile = saveProjectFile, remi
   return (
     <main className="projects">
       <h1>Rosetta</h1>
+      {movedTo && (
+        <p role="note" className="projects-moved">
+          Rosetta has moved to <a href={movedTo}>{movedTo.replace(/^https?:\/\//, "")}</a>. Projects are kept in the browser, separately for each address, so the ones here are not there. To bring a project over: <strong>Export</strong> it here, then use <strong>Import…</strong> on the new address.
+        </p>
+      )}
       <form className="projects-new" onSubmit={create}>
         <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title of a new project" aria-label="Title of a new project" />
         <button type="submit" disabled={!title.trim()}>

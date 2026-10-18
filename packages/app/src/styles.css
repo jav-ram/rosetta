@@ -30,6 +30,8 @@ body { background: var(--bg); color: var(--text); }
 /* The list of projects. */
 .projects { max-width: 640px; margin: 0 auto; padding: 48px 16px; }
 .projects h1 { margin: 0 0 24px; font-size: 1.5rem; }
+.projects-moved { margin: 0 0 24px; padding: 10px 14px; border: 1px solid var(--warn); border-radius: 6px; background: var(--warn-bg); color: var(--warn); font-size: 0.9rem; }
+.projects-moved a { color: inherit; font-weight: 600; }
 .projects button, .topbar .link { font: inherit; font-size: 0.85rem; padding: 4px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: inherit; cursor: pointer; }
 .projects button:hover:not(:disabled), .topbar .link:hover { background: var(--bg); }
 .projects button:disabled { opacity: 0.4; cursor: default; }

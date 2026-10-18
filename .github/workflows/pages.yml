@@ -33,6 +33,8 @@ jobs:
       - run: pnpm --filter @rosetta/app build
         env:
           PAGES_BASE: /${{ github.event.repository.name }}/
+          # This is the old address: the projects screen says where Rosetta has moved to (the Cloudflare site).
+          VITE_MOVED_TO: https://wildbloom-studio.dev
       - uses: actions/upload-pages-artifact@v3
         with:
           path: packages/app/dist
