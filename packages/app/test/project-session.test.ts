@@ -323,3 +323,46 @@ describe("a project of 20 chapters", () => {
     for (const c of again.manifest.chapters) expect(await again.chapterText(c.id), c.id).toBe(text.get(c.id) ?? "");
   });
 });
+
+describe("the cover", () => {
+  const picture = { id: "pic1", name: "dragon.png", mediaType: "image/png", size: 4 };
+
+  test("is set, written to the manifest a moment later, and found again when the project is reopened", async () => {
+    const { session, base, id } = await open();
+    expect(session.manifest.cover).toBeUndefined();
+    session.setCover({ title: "The Warcaller" });
+    expect(session.manifest.cover).toEqual({ title: "The Warcaller" });
+    await session.flush();
+    expect((await base.loadManifest(id)).cover).toEqual({ title: "The Warcaller" });
+    expect((await ProjectSession.open(base, id)).manifest.cover).toEqual({ title: "The Warcaller" });
+  });
+
+  test("an empty cover (the book's title on a plain page) is a cover, and null takes it away", async () => {
+    const { session, base, id } = await open();
+    session.setCover({});
+    await session.flush();
+    expect((await base.loadManifest(id)).cover).toEqual({});
+    session.setCover(null);
+    await session.flush();
+    expect("cover" in (await base.loadManifest(id))).toBe(false);
+  });
+
+  test("keeps a picture, and the manifest still validates with it", async () => {
+    const { session, base, id } = await open();
+    await base.putAsset(id, new File([new Uint8Array([1, 2, 3, 4])], "dragon.png", { type: "image/png" }), { id: "pic1" });
+    session.setCover({ image: picture, title: "T" });
+    await session.flush();
+    expect(session.status).toEqual({ state: "saved" });
+    expect((await base.loadManifest(id)).cover).toEqual({ title: "T", image: picture });
+  });
+
+  test("changes nothing about the chapters or their page numbers", async () => {
+    const { session } = await open();
+    session.setPageCount("c1", 3, 1);
+    session.setPageCount("c2", 2, 4);
+    const before = session.manifest.chapters;
+    session.setCover({ title: "X" });
+    expect(session.manifest.chapters).toEqual(before);
+    expect(session.manifest.chapters.some((c) => c.stale)).toBe(false);
+  });
+});

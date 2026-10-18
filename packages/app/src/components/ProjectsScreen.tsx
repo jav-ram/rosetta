@@ -4,6 +4,8 @@ import { backupReminders, type BackupReminders } from "../backupReminder";
 import { makePreview as defaultMakePreview, type MakePreview } from "../images/previewMaker";
 import { rebuildPreviews } from "../images/rebuildPreviews";
 import { openProjectFile, saveProjectFile } from "../projectFile";
+import { BookExportDialog, useBookExport } from "../bookExport";
+import type { Exporter } from "@rosetta/contracts";
 
 interface Props {
   store: ProjectStore;
@@ -16,6 +18,8 @@ interface Props {
   makePreview?: MakePreview;
   /** Where the app has moved to, when this is the old address. A note at the top says projects have to be exported here and imported there. */
   movedTo?: string;
+  /** Makes the exporter that prints a book. The real one by default; tests give another. */
+  createExporter?: (store: ProjectStore) => Exporter;
 }
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -29,7 +33,8 @@ const newManifest = (title: string) => ({
 });
 
 /** List, create, rename and delete projects. They are kept by the store, so they are here after the browser is closed and opened again. */
-export function ProjectsScreen({ store, onOpen, saveFile = saveProjectFile, reminders = backupReminders, makePreview = defaultMakePreview, movedTo = import.meta.env.VITE_MOVED_TO }: Props) {
+export function ProjectsScreen({ store, onOpen, saveFile = saveProjectFile, reminders = backupReminders, makePreview = defaultMakePreview, movedTo = import.meta.env.VITE_MOVED_TO, createExporter }: Props) {
+  const bookExport = useBookExport(store, createExporter);
   const [projects, setProjects] = useState<ProjectSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [title, setTitle] = useState("");
@@ -172,6 +177,9 @@ export function ProjectsScreen({ store, onOpen, saveFile = saveProjectFile, remi
                   <button type="button" onClick={() => void exportFile(p)} aria-label={`Export ${p.title}`} title="Save a copy as a .rosetta file">
                     {exported === p.id ? "Exported ✓" : "Export"}
                   </button>
+                  <button type="button" onClick={() => void bookExport.start(p.id, p.title)} disabled={bookExport.status.state === "working"} aria-label={`Export ${p.title} as PDF`} title="Lay out the whole book and print it: choose Save as PDF in the print dialog">
+                    PDF
+                  </button>
                   <button type="button" onClick={() => setRenaming({ id: p.id, value: p.title })} aria-label={`Rename ${p.title}`}>
                     Rename
                   </button>
@@ -184,6 +192,7 @@ export function ProjectsScreen({ store, onOpen, saveFile = saveProjectFile, remi
           ))}
         </ul>
       )}
+      <BookExportDialog status={bookExport.status} onCancel={bookExport.cancel} onClose={bookExport.close} />
     </main>
   );
 }

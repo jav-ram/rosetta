@@ -81,5 +81,15 @@
       { "name": "height", "type": "string", "description": "For art-top and art-bottom: how tall the band is, as a length (90mm, 3in) or a percentage of the page height (40%). The theme sets a default." },
       { "name": "side", "type": "enum", "values": ["left"], "description": "left: the page is a left-hand page, with a blank page before it when it would otherwise be a right-hand one. For two pages of art that face each other, give it to the first." }
     ]
+  },
+  {
+    "name": "toc",
+    "description": "A table of contents, made from the headings of the whole book when it is exported, with the page number of each. It takes the room of a page or two where it is written.",
+    "form": "leaf",
+    "kind": "leaf",
+    "attributes": [
+      { "name": "title", "type": "string", "default": "Contents", "description": "The heading shown above the list." },
+      { "name": "depth", "type": "enum", "values": ["1", "2", "3"], "default": "2", "description": "How many heading levels are listed: 1 is the chapter titles (#), 2 adds the ## headings, 3 adds ###." }
+    ]
   }
 ]

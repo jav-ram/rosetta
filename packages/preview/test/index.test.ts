@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { BLANK_PAGE_SCRIPT, buildDocument, createPreview, defaultResolveImage, imageSources, PAGE_ART_SCRIPT, PAGE_NUMBERS_SCRIPT, PLACED_IMAGES_SCRIPT, SPREADS_SCRIPT, resolveImages, FILL_COLUMNS_SCRIPT, MESSAGE_TYPE, OVERSIZED_SCRIPT, PARITY_PAGE_SCRIPT, TABLE_HEADER_SCRIPT } from "../src/index";
+import { addContents, BLANK_PAGE_SCRIPT, FILL_CONTENTS_SCRIPT, BOOK_MESSAGE_TYPE, buildBookDocument, buildDocument, createBookLayout, WAIT_FOR_IMAGES_SCRIPT, createPreview, defaultResolveImage, imageSources, PAGE_ART_SCRIPT, PAGE_NUMBERS_SCRIPT, PLACED_IMAGES_SCRIPT, SPREADS_SCRIPT, resolveImages, FILL_COLUMNS_SCRIPT, MESSAGE_TYPE, OVERSIZED_SCRIPT, PARITY_PAGE_SCRIPT, TABLE_HEADER_SCRIPT } from "../src/index";
 
 const pagedUrl = "/paged.polyfill.js";
 // jsdom has no layout; scrolling does nothing there.
@@ -750,5 +750,341 @@ describe("placed images", () => {
     const html = buildDocument(input, { pagedUrl, id: "r1" });
     expect(html.indexOf("findPlacedImages(document")).toBeGreaterThan(html.indexOf("PagedPolyfill.preview()"));
     expect(html).toContain("images: images");
+  });
+});
+
+describe("the whole book", () => {
+  const bookInput = (chapters: { html: string; startOn?: "next-page" | "right-page" }[] = [{ html: "<h1>One</h1><p>a</p>" }, { html: "<h1>Two</h1>", startOn: "right-page" }, { html: "<h1>Three</h1>" }]) => ({ chapters, css: ".rosetta-document { color: red; }" });
+  const build = (input = bookInput(), extra = {}) => buildBookDocument(input, { pagedUrl, id: "book1", ...extra });
+  const body = (html: string) => /<div class="rosetta-document">([\s\S]*)<\/div>\n<script>/.exec(html)![1]!;
+
+  test("is one document: the chapters follow each other, each with its own start", () => {
+    const doc = body(build());
+    expect(doc).toBe(
+      '<div class="rosetta-chapter-start rosetta-start-first"></div><h1>One</h1><p>a</p>\n' +
+        '<div class="rosetta-chapter-start rosetta-start-right"></div><h1>Two</h1>\n' +
+        '<div class="rosetta-chapter-start"></div><h1>Three</h1>',
+    );
+  });
+  test("has the theme's CSS and Paged.js, and none of the preview's screen styling (grey desk, pages shrunk to fit)", () => {
+    const html = build();
+    expect(html).toContain(".rosetta-document { color: red; }");
+    expect(html).toContain('<script src="/paged.polyfill.js"></script>');
+    expect(html).not.toContain("#6f7480");
+    expect(html).not.toContain("fitToWidth");
+  });
+  test("every chapter starts on a new page, the first on page 1, a right-page chapter on a right-hand page", () => {
+    const html = build();
+    expect(html).toMatch(/\.rosetta-chapter-start \{[^}]*break-before: page/);
+    expect(html).toMatch(/\.rosetta-start-first \{ break-before: auto/);
+    expect(html).toMatch(/\.rosetta-start-right \{ break-before: right/);
+    expect(html).toMatch(/\.rosetta-start-left \{ break-before: left/);
+  });
+  test("a chapter that opens with art that must be a left-hand page asks for one, whatever its own rule says; the very first needs a blank page of its own", () => {
+    const art = '<div class="rosetta-page" data-template="art-full" data-art="a" data-side="left"></div><h1>T</h1>';
+    const doc = body(build(bookInput([{ html: art, startOn: "right-page" }, { html: "<p>x</p>" }, { html: art }])));
+    expect(doc.startsWith('<div class="rosetta-blank-page"></div><div class="rosetta-chapter-start rosetta-start-first rosetta-start-left"></div>')).toBe(true);
+    expect([...doc.matchAll(/<div class="(rosetta-chapter-start[^"]*)"><\/div>/g)].map((m) => m[1])).toEqual(["rosetta-chapter-start rosetta-start-first rosetta-start-left", "rosetta-chapter-start", "rosetta-chapter-start rosetta-start-left"]);
+    expect(doc.match(/rosetta-blank-page/g)).toHaveLength(1);
+  });
+  test("a marker that follows a chapter's start has no break before it (written after the theme's CSS)", () => {
+    const html = build();
+    expect(html.indexOf("break-before: auto; }\n</style>")).toBeGreaterThan(html.indexOf(".rosetta-document { color: red; }"));
+  });
+  test("images are given the address the caller says, or as in the preview when it says nothing", () => {
+    const html = build(bookInput([{ html: '<img src="map.png"><img src="x.png"><div data-art="a.png"></div>' }]), { resolveImage: (s: string) => (s === "map.png" ? "blob:original" : undefined) });
+    expect(html).toContain('src="blob:original"');
+    expect(html).toContain("data:image/svg"); // x.png: a placeholder
+    expect(html).toContain('data-art-src="data:image/svg');
+  });
+  test("what is on the screen is printed: backgrounds are not left to the dialog's settings", () => {
+    expect(build()).toContain("print-color-adjust: exact");
+  });
+  test("the book is laid out with the same helpers as the preview, and reports progress and when the images are in", () => {
+    const html = build();
+    for (const fn of ["installTableHeaderRepeat", "installPageArt", "findOversized", "fillColumns", "markBlankPages", "waitForImages"]) expect(html, fn).toContain(`function ${fn}`);
+    expect(html).toContain("afterPageLayout.register");
+    expect(html.indexOf("waitForImages(document")).toBeGreaterThan(html.indexOf("PagedPolyfill.preview()"));
+    expect(html).not.toContain("startPageNumbers(document"); // Paged.js numbers the pages from 1 itself (only a cover moves the start)
+    expect(html).not.toContain("hideParityPage"); // and keeps left and right in step
+  });
+
+  describe("waiting for the images", () => {
+    const run = (waitMs: number, report: (l: number, t: number) => void) => (new Function(`${WAIT_FOR_IMAGES_SCRIPT}; return waitForImages;`)() as (d: Document, ms: number, r: typeof report) => Promise<number>)(document, waitMs, report);
+    const image = (state: "loaded" | "broken" | "pending") => {
+      const img = document.createElement("img");
+      Object.defineProperty(img, "complete", { value: state !== "pending" });
+      Object.defineProperty(img, "naturalWidth", { value: state === "loaded" ? 10 : 0 });
+      document.body.append(img);
+      return img;
+    };
+    beforeEach(() => (document.body.innerHTML = ""));
+    afterEach(() => (document.body.innerHTML = ""));
+
+    test("no images: nothing to wait for", async () => {
+      expect(await run(50, () => {})).toBe(0);
+    });
+    test("images that are in already, and one that is broken, are counted", async () => {
+      image("loaded");
+      image("broken");
+      expect(await run(50, () => {})).toBe(1);
+    });
+    test("one that is still loading is waited for, and reported when it arrives", async () => {
+      const seen: string[] = [];
+      const pending = image("pending");
+      const done = run(1000, (l, t) => seen.push(`${l}/${t}`));
+      pending.dispatchEvent(new Event("load"));
+      expect(await done).toBe(0);
+      expect(seen).toEqual(["0/1", "0/1", "1/1"]);
+    });
+    test("one that never arrives is given up on after the time given, and counts as missing", async () => {
+      image("pending");
+      const started = Date.now();
+      expect(await run(40, () => {})).toBe(1);
+      expect(Date.now() - started).toBeLessThan(1000);
+    });
+  });
+
+  describe("createBookLayout", () => {
+    let host: HTMLElement;
+    beforeEach(() => {
+      host = document.createElement("div");
+      document.body.append(host);
+    });
+    afterEach(() => host.remove());
+    const frame = () => host.querySelector("iframe") as HTMLIFrameElement | null;
+    const say = (iframe: HTMLIFrameElement, data: object) => {
+      const id = /var id = "(book\d+)"/.exec(iframe.srcdoc)![1];
+      window.dispatchEvent(new MessageEvent("message", { data: { type: BOOK_MESSAGE_TYPE, id, ...data }, source: iframe.contentWindow }));
+    };
+
+    test("lays the book out in a frame that is off the screen but has its full size, and resolves when it is all there", async () => {
+      const layout = createBookLayout(host, { pagedUrl });
+      const pages: number[] = [];
+      const images: string[] = [];
+      const done = layout.render(bookInput(), { onPage: (n) => pages.push(n), onImages: (l, t) => images.push(`${l}/${t}`) });
+      expect(frame()!.style.cssText).toContain("left: -10000px");
+      expect(frame()!.srcdoc).toContain("<h1>Two</h1>");
+      say(frame()!, { progress: 5 });
+      say(frame()!, { progress: 12 });
+      say(frame()!, { images: { loaded: 1, total: 2 } });
+      say(frame()!, { done: true, pages: 12, layoutMs: 300, oversized: [], missingImages: 0 });
+      expect(await done).toEqual({ pages: 12, layoutMs: 300, oversized: [] });
+      expect(pages).toEqual([5, 12]);
+      expect(images).toEqual(["1/2"]);
+      expect(frame()).not.toBeNull(); // kept for printing
+    });
+    test("messages from another render or another window are ignored", async () => {
+      const layout = createBookLayout(host, { pagedUrl });
+      const done = layout.render(bookInput());
+      window.dispatchEvent(new MessageEvent("message", { data: { type: BOOK_MESSAGE_TYPE, id: "book1", done: true, pages: 99 }, source: window }));
+      window.dispatchEvent(new MessageEvent("message", { data: { type: BOOK_MESSAGE_TYPE, id: "other", done: true, pages: 98 }, source: frame()!.contentWindow }));
+      say(frame()!, { done: true, pages: 3, layoutMs: 1 });
+      expect((await done).pages).toBe(3);
+    });
+    test("a failure in Paged.js rejects, and the frame is removed", async () => {
+      const layout = createBookLayout(host, { pagedUrl });
+      const done = layout.render(bookInput());
+      say(frame()!, { error: "Paged.js did not load" });
+      await expect(done).rejects.toThrow("Paged.js did not load");
+      expect(frame()).toBeNull();
+    });
+    test("images that did not load are a failure: the book would print with gaps", async () => {
+      const layout = createBookLayout(host, { pagedUrl });
+      const done = layout.render(bookInput());
+      say(frame()!, { done: true, pages: 3, layoutMs: 1, missingImages: 2 });
+      await expect(done).rejects.toThrow("2 images could not be loaded");
+    });
+    test("cancelling rejects with an abort and removes the frame; a signal that is already aborted does not start", async () => {
+      const layout = createBookLayout(host, { pagedUrl });
+      const controller = new AbortController();
+      const done = layout.render(bookInput(), { signal: controller.signal });
+      controller.abort();
+      await expect(done).rejects.toMatchObject({ name: "AbortError" });
+      expect(frame()).toBeNull();
+      const again = new AbortController();
+      again.abort();
+      await expect(layout.render(bookInput(), { signal: again.signal })).rejects.toMatchObject({ name: "AbortError" });
+    });
+    test("takes too long: rejects", async () => {
+      vi.useFakeTimers();
+      const layout = createBookLayout(host, { pagedUrl, timeoutMs: 120_000 });
+      const done = layout.render(bookInput());
+      const failed = expect(done).rejects.toThrow("took more than 2 minutes");
+      await vi.advanceTimersByTimeAsync(120_001);
+      await failed;
+      vi.useRealTimers();
+    });
+    test("a new render replaces the frame of the one before", async () => {
+      const layout = createBookLayout(host, { pagedUrl });
+      const first = layout.render(bookInput());
+      const settled = expect(first).rejects.toMatchObject({ name: "AbortError" });
+      void layout.render(bookInput());
+      await settled;
+      expect(host.querySelectorAll("iframe")).toHaveLength(1);
+    });
+    test("printing opens the dialog of the laid-out book, and resolves when it is closed; with no book it says so", async () => {
+      const layout = createBookLayout(host, { pagedUrl });
+      await expect(layout.print()).rejects.toThrow("no book to print");
+      const done = layout.render(bookInput());
+      say(frame()!, { done: true, pages: 2, layoutMs: 1 });
+      await done;
+      const win = frame()!.contentWindow!;
+      const calls: string[] = [];
+      win.print = () => {
+        calls.push("print");
+        win.dispatchEvent(new Event("afterprint"));
+      };
+      win.focus = () => void calls.push("focus");
+      await layout.print();
+      expect(calls).toEqual(["focus", "print"]);
+    });
+    test("destroy removes the frame", async () => {
+      const layout = createBookLayout(host, { pagedUrl });
+      const done = layout.render(bookInput());
+      say(frame()!, { done: true, pages: 2, layoutMs: 1 });
+      await done;
+      layout.destroy();
+      expect(frame()).toBeNull();
+    });
+  });
+});
+
+describe("the table of contents", () => {
+  const toc = (attrs = "") => `<div class="rosetta-toc" data-component="toc" data-kind="leaf"${attrs}>\n</div>`;
+  const chapters = [`<h1>Contents</h1>${toc()}`, '<h1>The Crypt</h1><p>x</p><h2>Rats</h2><h3>Big rats</h3>', '<div class="rosetta-layout" data-component="layout"><h1>Epilogue</h1><h2>The end</h2></div>'];
+  const listed = (html: string) => {
+    const doc = new DOMParser().parseFromString(`<body>${html}</body>`, "text/html");
+    return [...doc.querySelectorAll(".rosetta-contents li")].map((li) => `${li.getAttribute("data-level")}:${li.textContent}`);
+  };
+
+  test("a book with no toc is left exactly as it is", () => {
+    const html = ["<h1>One</h1><p>a</p>", "<h2>Two</h2>"];
+    expect(addContents(html)).toEqual({ html, entries: [] });
+  });
+  test("the toc is replaced by the headings of every chapter in book order, to the depth asked for (default 2)", () => {
+    const result = addContents(chapters);
+    expect(listed(result.html[0]!)).toEqual(["1:Contents", "1:The Crypt", "2:Rats", "1:Epilogue", "2:The end"]);
+    expect(result.entries.map((e) => `${e.level}:${e.text}`)).toEqual(["1:Contents", "1:The Crypt", "2:Rats", "3:Big rats", "1:Epilogue", "2:The end"]);
+    expect(listed(addContents([toc(' data-depth="1"'), ...chapters.slice(1)]).html[0]!)).toEqual(["1:The Crypt", "1:Epilogue"]);
+    expect(listed(addContents([toc(' data-depth="3"'), ...chapters.slice(1)]).html[0]!)).toEqual(["1:The Crypt", "2:Rats", "3:Big rats", "1:Epilogue", "2:The end"]);
+  });
+  test("a depth that is not 1 to 3 is read as 2, and a missing or empty title as Contents", () => {
+    expect(listed(addContents([toc(' data-depth="9"'), "<h3>Deep</h3><h2>Shallow</h2>"]).html[0]!)).toEqual(["2:Shallow"]);
+    expect(new DOMParser().parseFromString(addContents([toc(' data-title="  "'), "<h1>A</h1>"]).html[0]!, "text/html").querySelector(".rosetta-contents-title")!.textContent).toBe("Contents");
+    expect(new DOMParser().parseFromString(addContents([toc(' data-title="Table of Contents"'), "<h1>A</h1>"]).html[0]!, "text/html").querySelector(".rosetta-contents-title")!.textContent).toBe("Table of Contents");
+  });
+  test("every entry links to its heading, which has that id", () => {
+    const result = addContents(chapters);
+    const all = new DOMParser().parseFromString(`<body>${result.html.join("")}</body>`, "text/html");
+    for (const a of all.querySelectorAll(".rosetta-contents a")) expect(all.querySelector(a.getAttribute("href")!), a.textContent!).not.toBeNull();
+    expect(all.querySelector("#rosetta-h1")!.textContent).toBe("The Crypt");
+    expect(new Set(result.entries.map((e) => e.id)).size).toBe(result.entries.length);
+  });
+  test("headings inside a component (a sidebar's title, read-aloud text) are not sections of the book; an empty heading is not listed", () => {
+    const html = ['<h1>A</h1><div class="rosetta-sidebar" data-component="sidebar"><h3 class="rosetta-title">Variant</h3></div><h2></h2>', toc()];
+    expect(listed(addContents(html).html[1]!)).toEqual(["1:A"]);
+  });
+  test("what an author wrote as a title cannot add markup to the page", () => {
+    const html = ["<h1>&lt;img src=x onerror=alert(1)&gt;</h1>", toc()];
+    const out = addContents(html).html[1]!;
+    expect(out).not.toContain("<img");
+    expect(listed(out)).toEqual(["1:<img src=x onerror=alert(1)>"]);
+  });
+  test("two tables of contents are both made", () => {
+    const out = addContents([toc(), "<h1>A</h1>", toc(' data-depth="1"')]).html;
+    expect(listed(out[0]!)).toEqual(["1:A"]);
+    expect(listed(out[2]!)).toEqual(["1:A"]);
+  });
+  describe("the page numbers", () => {
+    const run = (html: string) => {
+      document.body.innerHTML = html;
+      const filled = (new Function(`${FILL_CONTENTS_SCRIPT}; return fillContents;`)() as (d: Document) => number)(document);
+      return { filled, numbers: [...document.querySelectorAll(".rosetta-contents a")].map((a) => a.getAttribute("data-page")) };
+    };
+    const page = (n: number, inner: string) => `<div class="pagedjs_page" data-page-number="${n}">${inner}</div>`;
+    const link = (id: string) => `<li><a href="#${id}">x</a></li>`;
+
+    test("each entry gets the number of the page its heading is on, wherever the list itself is", () => {
+      const { filled, numbers } = run(page(1, `<nav class="rosetta-contents"><ol>${link("rosetta-h1")}${link("rosetta-h2")}${link("rosetta-h3")}</ol></nav>`) + page(2, '<h1 id="rosetta-h1">A</h1>') + page(3, '<h2 id="rosetta-h2">B</h2>') + page(7, '<h1 id="rosetta-h3">C</h1>'));
+      expect(filled).toBe(3);
+      expect(numbers).toEqual(["2", "3", "7"]);
+    });
+    test("a list that runs over two pages is filled on both, and a heading that is not there is left without a number", () => {
+      const { filled, numbers } = run(page(1, `<nav class="rosetta-contents"><ol>${link("rosetta-h1")}</ol></nav>`) + page(2, `<nav class="rosetta-contents"><ol>${link("rosetta-h1")}${link("rosetta-h9")}</ol></nav>`) + page(3, '<h1 id="rosetta-h1">A</h1>'));
+      expect(filled).toBe(2);
+      expect(numbers).toEqual(["3", "3", null]);
+    });
+    test("a heading that is on two pages (split) counts for the first", () => {
+      expect(run(page(1, `<nav class="rosetta-contents"><ol>${link("rosetta-h1")}</ol></nav>`) + page(4, '<h1 id="rosetta-h1">A</h1>') + page(5, '<h1 id="rosetta-h1">A</h1>')).numbers).toEqual(["4"]);
+    });
+    test("the book's document asks for it after layout", () => {
+      const doc = buildBookDocument({ chapters: [{ html: "<h1>A</h1>" }], css: "" }, { pagedUrl, id: "book1" });
+      expect(doc.indexOf("fillContents(document, 0)")).toBeGreaterThan(doc.indexOf("PagedPolyfill.preview()"));
+    });
+  });
+
+  test("the book's document has the list, with the headings' ids, and no marker left", () => {
+    const doc = buildBookDocument({ chapters: chapters.map((html) => ({ html })), css: "" }, { pagedUrl, id: "book1" });
+    expect(doc).toContain('<nav class="rosetta-contents"');
+    expect(doc).toContain('<a href="#rosetta-h1">');
+    expect(doc).toContain('<h1 id="rosetta-h1">The Crypt</h1>');
+    expect(doc).not.toContain('class="rosetta-toc"');
+  });
+});
+
+describe("the front cover", () => {
+  const chapters = [{ html: "<h1>One</h1>" }, { html: "<h1>Two</h1>", startOn: "right-page" as const }];
+  const build = (cover: { title: string; art?: string } | undefined, resolveImage?: (s: string) => string | undefined, list = chapters) => buildBookDocument({ cover, chapters: list, css: "" }, { pagedUrl, id: "book1", resolveImage });
+  const bodyOf = (html: string) => /<div class="rosetta-document">([\s\S]*)<\/div>\n<script>/.exec(html)![1]!;
+
+  test("is the first page: a page of art with the title, then a blank page behind it, then the chapters", () => {
+    const doc = bodyOf(build({ title: "The Warcaller", art: "dragon.png" }, (s) => (s === "dragon.png" ? "blob:cover" : undefined)));
+    expect(doc.startsWith('<div class="rosetta-cover"><div class="rosetta-page" data-component="page" data-kind="leaf" data-template="cover" data-art="dragon.png" data-art-src="blob:cover"></div><div class="rosetta-cover-title">The Warcaller</div></div><div class="rosetta-blank-page"></div><div class="rosetta-chapter-start">')).toBe(true);
+  });
+  test("with no picture it is the title on a plain page", () => {
+    const doc = bodyOf(build({ title: "Plain" }));
+    expect(doc).toContain('data-template="cover"></div><div class="rosetta-cover-title">Plain</div>');
+    expect(doc).not.toContain("data-art");
+  });
+  test("a title cannot add markup, and a name with quotes stays in its attribute", () => {
+    const doc = bodyOf(build({ title: "<img src=x onerror=1> & more", art: 'a "b".png' }));
+    expect(doc).toContain("&lt;img src=x onerror=1&gt; &amp; more");
+    expect(doc).not.toContain("<img src=x");
+    expect(doc).toContain('data-art="a &quot;b&quot;.png"');
+  });
+  test("the first chapter is not the start of the document any more, so it breaks like the others", () => {
+    const withCover = bodyOf(build({ title: "T" }));
+    expect(withCover).toContain('<div class="rosetta-chapter-start"></div><h1>One</h1>');
+    expect(withCover).not.toContain("rosetta-start-first");
+    expect(bodyOf(build(undefined))).toContain("rosetta-start-first");
+  });
+  test("a first chapter that opens with a left-hand page of art needs no blank page of its own: it breaks to the left like the others", () => {
+    const art = '<div class="rosetta-page" data-template="art-full" data-art="a" data-side="left"></div><h1>T</h1>';
+    const doc = bodyOf(build({ title: "T" }, undefined, [{ html: art }]));
+    expect(doc).toContain('<div class="rosetta-chapter-start rosetta-start-left"></div>');
+    expect(doc.match(/rosetta-blank-page/g)).toHaveLength(1); // only the one behind the cover
+  });
+  test("the cover and its blank page are not counted: the pages are numbered from the first chapter, and the contents agree", () => {
+    const html = build({ title: "T" });
+    expect(html).toContain("startPageNumbers(document, -1)");
+    expect(html).toContain("fillContents(document, 2)");
+    const without = build(undefined);
+    expect(without).not.toContain("startPageNumbers(document");
+    expect(without).toContain("fillContents(document, 0)");
+  });
+  test("the contents' page numbers skip the cover and its blank page", () => {
+    document.body.innerHTML = `<div class="pagedjs_page" data-page-number="1"><nav class="rosetta-contents"><ol><li><a href="#rosetta-h0">A</a></li></ol></nav></div><div class="pagedjs_page" data-page-number="3"><h1 id="rosetta-h0">A</h1></div>`;
+    (new Function(`${FILL_CONTENTS_SCRIPT}; return fillContents;`)() as (d: Document, before: number) => number)(document, 2);
+    expect(document.querySelector("a")!.getAttribute("data-page")).toBe("1");
+  });
+  test("the art hook gives the cover page its class", () => {
+    const hooks: ((page: object, content: Element) => void)[] = [];
+    (new Function(`${PAGE_ART_SCRIPT}; return installPageArt;`)() as (h: object) => void)({ beforePageLayout: { register: (f: (page: object, content: Element) => void) => hooks.push(f) } });
+    const page = { element: document.createElement("div"), pagebox: document.createElement("div") };
+    const content = Object.assign(document.createElement("div"), { innerHTML: bodyOf(build({ title: "T", art: "a.png" }, () => "blob:c")) });
+    hooks[0]!(page, content);
+    expect(page.element.classList.contains("has-cover")).toBe(true);
+    expect((page.pagebox.querySelector(".rosetta-art-band img") as HTMLImageElement).getAttribute("src")).toBe("blob:c");
   });
 });

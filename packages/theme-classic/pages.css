@@ -223,6 +223,68 @@
   background-color: var(--color-art-number-bg);
 }
 
+/*
+ * Table of contents: an entry is its title, a dotted leader, and the number of the page its heading is on. The preview's book layout
+ * writes that number into data-page once the pages are laid out (Paged.js's target-counter does the same, but looks every entry up on
+ * every page, which makes the layout almost twice as slow for a long book). A table of contents is not a heading of the book, so it is kept out of the running
+ * header (its title is an h2, which does not set it).
+ */
+.rosetta-contents a {
+  display: flex;
+  align-items: baseline;
+}
+
+.rosetta-contents-dots {
+  flex: 1 1 auto;
+  min-width: 12pt;
+  margin-left: var(--spacing-field);
+  margin-right: var(--spacing-field);
+  border-bottom: var(--border-leader);
+}
+
+.rosetta-contents a::after {
+  content: attr(data-page);
+  font-weight: normal;
+}
+
+/* A marker that stands for the contents takes room in the book only where it is not replaced (it is a bar in the editor). */
+.rosetta-document .rosetta-toc {
+  break-inside: avoid;
+}
+
+/*
+ * The front cover: the first page of an exported book. The preview's book layout makes it a page of art (the template cover: its
+ * picture fills the page, behind everything) with the book's title in the middle of the page. It has no running header and no page
+ * number, and a plain color when there is no picture. The blank page behind it is a blank page like any other.
+ */
+.pagedjs_page.has-cover,
+.pagedjs_page.has-cover .pagedjs_pagebox {
+  background-color: var(--color-cover-bg);
+}
+
+.pagedjs_page.has-cover .pagedjs_margin-top,
+.pagedjs_page.has-cover .pagedjs_margin-bottom {
+  display: none;
+}
+
+.pagedjs_page.has-cover .pagedjs_page_content {
+  position: relative;
+  z-index: 1;
+}
+
+.rosetta-cover-title {
+  column-span: all;
+  margin-top: var(--spacing-cover-title-offset);
+  padding: var(--spacing-frame);
+  font-family: var(--font-heading);
+  font-size: var(--font-size-cover);
+  font-weight: bold;
+  line-height: var(--font-line-height);
+  text-align: center;
+  color: var(--color-cover-text);
+  background-color: var(--color-cover-title-bg);
+}
+
 /* Page break. */
 .rosetta-pagebreak {
   break-after: page;

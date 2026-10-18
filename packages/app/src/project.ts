@@ -122,6 +122,18 @@ export class ProjectSession {
     );
   }
 
+  /**
+   * The front cover of the exported book: `{}` for a cover with the book's title on a plain page, with a `title` of its own and an
+   * `image` (one of the project's images) as wanted, or `null` for no cover. Nothing in it can move a chapter, so no page numbers change.
+   */
+  setCover(cover: Manifest["cover"] | null): void {
+    const { cover: _old, ...rest } = this.current;
+    this.current = cover ? { ...rest, cover } : rest;
+    this.manifestDirty = true;
+    this.schedule();
+    this.emit();
+  }
+
   deleteChapter(chapterId: string): void {
     if (!this.has(chapterId)) return;
     this.dirty.delete(chapterId);

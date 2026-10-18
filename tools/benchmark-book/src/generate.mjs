@@ -56,6 +56,12 @@ export function generateBook({ pages, seed = 1, name = `Benchmark book (${pages}
 
     const parts = [`# ${chapterTitle}`];
     let size = 1; // a chapter always starts on a new page
+    if (c === 1) {
+      // The table of contents opens the book.
+      const contents = use("toc", components.toc());
+      parts.push(contents.markdown);
+      size += contents.pages;
+    }
     let sincePicture = 0;
     let section = 0;
 

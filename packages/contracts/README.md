@@ -21,6 +21,10 @@ The language-neutral contracts between Rosetta packages. Everything starts from 
 
 Rules that a type cannot express (for example "a block component must declare `breakable`; a leaf component must not") are in the schema as `if/then` and enforced by the validators.
 
+## Exporting a book
+
+`Exporter` (`exportBook(projectId, { onProgress, signal })` giving `{ pages, warnings }`, and `ExportError` with the codes `empty`, `cancelled` and `failed`) is how a whole project becomes a book to print or keep. `BrowserPrintExporter` implements it in v1. `findAsset(assets, src)` is how a chapter names an image: by file name or by id.
+
 ## Use
 
 TypeScript:

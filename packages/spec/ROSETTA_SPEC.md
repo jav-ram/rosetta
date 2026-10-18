@@ -303,6 +303,7 @@ Built-in Markdown elements have fixed defaults:
 | `layout` | leaf | leaf | n/a |
 | `figure` | leaf | leaf | n/a (never splits) |
 | `page` | leaf | leaf | n/a |
+| `toc` | leaf | leaf | n/a |
 
 #### `statblock`
 
@@ -389,9 +390,19 @@ It was a dark night in Greyhollow when the bells began to ring...
 ::page{template="art-full" art="map-right.jpg"}
 ```
 
+#### `toc`
+
+- Form: leaf, with no scope.
+- Attributes: `title` (string, optional; default `Contents`): the heading shown above the list. `depth` (enum: `1`, `2`, `3`; default `2`): how many heading levels are listed, `1` being the chapter titles (`#`), `2` adding `##` headings and `3` adding `###`.
+- Stands for a **table of contents of the whole book**, with the page number of each entry. It is made where the whole book is laid out (the PDF export), from the headings of every chapter in book order: headings inside components (a sidebar's title, read-aloud text) are not listed. Each entry is a link to its heading and shows the number of the page the heading is on, so the numbers are those of the printed pages.
+- Where only a single chapter is shown (the editor, a chapter's preview) the other chapters are not known, so the component is shown as a marker that says what it will be.
+- Write it once, where the contents should be, for example in a chapter of its own: `# Contents` followed by `::toc`. The HTML is the element with the component's `data-*` attributes and no content: `<div class="rosetta-toc" data-title="…" data-depth="2">`.
+- A `depth` that is not `1`, `2` or `3` is reported (`attr.enum`) and read as `2`.
+- Example: `::toc{title="Table of Contents" depth=3}`
+
 ### 9.3 Reserved names
 
-The names `toc`, `spell`, `item` and `roll` are reserved for later milestones. Until a definition for them is loaded, they are treated as unknown components (section 6).
+The names `spell`, `item` and `roll` are reserved for later milestones. Until a definition for them is loaded, they are treated as unknown components (section 6).
 
 ## 10. Conformance
 
